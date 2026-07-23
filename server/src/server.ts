@@ -3,9 +3,7 @@ dotenv.config();
 
 import path from 'path';
 import express from 'express';
-import fs from 'fs';
 import cors from 'cors';
-import crypto from 'crypto';
 import { createServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken'; // Added standard JWT verification
@@ -23,18 +21,9 @@ import { db } from './db';
 const app = express();
 const httpServer = createServer(app);
 
-// Build version emitted to clients so they can auto-reload after a new deploy.
-// Hash of index.html changes on every Vite build (new hashed bundle filenames),
-// so it uniquely identifies the deployed frontend.
+// Build version emitted to clients
 const getBuildVersion = (): string => {
-  if (process.env.BUILD_ID) return process.env.BUILD_ID;
-  try {
-    const clientDir = process.env.CLIENT_DIST_DIR || path.join(__dirname, '../../client');
-    const indexHtml = fs.readFileSync(path.join(clientDir, 'index.html'), 'utf8');
-    return crypto.createHash('sha1').update(indexHtml).digest('hex').slice(0, 12);
-  } catch {
-    return String(Date.now());
-  }
+  return process.env.BUILD_ID || String(Date.now());
 };
 const BUILD_VERSION = getBuildVersion();
 
@@ -264,29 +253,7 @@ app.use('/api/settings', settingsRoutes);
 // Start background cron jobs
 startCronJobs();
 
-// Serve frontend static files
-const clientDir = process.env.CLIENT_DIST_DIR || path.join(__dirname, '../../client/dist');
-if (fs.existsSync(clientDir)) {
-  app.use(
-    express.static(clientDir, {
-      setHeaders: (res, filePath) => {
-        // index.html must always be revalidated so a redeploy is picked up; its
-        // hashed asset references are what point the browser at fresh bundles.
-        if (path.basename(filePath) === 'index.html') {
-          res.setHeader('Cache-Control', 'no-cache');
-        } else {
-          // Vite fingerprints assets by content hash, so they are safe to cache forever.
-          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        }
-      },
-    })
-  );
-  app.get('*', (_req, res) => {
-    // The SPA fallback also serves index.html, so keep it uncached too.
-    res.setHeader('Cache-Control', 'no-cache');
-    res.sendFile(path.join(clientDir, 'index.html'));
-  });
-}
+// Server listener
 
 const port = process.env.PORT || 4000;
 httpServer.listen(port, () => {
