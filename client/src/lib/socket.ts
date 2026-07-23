@@ -12,25 +12,6 @@ const getSocketUrl = () => {
     return 'http://localhost:4000';
 };
 
-const getAccessToken = () => {
-    if (typeof window === 'undefined') return null;
-
-    const directToken = localStorage.getItem('jwt_token');
-    if (directToken) return directToken;
-
-    const authStorageKey = Object.keys(localStorage).find((key) => key.endsWith('-auth-token'));
-    if (!authStorageKey) return null;
-
-    try {
-        const raw = localStorage.getItem(authStorageKey);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw) as { access_token?: string };
-        return parsed.access_token || null;
-    } catch {
-        return null;
-    }
-};
-
 class SocketService {
     private socket: Socket | null = null;
     private connectionPromise: Promise<void> | null = null;
@@ -38,12 +19,8 @@ class SocketService {
     private maxReconnectAttempts = 5;
     private knownBuildVersion: string | null = null;
 
-    // Build id compiled into THIS bundle at build time (see Dockerfile/CI).
-    // Empty in local dev, in which case the stale-bundle check is skipped.
     private readonly clientBuildId = (import.meta.env.VITE_BUILD_ID || '').trim();
 
-    // Guard against reload loops: only auto-reload once per target version per
-    // tab session, in case a cache stubbornly keeps serving the old document.
     private alreadyReloadedFor(version: string): boolean {
         try {
             return sessionStorage.getItem('app:reloaded-build') === version;
@@ -56,26 +33,15 @@ class SocketService {
         try {
             sessionStorage.setItem('app:reloaded-build', version);
         } catch {
-            /* sessionStorage unavailable (private mode); best-effort only */
         }
     }
 
-    // Keep the running app in sync with the deployed build.
     private handleServerVersion(version: string) {
         if (!version) return;
 
         if (this.knownBuildVersion === null) {
             this.knownBuildVersion = version;
-
-            // First load: the browser may have served a cached (old) index.html
-            // and bundle without revalidating. If the build id baked into this
-            // bundle differs from what the server is actually running, we're
-            // stale — reload once to pull the freshly deployed assets.
-            if (
-                this.clientBuildId &&
-                this.clientBuildId !== version &&
-                !this.alreadyReloadedFor(version)
-            ) {
+            if (this.clientBuildId && this.clientBuildId !== version && !this.alreadyReloadedFor(version)) {
                 this.markReloadedFor(version);
                 console.log('[Socket.io] Stale bundle detected on load, reloading…');
                 window.location.reload();
@@ -83,48 +49,9 @@ class SocketService {
             return;
         }
 
-        // A new build was deployed while this tab was open.
         if (this.knownBuildVersion !== version) {
             console.log('[Socket.io] New build detected, reloading…');
             window.location.reload();
-        }
-    }
-
-    private applyLatestAuthToken() {
-        if (!this.socket) return;
-
-        const token = getAccessToken();
-        const currentAuth = (this.socket.auth || {}) as { token?: string };
-
-        if (token) {
-            this.socket.auth = { ...currentAuth, token };
-        } else if (currentAuth.token) {
-            const { token: _token, ...rest } = currentAuth;
-            this.socket.auth = rest;
-        }
-    }
-
-    ensureAuthContext() {
-        if (!this.socket) return;
-
-        const nextToken = getAccessToken();
-        const currentToken = ((this.socket.auth || {}) as { token?: string }).token;
-
-        if (nextToken && currentToken !== nextToken) {
-            this.socket.auth = { ...(this.socket.auth as Record<string, unknown>), token: nextToken };
-            if (this.socket.connected) {
-                this.socket.disconnect().connect();
-            }
-            return;
-        }
-
-        if (!nextToken && currentToken) {
-            const currentAuth = (this.socket.auth || {}) as Record<string, unknown>;
-            delete currentAuth.token;
-            this.socket.auth = currentAuth;
-            if (this.socket.connected) {
-                this.socket.disconnect().connect();
-            }
         }
     }
 
@@ -136,11 +63,9 @@ class SocketService {
             this.socket = io(getSocketUrl(), {
                 reconnectionAttempts: this.maxReconnectAttempts,
                 timeout: 10000,
+                withCredentials: true, // Crucial for HttpOnly cookies!
             });
 
-            this.applyLatestAuthToken();
-
-            // Registered on the Socket instance, so it persists across reconnects.
             this.socket.on(SOCKET_EVENTS.SERVER_VERSION, (version: string) => {
                 this.handleServerVersion(version);
             });
@@ -161,6 +86,12 @@ class SocketService {
         });
 
         return this.connectionPromise;
+    }
+
+    reconnect() {
+        if (this.socket) {
+            this.socket.disconnect().connect();
+        }
     }
 
     joinAdmin() {
@@ -197,16 +128,18 @@ export const socketService = new SocketService();
 export const getSocket = () => {
     const existing = socketService.getSocketInstance();
     if (existing) {
-        socketService.ensureAuthContext();
         return existing;
     }
 
-    // Lazily initialize the singleton so callers can subscribe immediately.
     void socketService.connect().catch((error) => {
         console.warn('[Socket.io] Initial lazy connect failed:', error);
     });
 
     return socketService.getSocketInstance();
+};
+
+export const reconnectSocket = () => {
+    socketService.reconnect();
 };
 
 export { SOCKET_EVENTS };

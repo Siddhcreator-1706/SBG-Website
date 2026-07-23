@@ -19,5 +19,5 @@ export const db = new Pool({
   ssl: databaseUrl?.includes('localhost') ? false : { rejectUnauthorized: false },
   max: 50,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000, // Increased from 2000 to prevent Neon cold-start timeouts
 });

@@ -10,6 +10,7 @@ import jwt from 'jsonwebtoken'; // Added standard JWT verification
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 
 import bookingsRoutes from './routes/bookings';
 import adminRoutes from './routes/admin';
@@ -35,22 +36,20 @@ app.use(helmet());
 app.use(compression());
 app.use(morgan('tiny'));
 
+const envOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',').map(s => s.trim());
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'https://sbg-website-ashen.vercel.app',
+  ...envOrigins
+];
+
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://127.0.0.1:5173',
-    'http://localhost:3005',
-    'http://localhost:3006',
-    'http://127.0.0.1:3005',
-    'http://127.0.0.1:3006',
-    'https://SBG-Website.gdgdau.cloud',
-  ],
+  origin: allowedOrigins,
   credentials: true,
 }));
+app.use(cookieParser());
 app.use(express.json());
-
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3005').split(',').map(s => s.trim());
 
 type SocketUser = {
   id: string;
@@ -60,6 +59,12 @@ type SocketUser = {
 };
 
 const extractTokenFromSocket = (socket: Socket): string | null => {
+  const cookieStr = socket.handshake.headers.cookie;
+  if (cookieStr) {
+    const match = cookieStr.match(/jwt_token=([^;]+)/);
+    if (match) return match[1];
+  }
+
   const authToken = socket.handshake.auth?.token;
   if (typeof authToken === 'string' && authToken.trim()) {
     return authToken.trim();
@@ -183,7 +188,6 @@ io.on('connection', (socket) => {
   });
 });
 
-app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '5mb' }));
 
 function isBodyParserError(err: unknown): err is { type: string; message?: string } {

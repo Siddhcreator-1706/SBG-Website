@@ -114,11 +114,27 @@ router.post('/login', loginLimiter, async (req, res) => {
 
         const token = jwt.sign({ sub: user.id }, secret, { expiresIn: '7d' });
 
-        return res.json({ token });
+        res.cookie('jwt_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        return res.json({ message: 'Logged in successfully' });
     } catch (err: any) {
         console.error('Login error:', err);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
+});
+
+router.post('/logout', (req, res) => {
+    res.clearCookie('jwt_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+    });
+    return res.json({ message: 'Logged out successfully' });
 });
 
 function generateOTP(): string {

@@ -1,6 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-// Swap Supabase for your database pool
 import { db } from '../db'; 
 
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
@@ -31,9 +30,10 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       return next();
     }
 
-    const token = authHeader.startsWith('Bearer ')
+    // 1. Check for HttpOnly Cookie, fallback to Authorization Header
+    const token = req.cookies?.jwt_token || (authHeader.startsWith('Bearer ')
       ? authHeader.slice('Bearer '.length).trim()
-      : null;
+      : null);
 
     if (!token) {
       return res.status(401).json({ error: 'Missing authorization token' });

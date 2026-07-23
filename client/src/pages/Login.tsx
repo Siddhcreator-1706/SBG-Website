@@ -35,16 +35,16 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 interface LoginProps {
-  // Updated to accept the JWT token as a second argument
-  onLogin: (user: User, token?: string) => void;
+  onLogin: (user: User) => void;
 }
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 const registrationSchema = loginSchema.extend({
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   clubName: z.string().min(2, 'Club name is required'),
   groupCategory: z.enum(['A', 'B', 'C'], {
     required_error: "Please select a group category",
@@ -228,7 +228,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
 
       // 1. Call your custom backend login route instead of Supabase
-      const loginResponse = await apiRequest<{ token: string }>('/api/auth/login', {
+      await apiRequest<{ message: string }>('/api/auth/login', {
         method: 'POST',
         body: {
           email: values.email,
@@ -236,12 +236,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         },
       });
 
-      if (!loginResponse.token) {
-        throw new Error('Login failed: No token received');
-      }
-
-      // 2. Temporarily store the token so the profile API request below can use it
-      localStorage.setItem('jwt_token', loginResponse.token);
+      // 2. Fetch the profile data (cookie is sent automatically via credentials: include)
 
       // 3. Fetch the profile data using the new token
       const userProfile = await apiRequest<{
@@ -250,18 +245,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         name: string;
         role: Role;
         group?: ClubGroupType;
-      }>('/api/auth/profile', { auth: true });
+        logoUrl: string | null;
+      }>('/api/auth/profile');
 
       toastSuccess(`Welcome back, ${userProfile.name}!`);
       
-      // 4. Pass both the profile and the token back to App.tsx
-      onLogin(userProfile, loginResponse.token);
+      onLogin(userProfile as User);
 
     } catch (err) {
       console.error(err);
       setError(getErrorMessage(err, 'Authentication failed.'));
-      // Clean up if something failed mid-way
-      localStorage.removeItem('jwt_token');
     }
   };
 

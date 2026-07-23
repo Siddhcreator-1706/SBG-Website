@@ -1,5 +1,4 @@
 import express from 'express';
-// Swap Supabase for your database pool
 import { db } from '../db';
 import authMiddleware from '../middleware/auth';
 import { createNotification } from '../services/notification';

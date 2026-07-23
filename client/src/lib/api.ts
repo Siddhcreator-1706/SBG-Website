@@ -18,8 +18,7 @@ const getApiBaseUrl = () => {
 };
 
 const getJwtToken = () => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('jwt_token');
+  return null; // Deprecated: token is now handled via HttpOnly cookie
 };
 
 export const apiRequest = async <T>(path: string, options: ApiOptions = {}): Promise<T> => {
@@ -46,6 +45,7 @@ export const apiRequest = async <T>(path: string, options: ApiOptions = {}): Pro
     response = await fetch(url, {
       method,
       headers: requestHeaders,
+      credentials: 'include', // Automatically send and receive HttpOnly cookies
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (err) {

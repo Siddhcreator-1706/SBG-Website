@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { toast } from 'sonner';
+import { apiRequest } from '../lib/api';
 import {
   Dialog,
   DialogContent,
@@ -52,29 +53,22 @@ export function ChangePasswordModal({ open, onOpenChange, userEmail }: ChangePas
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem('jwt_token');
-      const response = await fetch('http://localhost:4000/api/auth/change-password', {
+      const response = await apiRequest<{ message: string }>('/api/auth/change-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ currentPassword, newPassword }),
+        body: { currentPassword, newPassword },
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to change password');
-      }
-
-      toast.success('Password changed successfully');
+      toast.success(response.message || 'Password updated successfully');
+      onOpenChange(false);
+      
+      // Reset form
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err.message || 'An error occurred');
+      
+    } catch (error: any) {
+      console.error('Password change error:', error);
+      toast.error(error.message || 'Failed to change password. Please check your current password.');
     } finally {
       setIsLoading(false);
     }

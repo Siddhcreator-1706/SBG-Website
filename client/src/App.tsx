@@ -3,21 +3,21 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/error-boundary';
+import { LoadingScreen } from './components/LoadingScreen';
 import Layout from './pages/Layout';
+import Login from './pages/Login';
+import LandingPage from './pages/LandingPage';
+import AboutSBG from './pages/AboutSBG';
+import ClubsCommitteesPage from './pages/ClubsCommitteesPage';
 const ClubDashboard = React.lazy(() => import('./lib/ClubDashboard'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
 const AdminVenues = React.lazy(() => import('./pages/AdminVenues'));
 const BookSlot = React.lazy(() => import('./pages/BookSlot'));
 const AdminClubs = React.lazy(() => import('./pages/AdminClubs'));
 const AdminRequests = React.lazy(() => import('./pages/AdminRequests'));
-
 const PolicyPage = React.lazy(() => import('./pages/PolicyPage'));
 const MyBookings = React.lazy(() => import('./pages/MyBookings'));
 const ClubMembers = React.lazy(() => import('./pages/ClubMembers'));
-const Login = React.lazy(() => import('./pages/Login'));
-const LandingPage = React.lazy(() => import('./pages/LandingPage'));
-const AboutSBG = React.lazy(() => import('./pages/AboutSBG'));
-const ClubsCommitteesPage = React.lazy(() => import('./pages/ClubsCommitteesPage'));
 const ClubCommittee = React.lazy(() => import('./pages/ClubCommittee'));
 const ManageEvents = React.lazy(() => import('./pages/ManageEvents'));
 const EventReports = React.lazy(() => import('./pages/EventReports'));
@@ -25,10 +25,9 @@ const AdminEventReports = React.lazy(() => import('./pages/AdminEventReports'));
 const Archives = React.lazy(() => import('./pages/Archives'));
 import { User } from './types';
 import { apiRequest } from './lib/api';
-import { getSocket, SOCKET_EVENTS } from './lib/socket';
+import { getSocket, reconnectSocket, SOCKET_EVENTS } from './lib/socket';
 
 const USER_STORAGE_KEY = 'sbg_user_profile';
-const TOKEN_KEY = 'jwt_token'; 
 
 const getCachedUser = (): User | null => {
   if (typeof window === 'undefined') return null;
@@ -62,7 +61,10 @@ const cacheUser = (nextUser: User | null) => {
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(() => getCachedUser());
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return !getCachedUser();
+  });
 
   // Establish the socket on every load (even anonymous) so the build-version
   // handshake can detect and recover from a stale, cached frontend bundle.
@@ -74,20 +76,8 @@ const App: React.FC = () => {
     let isMounted = true;
 
     const initAuth = async () => {
-      // 1. Check for standard JWT instead of Supabase session
-      const token = localStorage.getItem(TOKEN_KEY);
-      
-      if (!token) {
-        if (isMounted) {
-          handleSessionFailed();
-          setIsInitializing(false);
-        }
-        return;
-      }
-
       try {
-        // 2. Ask the backend to verify the token and return the profile
-        const userProfile = await apiRequest<User>('/api/auth/profile', { auth: true });
+        const userProfile = await apiRequest<User>('/api/auth/profile');
         
         if (!isMounted) return;
         setUser(userProfile);
@@ -111,17 +101,13 @@ const App: React.FC = () => {
   const handleSessionFailed = () => {
     setUser(null);
     cacheUser(null);
-    localStorage.removeItem(TOKEN_KEY);
   };
 
-  const handleLogin = (loggedInUser: User, token?: string) => {
-    // If your login component returns a token, save it for future requests
-    if (token) {
-      localStorage.setItem(TOKEN_KEY, token);
-    }
-    
+  const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
     cacheUser(loggedInUser);
+
+    reconnectSocket();
 
     // Join the appropriate socket room after login
     const socket = getSocket();
@@ -138,13 +124,16 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setUser(null);
     cacheUser(null);
-    localStorage.removeItem(TOKEN_KEY);
+    reconnectSocket();
     
-    // Optionally, alert the backend that the token should be invalidated if you build a logout route
-    // apiRequest('/api/auth/logout', { method: 'POST', auth: true }).catch(() => {});
+    try {
+      await apiRequest('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
   };
 
   // Global socket room joining
@@ -165,16 +154,15 @@ const App: React.FC = () => {
   }, [user]);
 
   if (isInitializing) {
-    return <div className="flex items-center justify-center min-h-dvh">Loading...</div>;
+    return <LoadingScreen />;
   }
 
   if (!user) {
     return (
       <ErrorBoundary>
         <BrowserRouter>
-          <React.Suspense fallback={<div className="flex items-center justify-center min-h-dvh">Loading...</div>}>
+          <React.Suspense fallback={<LoadingScreen />}>
             <Routes>
-              {/* Note: Ensure your Login component passes both the User object AND the JWT token to onLogin */}
               <Route path="/login" element={<Login onLogin={handleLogin} />} />
               <Route path="/clubs-committees" element={<ClubsCommitteesPage onGoToLogin={() => { window.location.href = '/login'; }} />} />
               <Route path="/about-sbg" element={<AboutSBG onGoToLogin={() => { window.location.href = '/login'; }} />} />
@@ -192,7 +180,7 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <BrowserRouter>
         <Layout user={user} onLogout={handleLogout}>
-          <React.Suspense fallback={<div className="flex items-center justify-center min-h-dvh">Loading...</div>}>
+          <React.Suspense fallback={<LoadingScreen />}>
             <Routes>
               <Route path="/" element={user.role === 'club' ? <ClubDashboard user={user} /> : <AdminDashboard />} />
 
