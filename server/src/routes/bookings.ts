@@ -4,11 +4,16 @@ import { db } from '../db';
 import authMiddleware from '../middleware/auth';
 import { createBooking, checkConflict } from '../controllers/bookingController';
 import { getSemesterRange, countCoCurricularBookings, CO_CURRICULAR_LIMIT } from '../services/semesterUtils';
+import NodeCache from 'node-cache';
 
 const router = express.Router();
+const cache = new NodeCache({ stdTTL: 60 });
 
 router.get('/venues', async (_req, res) => {
   try {
+    const cachedVenues = cache.get('venues');
+    if (cachedVenues) return res.json(cachedVenues);
+
     const { rows } = await db.query('SELECT * FROM venues');
     return res.json(rows);
   } catch (error: any) {
@@ -241,6 +246,12 @@ router.post('/bookings', authMiddleware, createBooking);
 
 router.get('/public-bookings', async (_req, res) => {
   try {
+    const cacheKey = 'public_bookings';
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+
     const { rows } = await db.query(`
       SELECT b.*, 
              e.name AS event_name,
@@ -257,6 +268,7 @@ router.get('/public-bookings', async (_req, res) => {
       ORDER BY b.start_time ASC
     `);
     
+    cache.set(cacheKey, rows);
     return res.json(rows);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
