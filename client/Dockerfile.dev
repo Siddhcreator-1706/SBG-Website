@@ -1,0 +1,20 @@
+FROM node:20-alpine
+
+WORKDIR /app/client
+
+# Install development tools
+RUN apk add --no-cache git
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev)
+RUN npm ci
+
+# Copy source
+COPY . .
+
+EXPOSE 5173
+
+# Run in development mode
+CMD ["npm", "run", "dev", "--", "--host"]

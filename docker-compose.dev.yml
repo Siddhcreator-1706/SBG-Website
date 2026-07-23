@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    container_name: sbg-server-dev
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=development
+      - PORT=3006
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET:-local-dev-secret}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173,http://localhost:3006}
+      - CLIENT_DIST_DIR=/app/client
+    volumes:
+      - ./server/src:/app/server/src
+      - ./server/migrations:/app/server/migrations
+      - server_node_modules:/app/server/node_modules
+    develop:
+      watch:
+        - path: ./server/src
+          action: rebuild
+        - path: ./server/package.json
+          action: rebuild
+    restart: unless-stopped
+    networks:
+      - sbg-network
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    container_name: sbg-client-dev
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3006
+    volumes:
+      - ./client/src:/app/client/src
+      - ./client/public:/app/client/public
+      - client_node_modules:/app/client/node_modules
+    develop:
+      watch:
+        - path: ./client/src
+          action: rebuild
+        - path: ./client/package.json
+          action: rebuild
+    restart: unless-stopped
+    networks:
+      - sbg-network
+
+volumes:
+  server_node_modules:
+  client_node_modules:
+
+networks:
+  sbg-network:
+    driver: bridge
