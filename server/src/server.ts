@@ -32,7 +32,10 @@ const BUILD_VERSION = getBuildVersion();
 
 app.set('trust proxy', 1);
 
-app.use(helmet());
+// Security Headers - Must allow cross-origin for separated frontend/backend deployments
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(compression());
 app.use(morgan('tiny'));
 
