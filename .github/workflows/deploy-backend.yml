@@ -1,27 +1,53 @@
-name: Deploy Backend
+name: Deploy App
 
 on:
   push:
     branches:
       - main
-    paths:
-      - 'server/**'
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to CentOS Server
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: docker build -f DOCKERFILE -t sbg-website .
+
+      - name: Extract Compiled Files
+        run: |
+          mkdir -p deploy/server deploy/client
+          docker create --name temp-container sbg-website
+          # Copy Backend files
+          docker cp temp-container:/app/server/dist ./deploy/server/
+          docker cp temp-container:/app/server/package.json ./deploy/server/
+          # Copy Frontend files (the dist is served from /app/client)
+          docker cp temp-container:/app/client ./deploy/client/
+          docker rm temp-container
+          
+          # We also need the package-lock.json for clean installs on the server
+          cp server/package-lock.json ./deploy/server/
+
+      - name: Copy Files to CentOS Server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "deploy/*"
+          target: "/var/www/SBG_Website"
+          strip_components: 1
+
+      - name: Restart Application via PM2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /var/www/SBG_Website
-            git pull origin main
-            cd server
-            npm install
-            npm run build
+            cd /var/www/SBG_Website/server
+            # Install only production dependencies natively on CentOS
+            npm ci --omit=dev
             pm2 restart sbg-website-be
