@@ -1,60 +1,78 @@
-# Vercel Speed Insights Implementation
+# Vercel Web Analytics Implementation
 
 ## Summary
-Successfully installed and configured Vercel Speed Insights for the React + Vite project.
+Successfully installed and configured Vercel Web Analytics for this React + Vite project following the latest official documentation from Vercel.
 
 ## Changes Made
 
 ### 1. Package Installation
-- **Added**: `@vercel/speed-insights` version 2.0.0 to project dependencies
-- **Files Modified**: 
-  - `package.json` - Added dependency
-  - `package-lock.json` - Updated lockfile with new package and dependencies
+- **Added**: `@vercel/analytics` version 2.0.1 to dependencies
+- **Updated**: `package.json` to include the new package
+- **Updated**: `package-lock.json` with the new dependency tree
 
-### 2. Component Integration
-- **File Modified**: `src/App.tsx`
-- **Changes**:
-  - Added import: `import { SpeedInsights } from '@vercel/speed-insights/react';`
-  - Integrated `<SpeedInsights />` component in both authenticated and non-authenticated views
-  - Placed component inside `<BrowserRouter>` but outside main content areas for optimal performance tracking
+### 2. Code Integration
+- **Modified**: `client/src/App.tsx`
+  - Added import statement: `import { Analytics } from '@vercel/analytics/react';`
+  - Added `<Analytics />` component in both render paths:
+    - After `<SpeedInsights />` in the non-authenticated user render (login/landing pages)
+    - After `<SpeedInsights />` in the authenticated user render (dashboard/app pages)
 
 ## Implementation Details
 
-### Framework-Specific Configuration
-- **Framework**: React with Vite
-- **Package Used**: `@vercel/speed-insights/react` (framework-specific export)
-- **Integration Method**: Added SpeedInsights component to both return paths in App.tsx:
-  1. Non-authenticated users (login, landing, about pages)
-  2. Authenticated users (dashboard and all app routes)
+### Framework Detection
+- Identified project as **React + Vite** based on:
+  - `vite.config.ts` present
+  - `@vitejs/plugin-react` in dependencies
+  - React components structure
+
+### Package Manager Detection
+- Identified **npm** as the package manager based on:
+  - `package-lock.json` present in client directory
+  - Standard npm scripts in package.json
+
+### Integration Approach
+Following Vercel's official documentation for React/Vite projects:
+1. Installed `@vercel/analytics` package using npm
+2. Imported the Analytics component from `@vercel/analytics/react`
+3. Added the `<Analytics />` component to the main App component
+4. Placed Analytics alongside the existing SpeedInsights component for consistency
 
 ### Placement Rationale
-The SpeedInsights component was added inside the BrowserRouter component to ensure:
-- All route changes are tracked properly
-- Component persists across navigation
-- Performance metrics are collected for all pages
-- No interference with existing ErrorBoundary or layout components
+The Analytics component was added to both conditional render paths in App.tsx:
+- **Unauthenticated path**: Tracks visits to login, landing, and public pages
+- **Authenticated path**: Tracks visits to dashboard, admin, and protected pages
 
-## Verification Steps Completed
+This ensures comprehensive analytics coverage across all user flows.
 
-1. ✅ Fetched latest official Vercel Speed Insights documentation
-2. ✅ Installed package using npm (project's package manager)
-3. ✅ Integrated component following React-specific instructions
-4. ✅ Build verification - Project builds successfully without errors
-5. ✅ No lint scripts to run (project doesn't have linting configured)
-6. ✅ No test scripts to run (project doesn't have tests configured)
-7. ✅ Lockfile updated automatically with dependency installation
+## Verification
 
-## Next Steps for Deployment
+### Build Test
+✅ **Passed**: Build completed successfully with no errors
+- Command: `npm run build`
+- Result: Generated production bundle in 6.36s
+- Output: dist/assets files with proper hashing
 
-After deploying to Vercel:
-1. Enable Speed Insights in the Vercel dashboard project settings
-2. Deploy the application to production
-3. Wait for user traffic to generate metrics
-4. View performance data in the Vercel Speed Insights dashboard (data typically appears after a few days of visitor activity)
+### Type Checking
+✅ **Passed**: TypeScript compilation successful (verified through build)
 
-## Technical Notes
+### Linter & Tests
+- No linter configured in project (no lint script in package.json)
+- No test scripts configured in project
 
-- The component is lightweight and doesn't impact bundle size significantly
-- Speed Insights automatically tracks Core Web Vitals (LCP, FID, CLS, etc.)
-- Works seamlessly with React Router for SPA navigation tracking
-- No additional configuration required - component is self-contained
+## Files Modified
+- `client/package.json` - Added @vercel/analytics dependency
+- `client/package-lock.json` - Updated with new dependency tree
+- `client/src/App.tsx` - Added Analytics import and component
+
+## Next Steps for User
+1. **Deploy to Vercel**: Run `vercel deploy` or push to connected Git repository
+2. **Enable Analytics Dashboard**: Navigate to your Vercel project dashboard and enable Web Analytics in the Analytics section
+3. **Verify Tracking**: After deployment, check browser Network tab for requests to `/_vercel/insights/*` endpoints
+4. **View Analytics**: Access analytics data through the Vercel dashboard
+
+## Additional Notes
+- The Analytics component is lightweight and designed for production use
+- It automatically respects DNT (Do Not Track) browser settings
+- Analytics data will only be collected when deployed on Vercel's platform
+- In local development, the component is present but doesn't send data
+- The implementation follows the same pattern as the existing SpeedInsights integration
