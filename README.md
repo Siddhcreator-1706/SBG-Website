@@ -19,24 +19,24 @@ Slot Booking made Eazzy, A full-stack venue slot booking system for university c
 
 | Layer | Technologies |
 |-------|-------------|
-| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui (Radix UI) |
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui |
 | **Backend** | Node.js, Express, TypeScript |
 | **Database** | NeonDB (Serverless PostgreSQL) |
 | **Notifications** | EmailJS (optional) |
-| **Deployment** | Nginx, PM2, GitHub Actions CI/CD |
+| **Deployment** | Vercel (Frontend), PM2 + Apache (Backend), GitHub Actions |
 
 ## Prerequisites
 
-- **Node.js** v18+
+- **Node.js** v22+
 - **npm**
-- A [NeonDB Project](https://neon.com) project (free tier works)
+- A [Neon](https://neon.tech) database project
 
 ## Getting Started
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/ossdaiict/SBG-Website.git
+git clone https://github.com/sbg-siddh-coder/SBG-Website.git
 cd SBG-Website
 ```
 
@@ -60,37 +60,26 @@ cp client/.env.example client/.env
 ```
 
 **`server/.env`**
-
 ```env
-DATABASE_URL="" # Get the url from Dashboard -> Connection String, copy the snippet that starts with postgresql:// and paste it here
-
-PORT=3000
+DATABASE_URL="postgresql://..."
+PORT=4000
 NODE_ENV="development"
-
-
-# -----------------------------------------------------------------------------
-# AUTHENTICATION & SECURITY (If applicable)
-# -----------------------------------------------------------------------------
-# If your Express backend verifies JWT tokens or manages its own sessions, 
-# keep your existing server secrets here. 
-# SESSION_SECRET="your-existing-express-session-secret"
+CORS_ORIGIN="http://localhost:3005,http://localhost:5173"
+JWT_SECRET="local-dev-secret"
 ```
 
 **`client/.env`**
-
 ```env
-NEXT_PUBLIC_NEON_AUTH_URL=""# Get the auth url from App Backend -> Auth -> COnfiguration section
-
-NEXT_PUBLIC_API_BASE_URL="http://localhost:3000/api"
+VITE_API_URL="http://localhost:4000"
 ```
 
-### 4. Seed the database (optional)
+### 4. Run Database Migrations
 
-Populate the database with sample profiles, clubs, and venues:
+Set up the database schema in Neon (ensure your `DATABASE_URL` is set in `server/.env`):
 
 ```bash
 cd server
-npx ts-node seed.ts
+npm run migrate
 ```
 
 ### 5. Start development servers
@@ -109,91 +98,43 @@ npm run dev
 
 ```
 SBG-Website/
-├── client/                  # React frontend
+├── client/                  # React frontend (Deployed to Vercel)
 │   ├── src/
 │   │   ├── components/ui/   # shadcn/ui primitives
-│   │   ├── lib/             # Shared utilities & composite components
 │   │   ├── pages/           # Route-level pages
 │   │   ├── App.tsx          # Router & layout
-│   │   ├── types.ts         # Shared TypeScript types
-│   │   └── constants.ts     # Static data (venues, categories)
+│   │   └── types.ts         # Shared TypeScript types
 │   ├── vite.config.ts
-│   └── .env.example
+│   └── vercel.json          # Vercel SPA routing fallback
 │
-├── server/                  # Express API
+├── server/                  # Express API (Deployed to CentOS Server)
 │   ├── src/
 │   │   ├── controllers/     # Route handlers
 │   │   ├── routes/          # Express route definitions
 │   │   ├── services/        # Business logic
-│   │   ├── middleware/       # Auth & request middleware
-│   │   ├── types/           # Server-side types
+│   │   ├── middleware/      # Auth & request middleware
 │   │   ├── server.ts        # Entry point
 │   │   └── db.ts            # NeonDB (PostgreSQL) connection pool
-│   ├── seed.ts              # Database seed script
-│   └── .env.example
+│   └── migrations/          # SQL schema migrations
 │
-├── deploy.sh                # Production deployment script
-├── ecosystem.config.js      # PM2 process config
-├── nginx.conf               # Nginx reference config
-├── DEPLOYMENT.md            # Ops & deployment guide
-└── .github/workflows/       # CI/CD pipeline
+└── .github/workflows/       # CI/CD pipeline for backend deployment
 ```
 
-## API Endpoints
+## Production Deployment
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET` | `/api/health` | No | Health check |
-| `GET` | `/api/venues` | No | List all venues |
-| `GET` | `/api/clubs` | No | List all clubs |
-| `GET` | `/api/public-bookings` | No | Approved bookings (public schedule) |
-| `POST` | `/api/auth/register` | No | Register a new user |
-| `GET` | `/api/auth/profile` | Yes | Current user profile |
-| `POST` | `/api/bookings` | Yes | Create a booking request |
-| `GET` | `/api/my-bookings` | Yes | Current user's bookings |
-| `GET` | `/api/bookings/check-conflict` | Yes | Check venue/time conflicts |
-| `*` | `/api/admin/*` | Admin | Admin management routes |
-
-## Production Build
-
-```bash
-# Build the server
-cd server
-npm run build   # compiles to server/dist/
-npm start       # runs the compiled server
-
-# Build the client
-cd client
-npm run build   # outputs to client/dist/
-npm run preview # preview the production bundle locally
-```
-
-For full VPS deployment instructions (Nginx, PM2, GitHub Actions), see [DEPLOYMENT.md](DEPLOYMENT.md).
+This project uses a distributed deployment architecture:
+1. **Frontend**: Deployed to Vercel. Connect your GitHub repository to Vercel and set the Root Directory to `client`.
+2. **Database**: Hosted on Neon.
+3. **Backend**: Deployed to a traditional Linux server via GitHub Actions. Push to the `main` branch to trigger the `.github/workflows/deploy-backend.yml` pipeline (requires repository secrets: `SERVER_HOST`, `SERVER_USER`, `SSH_PRIVATE_KEY`).
 
 ## Contributing
 
 Contributions are welcome! If you'd like to help improve SBG-Website:
-
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/my-feature`)
 3. Commit your changes (`git commit -m "Add my feature"`)
 4. Push to your branch (`git push origin feature/my-feature`)
 5. Open a Pull Request
-
-Feel free to open an issue for bug reports, feature requests, or questions.
-
-## Contributors
-
-Thanks to everyone who has helped shape SBG-Website. This project is better because of you.
-
-<p align="center">
-  <a href="https://github.com/ossdaiict/SBG-Website/graphs/contributors">
-    <img
-      src="https://contrib.rocks/image?repo=ossdaiict/SBG-Website"
-      alt="Contributors to SBG-Website — profile pictures linked to GitHub"
-    />
-  </a>
-</p>
 
 ## License
 
