@@ -24,4 +24,4 @@ jobs:
             cd server
             npm install
             npm run build
-            pm2 restart sleazzy-be
+            pm2 restart sbg-website-be

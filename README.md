@@ -1,6 +1,6 @@
 # SBG-Website
 
-Slot Booking made Eazzy, A full-stack venue slot booking system for university clubs and committees. Clubs can request meeting rooms, administrators can approve or reject bookings, and everyone gets a real-time view of the master schedule — no more double-bookings or email chains.
+The official portal for the Student Body Government (SBG) of DAU. Far beyond a simple slot booking system, this platform serves as the central hub for campus life. It streamlines everything from venue reservations and real-time master schedules, to comprehensive club membership management, post-event reporting, and automated administrative workflows. Designed to eliminate email chains and double-bookings, it empowers clubs to operate efficiently while giving administrators total visibility and control.
 
 ## Features
 
