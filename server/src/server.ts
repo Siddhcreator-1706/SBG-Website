@@ -82,6 +82,7 @@ export const io = new SocketIOServer(httpServer, {
   cors: {
     origin: allowedOrigins,
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
 
