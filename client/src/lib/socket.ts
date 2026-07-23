@@ -12,10 +12,10 @@ const getSocketUrl = () => {
     return 'http://localhost:4000';
 };
 
-const getSupabaseAccessToken = () => {
+const getAccessToken = () => {
     if (typeof window === 'undefined') return null;
 
-    const directToken = localStorage.getItem('supabase_access_token');
+    const directToken = localStorage.getItem('jwt_token');
     if (directToken) return directToken;
 
     const authStorageKey = Object.keys(localStorage).find((key) => key.endsWith('-auth-token'));
@@ -93,7 +93,7 @@ class SocketService {
     private applyLatestAuthToken() {
         if (!this.socket) return;
 
-        const token = getSupabaseAccessToken();
+        const token = getAccessToken();
         const currentAuth = (this.socket.auth || {}) as { token?: string };
 
         if (token) {
@@ -107,7 +107,7 @@ class SocketService {
     ensureAuthContext() {
         if (!this.socket) return;
 
-        const nextToken = getSupabaseAccessToken();
+        const nextToken = getAccessToken();
         const currentToken = ((this.socket.auth || {}) as { token?: string }).token;
 
         if (nextToken && currentToken !== nextToken) {

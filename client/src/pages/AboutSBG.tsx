@@ -402,7 +402,7 @@ const AboutSBG: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogin }) => {
                                         </div>
                                         <div className="flex items-center gap-3 rounded-xl border border-borderSoft/60 bg-card hover:bg-hoverSoft/20 transition-all px-4 py-3 shadow-sm relative z-10">
                                             <span className="h-9 w-9 rounded-lg bg-card border border-brand/20 flex items-center justify-center shrink-0 p-1.5">
-                                                <img src={sbgClub?.logo_url || "/sbg_logo.png"} alt="SBG" className="w-full h-full object-contain" />
+                                                <img src={sbgClub?.logo_url || "/sbg_logo.png"} alt="SBG" className="w-full h-full object-contain" loading="lazy" />
                                             </span>
                                             <div className="min-w-0">
                                                 <p className="font-semibold text-textPrimary text-sm">Student Body Government (SBG)</p>

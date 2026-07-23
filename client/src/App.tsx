@@ -4,25 +4,25 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/error-boundary';
 import Layout from './pages/Layout';
-import ClubDashboard from './lib/ClubDashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminVenues from './pages/AdminVenues';
-import BookSlot from './pages/BookSlot';
-import AdminClubs from './pages/AdminClubs';
-import AdminRequests from './pages/AdminRequests';
+const ClubDashboard = React.lazy(() => import('./lib/ClubDashboard'));
+const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
+const AdminVenues = React.lazy(() => import('./pages/AdminVenues'));
+const BookSlot = React.lazy(() => import('./pages/BookSlot'));
+const AdminClubs = React.lazy(() => import('./pages/AdminClubs'));
+const AdminRequests = React.lazy(() => import('./pages/AdminRequests'));
 
-import PolicyPage from './pages/PolicyPage';
-import MyBookings from './pages/MyBookings';
-import ClubMembers from './pages/ClubMembers';
-import Login from './pages/Login';
-import LandingPage from './pages/LandingPage';
-import AboutSBG from './pages/AboutSBG';
-import ClubsCommitteesPage from './pages/ClubsCommitteesPage';
-import ClubCommittee from './pages/ClubCommittee';
-import ManageEvents from './pages/ManageEvents';
-import EventReports from './pages/EventReports';
-import AdminEventReports from './pages/AdminEventReports';
-import Archives from './pages/Archives';
+const PolicyPage = React.lazy(() => import('./pages/PolicyPage'));
+const MyBookings = React.lazy(() => import('./pages/MyBookings'));
+const ClubMembers = React.lazy(() => import('./pages/ClubMembers'));
+const Login = React.lazy(() => import('./pages/Login'));
+const LandingPage = React.lazy(() => import('./pages/LandingPage'));
+const AboutSBG = React.lazy(() => import('./pages/AboutSBG'));
+const ClubsCommitteesPage = React.lazy(() => import('./pages/ClubsCommitteesPage'));
+const ClubCommittee = React.lazy(() => import('./pages/ClubCommittee'));
+const ManageEvents = React.lazy(() => import('./pages/ManageEvents'));
+const EventReports = React.lazy(() => import('./pages/EventReports'));
+const AdminEventReports = React.lazy(() => import('./pages/AdminEventReports'));
+const Archives = React.lazy(() => import('./pages/Archives'));
 import { User } from './types';
 import { apiRequest } from './lib/api';
 import { getSocket, SOCKET_EVENTS } from './lib/socket';
@@ -172,13 +172,15 @@ const App: React.FC = () => {
     return (
       <ErrorBoundary>
         <BrowserRouter>
-          <Routes>
-            {/* Note: Ensure your Login component passes both the User object AND the JWT token to onLogin */}
-            <Route path="/login" element={<Login onLogin={handleLogin} />} />
-            <Route path="/clubs-committees" element={<ClubsCommitteesPage onGoToLogin={() => { window.location.href = '/login'; }} />} />
-            <Route path="/about-sbg" element={<AboutSBG onGoToLogin={() => { window.location.href = '/login'; }} />} />
-            <Route path="*" element={<LandingPage onGoToLogin={() => { window.location.href = '/login'; }} />} />
-          </Routes>
+          <React.Suspense fallback={<div className="flex items-center justify-center min-h-dvh">Loading...</div>}>
+            <Routes>
+              {/* Note: Ensure your Login component passes both the User object AND the JWT token to onLogin */}
+              <Route path="/login" element={<Login onLogin={handleLogin} />} />
+              <Route path="/clubs-committees" element={<ClubsCommitteesPage onGoToLogin={() => { window.location.href = '/login'; }} />} />
+              <Route path="/about-sbg" element={<AboutSBG onGoToLogin={() => { window.location.href = '/login'; }} />} />
+              <Route path="*" element={<LandingPage onGoToLogin={() => { window.location.href = '/login'; }} />} />
+            </Routes>
+          </React.Suspense>
           <SpeedInsights />
           <Analytics />
         </BrowserRouter>
@@ -190,26 +192,28 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <BrowserRouter>
         <Layout user={user} onLogout={handleLogout}>
-          <Routes>
-            <Route path="/" element={user.role === 'club' ? <ClubDashboard user={user} /> : <AdminDashboard />} />
+          <React.Suspense fallback={<div className="flex items-center justify-center min-h-dvh">Loading...</div>}>
+            <Routes>
+              <Route path="/" element={user.role === 'club' ? <ClubDashboard user={user} /> : <AdminDashboard />} />
 
-            <Route path="/book" element={<BookSlot currentUser={user} />} />
-            <Route path="/my-bookings" element={<MyBookings />} />
-            <Route path="/manage-events" element={<ManageEvents currentUser={user} />} />
-            <Route path="/event-reports" element={<EventReports />} />
-            <Route path="/members" element={<ClubMembers user={user} />} />
-            <Route path="/committee" element={user.role === 'club' ? <ClubCommittee user={user} /> : <Navigate to="/" replace />} />
-            <Route path="/policy" element={<PolicyPage />} />
+              <Route path="/book" element={<BookSlot currentUser={user} />} />
+              <Route path="/my-bookings" element={<MyBookings />} />
+              <Route path="/manage-events" element={<ManageEvents currentUser={user} />} />
+              <Route path="/event-reports" element={<EventReports />} />
+              <Route path="/members" element={<ClubMembers user={user} />} />
+              <Route path="/committee" element={user.role === 'club' ? <ClubCommittee user={user} /> : <Navigate to="/" replace />} />
+              <Route path="/policy" element={<PolicyPage />} />
 
-            <Route path="/admin/requests" element={<AdminRequests />} />
+              <Route path="/admin/requests" element={<AdminRequests />} />
 
-            <Route path="/admin/clubs" element={user.role === 'admin' ? <AdminClubs /> : <Navigate to="/" replace />} />
-            <Route path="/admin/venues" element={user.role === 'admin' ? <AdminVenues /> : <Navigate to="/" replace />} />
-            <Route path="/admin/event-reports" element={user.role === 'admin' ? <AdminEventReports /> : <Navigate to="/" replace />} />
-            <Route path="/archives" element={<Archives />} />
+              <Route path="/admin/clubs" element={user.role === 'admin' ? <AdminClubs /> : <Navigate to="/" replace />} />
+              <Route path="/admin/venues" element={user.role === 'admin' ? <AdminVenues /> : <Navigate to="/" replace />} />
+              <Route path="/admin/event-reports" element={user.role === 'admin' ? <AdminEventReports /> : <Navigate to="/" replace />} />
+              <Route path="/archives" element={<Archives />} />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </React.Suspense>
         </Layout>
         <SpeedInsights />
         <Analytics />

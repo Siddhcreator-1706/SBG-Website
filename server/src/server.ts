@@ -8,6 +8,8 @@ import { createServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken'; // Added standard JWT verification
 import helmet from 'helmet';
+import compression from 'compression';
+import morgan from 'morgan';
 
 import bookingsRoutes from './routes/bookings';
 import adminRoutes from './routes/admin';
@@ -30,6 +32,8 @@ const BUILD_VERSION = getBuildVersion();
 app.set('trust proxy', 1);
 
 app.use(helmet());
+app.use(compression());
+app.use(morgan('tiny'));
 
 app.use(cors({
   origin: [

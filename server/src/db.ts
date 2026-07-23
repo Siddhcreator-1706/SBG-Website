@@ -17,4 +17,7 @@ if (!process.env.JWT_SECRET) {
 export const db = new Pool({
   connectionString: databaseUrl,
   ssl: databaseUrl?.includes('localhost') ? false : { rejectUnauthorized: false },
+  max: 50,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
