@@ -1,4 +1,4 @@
-# Sleazzy - Slot Booking Made Easy
+# SBG-Website - Slot Booking Made Easy
 
 A modern, full-featured venue slot booking system for university clubs and administrators. Built with React, TypeScript, and shadcn/ui components.
 
@@ -35,7 +35,7 @@ A modern, full-featured venue slot booking system for university clubs and admin
 1. Clone the repository:
    ```bash
    git clone <repository-url>
-   cd sleazzy
+   cd SBG-Website
    ```
 
 2. Install dependencies:

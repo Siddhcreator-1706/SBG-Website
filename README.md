@@ -1,4 +1,4 @@
-# Sleazzy
+# SBG-Website
 
 Slot Booking made Eazzy, A full-stack venue slot booking system for university clubs and committees. Clubs can request meeting rooms, administrators can approve or reject bookings, and everyone gets a real-time view of the master schedule — no more double-bookings or email chains.
 
@@ -36,8 +36,8 @@ Slot Booking made Eazzy, A full-stack venue slot booking system for university c
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/ossdaiict/sleazzy.git
-cd sleazzy
+git clone https://github.com/ossdaiict/SBG-Website.git
+cd SBG-Website
 ```
 
 ### 2. Install dependencies
@@ -108,7 +108,7 @@ npm run dev
 ## Project Structure
 
 ```
-sleazzy/
+SBG-Website/
 ├── client/                  # React frontend
 │   ├── src/
 │   │   ├── components/ui/   # shadcn/ui primitives
@@ -172,7 +172,7 @@ For full VPS deployment instructions (Nginx, PM2, GitHub Actions), see [DEPLOYME
 
 ## Contributing
 
-Contributions are welcome! If you'd like to help improve Sleazzy:
+Contributions are welcome! If you'd like to help improve SBG-Website:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/my-feature`)
@@ -184,13 +184,13 @@ Feel free to open an issue for bug reports, feature requests, or questions.
 
 ## Contributors
 
-Thanks to everyone who has helped shape Sleazzy. This project is better because of you.
+Thanks to everyone who has helped shape SBG-Website. This project is better because of you.
 
 <p align="center">
-  <a href="https://github.com/ossdaiict/sleazzy/graphs/contributors">
+  <a href="https://github.com/ossdaiict/SBG-Website/graphs/contributors">
     <img
-      src="https://contrib.rocks/image?repo=ossdaiict/sleazzy"
-      alt="Contributors to Sleazzy — profile pictures linked to GitHub"
+      src="https://contrib.rocks/image?repo=ossdaiict/SBG-Website"
+      alt="Contributors to SBG-Website — profile pictures linked to GitHub"
     />
   </a>
 </p>

@@ -51,7 +51,7 @@ app.use(cors({
     'http://localhost:3006',
     'http://127.0.0.1:3005',
     'http://127.0.0.1:3006',
-    'https://sleazzy.gdgdau.cloud',
+    'https://SBG-Website.gdgdau.cloud',
   ],
   credentials: true,
 }));

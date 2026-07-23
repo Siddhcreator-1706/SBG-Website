@@ -6,12 +6,12 @@ Single image, **one port (3006)**. The backend serves both the API and the front
 
 ```bash
 # Build (VITE_API_URL can be empty when the FE is served from the same origin)
-docker build -t sleazzy \
+docker build -t SBG-Website \
   --build-arg VITE_API_URL= \
   .
 
 # Run (pass runtime env via a file)
-docker run -p 3006:3006 --env-file ./server/.env sleazzy
+docker run -p 3006:3006 --env-file ./server/.env SBG-Website
 ```
 
 The backend reads these runtime env vars (see `server/.env.example`):
@@ -32,8 +32,8 @@ The backend reads these runtime env vars (see `server/.env.example`):
 
 On push to `main` (or via manual "Run workflow"), the workflow:
 
-1. **`build-and-push`** — builds the Docker image and pushes it to Docker Hub (`DOCKERHUB_USERNAME/sleazzy:latest` and `:<sha>`).
-2. **`deploy`** — SSHes to the VPS, runs `docker pull` of `:latest`, removes the old `sleazzy` container, and starts a new one on port 3006 using `/root/sleazzy/.env` for runtime config.
+1. **`build-and-push`** — builds the Docker image and pushes it to Docker Hub (`DOCKERHUB_USERNAME/SBG-Website:latest` and `:<sha>`).
+2. **`deploy`** — SSHes to the VPS, runs `docker pull` of `:latest`, removes the old `SBG-Website` container, and starts a new one on port 3006 using `/root/SBG-Website/.env` for runtime config.
 
 ### Required GitHub secrets
 
@@ -52,4 +52,4 @@ On push to `main` (or via manual "Run workflow"), the workflow:
 
 - Docker installed
 - Port 3006 open
-- A `/root/sleazzy/.env` file containing the backend runtime vars listed above (the `deploy` job passes it via `--env-file`)
+- A `/root/SBG-Website/.env` file containing the backend runtime vars listed above (the `deploy` job passes it via `--env-file`)
