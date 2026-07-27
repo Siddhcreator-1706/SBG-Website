@@ -37,7 +37,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "deploy/*"
-          target: "/var/www/SBG_Website"
+          target: "/home/intranet_users/sbg"
           strip_components: 1
 
       - name: Restart Application via PM2
@@ -47,7 +47,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /var/www/SBG_Website/server
+            cd /home/intranet_users/sbg/server
             # Install only production dependencies natively on CentOS
             npm ci --omit=dev
             pm2 restart sbg-website-be

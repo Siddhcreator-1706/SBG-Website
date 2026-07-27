@@ -265,6 +265,15 @@ app.use('/api/settings', settingsRoutes);
 // Start background cron jobs
 startCronJobs();
 
+// Serve static frontend files
+const clientBuildPath = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientBuildPath));
+
+// Catch-all route to serve the React SPA for non-API requests
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
+});
+
 // Server listener
 
 const port = process.env.PORT || 4000;
