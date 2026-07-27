@@ -227,7 +227,7 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
     }
 
     try {
-        const { rows } = await db.query('SELECT reset_otp, reset_otp_expires_at FROM auth.users WHERE email = $1', [email]);
+        const { rows } = await db.query('SELECT id, reset_otp, reset_otp_expires_at FROM auth.users WHERE email = $1', [email]);
         const user = rows[0];
 
         if (!user || !user.reset_otp || !user.reset_otp_expires_at) {
@@ -250,7 +250,19 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
             [hashedPassword, email]
         );
 
-        return res.json({ message: 'Password reset successfully. You can now log in.' });
+        const secret = process.env.JWT_SECRET;
+        if (!secret) throw new Error('Server configuration error: Missing JWT_SECRET');
+
+        const token = jwt.sign({ sub: user.id }, secret, { expiresIn: '7d' });
+
+        res.cookie('jwt_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
+        return res.json({ message: 'Password reset successfully. You are now logged in.' });
     } catch (err: any) {
         console.error('Reset password error:', err);
         return res.status(500).json({ error: 'Internal Server Error' });

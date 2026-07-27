@@ -185,13 +185,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         method: 'POST',
         body: { email: forgotEmail, otp: forgotOtp, newPassword: forgotNewPassword },
       });
-      toastSuccess(response.message || 'Password reset successfully. You can now log in.');
+      
+      // Since the backend just logged us in and set the cookie, fetch the profile
+      const userProfile = await apiRequest<{
+        id: string;
+        email: string;
+        name: string;
+        role: Role;
+        group?: ClubGroupType;
+        logoUrl: string | null;
+      }>('/api/auth/profile');
+
+      toastSuccess(response.message || 'Password reset successfully. You are now logged in.');
       setForgotOpen(false);
       setForgotStep(1);
       setForgotEmail('');
       setForgotOtp('');
       setForgotNewPassword('');
       setForgotConfirmPassword('');
+      
+      onLogin(userProfile as User);
     } catch (err) {
       console.error(err);
       setForgotError(getErrorMessage(err, 'Failed to reset password.'));
