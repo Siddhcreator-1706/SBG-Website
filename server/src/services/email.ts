@@ -1,21 +1,21 @@
-import emailjs from '@emailjs/nodejs';
+import nodemailer from 'nodemailer';
 
-const PASSWORD_EMAILJS_SERVICE_ID = process.env.PASSWORD_EMAILJS_SERVICE_ID;
-const PASSWORD_EMAILJS_TEMPLATE_ID = process.env.PASSWORD_EMAILJS_TEMPLATE_ID;
-const PASSWORD_EMAILJS_PUBLIC_KEY = process.env.PASSWORD_EMAILJS_PUBLIC_KEY;
-const PASSWORD_EMAILJS_PRIVATE_KEY = process.env.PASSWORD_EMAILJS_PRIVATE_KEY;
+const PASSWORD_SMTP_HOST = process.env.PASSWORD_SMTP_HOST;
+const PASSWORD_SMTP_PORT = process.env.PASSWORD_SMTP_PORT;
+const PASSWORD_SMTP_USER = process.env.PASSWORD_SMTP_USER;
+const PASSWORD_SMTP_PASS = process.env.PASSWORD_SMTP_PASS;
 const PASSWORD_MAIL = process.env.PASSWORD_MAIL;
 
-const APPROVAL_EMAILJS_SERVICE_ID = process.env.APPROVAL_EMAILJS_SERVICE_ID;
-const APPROVAL_EMAILJS_TEMPLATE_ID = process.env.APPROVAL_EMAILJS_TEMPLATE_ID;
-const APPROVAL_EMAILJS_PUBLIC_KEY = process.env.APPROVAL_EMAILJS_PUBLIC_KEY;
-const APPROVAL_EMAILJS_PRIVATE_KEY = process.env.APPROVAL_EMAILJS_PRIVATE_KEY;
+const APPROVAL_SMTP_HOST = process.env.APPROVAL_SMTP_HOST;
+const APPROVAL_SMTP_PORT = process.env.APPROVAL_SMTP_PORT;
+const APPROVAL_SMTP_USER = process.env.APPROVAL_SMTP_USER;
+const APPROVAL_SMTP_PASS = process.env.APPROVAL_SMTP_PASS;
 const APPROVAL_MAIL = process.env.APPROVAL_MAIL;
 
-const REMINDER_EMAILJS_SERVICE_ID = process.env.REMINDER_EMAILJS_SERVICE_ID;
-const REMINDER_EMAILJS_TEMPLATE_ID = process.env.REMINDER_EMAILJS_TEMPLATE_ID;
-const REMINDER_EMAILJS_PUBLIC_KEY = process.env.REMINDER_EMAILJS_PUBLIC_KEY;
-const REMINDER_EMAILJS_PRIVATE_KEY = process.env.REMINDER_EMAILJS_PRIVATE_KEY;
+const REMINDER_SMTP_HOST = process.env.REMINDER_SMTP_HOST;
+const REMINDER_SMTP_PORT = process.env.REMINDER_SMTP_PORT;
+const REMINDER_SMTP_USER = process.env.REMINDER_SMTP_USER;
+const REMINDER_SMTP_PASS = process.env.REMINDER_SMTP_PASS;
 const EVENT_REMINDER_MAIL = process.env.EVENT_REMINDER_MAIL;
 
 export type PendingBookingItem = {
@@ -55,32 +55,62 @@ function formatTimeLabel(iso: string): string {
   });
 }
 
-function isPasswordEmailJsConfigured(): boolean {
+function isPasswordConfigured(): boolean {
   return !!(
-    PASSWORD_EMAILJS_SERVICE_ID &&
-    PASSWORD_EMAILJS_TEMPLATE_ID &&
-    PASSWORD_EMAILJS_PUBLIC_KEY &&
-    PASSWORD_EMAILJS_PRIVATE_KEY
+    PASSWORD_SMTP_HOST &&
+    PASSWORD_SMTP_USER &&
+    PASSWORD_SMTP_PASS &&
+    PASSWORD_MAIL
   );
 }
 
-function isApprovalEmailJsConfigured(): boolean {
+function isApprovalConfigured(): boolean {
   return !!(
-    APPROVAL_EMAILJS_SERVICE_ID &&
-    APPROVAL_EMAILJS_TEMPLATE_ID &&
-    APPROVAL_EMAILJS_PUBLIC_KEY &&
-    APPROVAL_EMAILJS_PRIVATE_KEY
+    APPROVAL_SMTP_HOST &&
+    APPROVAL_SMTP_USER &&
+    APPROVAL_SMTP_PASS &&
+    APPROVAL_MAIL
   );
 }
 
-function isReminderEmailJsConfigured(): boolean {
+function isReminderConfigured(): boolean {
   return !!(
-    REMINDER_EMAILJS_SERVICE_ID &&
-    REMINDER_EMAILJS_TEMPLATE_ID &&
-    REMINDER_EMAILJS_PUBLIC_KEY &&
-    REMINDER_EMAILJS_PRIVATE_KEY
+    REMINDER_SMTP_HOST &&
+    REMINDER_SMTP_USER &&
+    REMINDER_SMTP_PASS &&
+    EVENT_REMINDER_MAIL
   );
 }
+
+const passwordTransporter = nodemailer.createTransport({
+  host: PASSWORD_SMTP_HOST,
+  port: parseInt(PASSWORD_SMTP_PORT || '587'),
+  secure: parseInt(PASSWORD_SMTP_PORT || '587') === 465,
+  auth: {
+    user: PASSWORD_SMTP_USER,
+    pass: PASSWORD_SMTP_PASS,
+  },
+});
+
+const approvalTransporter = nodemailer.createTransport({
+  host: APPROVAL_SMTP_HOST,
+  port: parseInt(APPROVAL_SMTP_PORT || '587'),
+  secure: parseInt(APPROVAL_SMTP_PORT || '587') === 465,
+  auth: {
+    user: APPROVAL_SMTP_USER,
+    pass: APPROVAL_SMTP_PASS,
+  },
+});
+
+const reminderTransporter = nodemailer.createTransport({
+  host: REMINDER_SMTP_HOST,
+  port: parseInt(REMINDER_SMTP_PORT || '587'),
+  secure: parseInt(REMINDER_SMTP_PORT || '587') === 465,
+  auth: {
+    user: REMINDER_SMTP_USER,
+    pass: REMINDER_SMTP_PASS,
+  },
+});
 
 
 /**
@@ -90,14 +120,12 @@ export async function sendPasswordResetEmail(
   email: string,
   tempPassword: string
 ): Promise<{ sent: boolean; error?: string }> {
-  if (!isPasswordEmailJsConfigured()) {
-    console.warn('EmailJS not configured; skipping password reset email.');
+  if (!isPasswordConfigured()) {
+    console.warn('SMTP not configured; skipping password reset email.');
     return { sent: false };
   }
 
-  const title = 'Password Reset Request';
   const subject = 'Password Reset - SBG Team';
-  const message = `Dear User,\n\nWe received a request to reset your password. Your 6-digit verification code is:\n\n${tempPassword}\n\nThis code will expire in 5 minutes. Please use this code to verify your identity and reset your password.\n\nRegards,\nSBG Team`;
   const messageHtml = `
     <p>Dear User,</p>
     <p>We received a request to reset your password. Your 6-digit verification code is:</p>
@@ -106,26 +134,13 @@ export async function sendPasswordResetEmail(
     <p>Regards,<br/>SBG Team</p>
   `;
 
-  const templateParams = {
-    to_email: email,
-    from_email: PASSWORD_MAIL || '',
-    title,
-    subject,
-    message,
-    message_html: messageHtml,
-    booking_count: '0',
-  };
-
   try {
-    await emailjs.send(
-      PASSWORD_EMAILJS_SERVICE_ID!,
-      PASSWORD_EMAILJS_TEMPLATE_ID!,
-      templateParams,
-      {
-        publicKey: PASSWORD_EMAILJS_PUBLIC_KEY!,
-        privateKey: PASSWORD_EMAILJS_PRIVATE_KEY!,
-      }
-    );
+    await passwordTransporter.sendMail({
+      from: PASSWORD_MAIL,
+      to: email,
+      subject: subject,
+      html: messageHtml,
+    });
     return { sent: true };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : JSON.stringify(err, null, 2);
@@ -145,27 +160,17 @@ export async function sendBookingApprovedEmailToClub(
   startTime: string,
   endTime: string
 ): Promise<{ sent: boolean; error?: string }> {
-  if (!isApprovalEmailJsConfigured()) return { sent: false };
+  if (!isApprovalConfigured()) return { sent: false };
 
-  const title = 'Booking Approved';
   const subject = 'Booking Approved - SBG Team';
-  const message = `Your booking for ${eventName} at ${venueName} on ${date} from ${startTime} to ${endTime} has been approved.`;
   const messageHtml = `<p>Your booking for <strong>${eventName}</strong> at <strong>${venueName}</strong> on <strong>${date}</strong> from <strong>${startTime}</strong> to <strong>${endTime}</strong> has been approved.</p>`;
 
-  const templateParams = {
-    to_email: clubEmail,
-    from_email: APPROVAL_MAIL || '',
-    title,
-    subject,
-    message,
-    message_html: messageHtml,
-    booking_count: '1',
-  };
-
   try {
-    await emailjs.send(APPROVAL_EMAILJS_SERVICE_ID!, APPROVAL_EMAILJS_TEMPLATE_ID!, templateParams, {
-      publicKey: APPROVAL_EMAILJS_PUBLIC_KEY!,
-      privateKey: APPROVAL_EMAILJS_PRIVATE_KEY!,
+    await approvalTransporter.sendMail({
+      from: APPROVAL_MAIL,
+      to: clubEmail,
+      subject: subject,
+      html: messageHtml,
     });
     return { sent: true };
   } catch (err) {
@@ -181,27 +186,17 @@ export async function sendBookingCancelledEmailToClub(
   startTime: string,
   endTime: string
 ): Promise<{ sent: boolean; error?: string }> {
-  if (!isApprovalEmailJsConfigured()) return { sent: false };
+  if (!isApprovalConfigured()) return { sent: false };
 
-  const title = 'Booking Cancelled';
   const subject = 'Booking Cancelled - SBG Team';
-  const message = `Your approved booking for ${eventName} at ${venueName} on ${date} from ${startTime} to ${endTime} has been cancelled by the admin.`;
   const messageHtml = `<p>Your approved booking for <strong>${eventName}</strong> at <strong>${venueName}</strong> on <strong>${date}</strong> from <strong>${startTime}</strong> to <strong>${endTime}</strong> has been cancelled by the admin.</p>`;
 
-  const templateParams = {
-    to_email: clubEmail,
-    from_email: APPROVAL_MAIL || '',
-    title,
-    subject,
-    message,
-    message_html: messageHtml,
-    booking_count: '1',
-  };
-
   try {
-    await emailjs.send(APPROVAL_EMAILJS_SERVICE_ID!, APPROVAL_EMAILJS_TEMPLATE_ID!, templateParams, {
-      publicKey: APPROVAL_EMAILJS_PUBLIC_KEY!,
-      privateKey: APPROVAL_EMAILJS_PRIVATE_KEY!,
+    await approvalTransporter.sendMail({
+      from: APPROVAL_MAIL,
+      to: clubEmail,
+      subject: subject,
+      html: messageHtml,
     });
     return { sent: true };
   } catch (err) {
@@ -216,27 +211,17 @@ export async function sendEventReportReminderEmail(
   clubEmail: string,
   eventName: string
 ): Promise<{ sent: boolean; error?: string }> {
-  if (!isReminderEmailJsConfigured()) return { sent: false };
+  if (!isReminderConfigured()) return { sent: false };
 
-  const title = 'Event Report Reminder';
   const subject = 'Event Report Reminder - SBG Team';
-  const message = `This is a reminder to submit the event report for your recent event: ${eventName}.`;
   const messageHtml = `<p>This is a reminder to submit the event report for your recent event: <strong>${eventName}</strong>.</p>`;
 
-  const templateParams = {
-    to_email: clubEmail,
-    from_email: EVENT_REMINDER_MAIL || '',
-    title,
-    subject,
-    message,
-    message_html: messageHtml,
-    booking_count: '0',
-  };
-
   try {
-    await emailjs.send(REMINDER_EMAILJS_SERVICE_ID!, REMINDER_EMAILJS_TEMPLATE_ID!, templateParams, {
-      publicKey: REMINDER_EMAILJS_PUBLIC_KEY!,
-      privateKey: REMINDER_EMAILJS_PRIVATE_KEY!,
+    await reminderTransporter.sendMail({
+      from: EVENT_REMINDER_MAIL,
+      to: clubEmail,
+      subject: subject,
+      html: messageHtml,
     });
     return { sent: true };
   } catch (err) {
@@ -256,9 +241,8 @@ export async function sendBulkBookingProcessedEmail(
   approvedVenues: string[],
   rejectedVenues: string[]
 ): Promise<{ sent: boolean; error?: string }> {
-  if (!isApprovalEmailJsConfigured()) return { sent: false };
+  if (!isApprovalConfigured()) return { sent: false };
 
-  const title = 'Booking Processed';
   const subject = 'Booking Processed - SBG Team';
   
   let htmlVenues = '';
@@ -273,27 +257,18 @@ export async function sendBulkBookingProcessedEmail(
     htmlVenues += `</ul>`;
   }
 
-  const message = `Your booking for ${eventName} on ${date} from ${startTime} to ${endTime} has been processed.`;
   const messageHtml = `
     <p>Your booking for <strong>${eventName}</strong> on <strong>${date}</strong> from <strong>${startTime}</strong> to <strong>${endTime}</strong> has been processed by the admin.</p>
     ${htmlVenues}
     <p>Please check your dashboard for more details.</p>
   `;
 
-  const templateParams = {
-    to_email: clubEmail,
-    from_email: APPROVAL_MAIL || '',
-    title,
-    subject,
-    message,
-    message_html: messageHtml,
-    booking_count: (approvedVenues.length + rejectedVenues.length).toString(),
-  };
-
   try {
-    await emailjs.send(APPROVAL_EMAILJS_SERVICE_ID!, APPROVAL_EMAILJS_TEMPLATE_ID!, templateParams, {
-      publicKey: APPROVAL_EMAILJS_PUBLIC_KEY!,
-      privateKey: APPROVAL_EMAILJS_PRIVATE_KEY!,
+    await approvalTransporter.sendMail({
+      from: APPROVAL_MAIL,
+      to: clubEmail,
+      subject: subject,
+      html: messageHtml,
     });
     return { sent: true };
   } catch (err) {

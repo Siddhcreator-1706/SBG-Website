@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@acpr/rate-limit-postgresql": "^1.4.1",
-    "@emailjs/nodejs": "^5.0.2",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
@@ -24,6 +23,7 @@
     "morgan": "^1.11.0",
     "node-cache": "^5.1.2",
     "node-cron": "^4.5.0",
+    "nodemailer": "^9.0.3",
     "pg": "^8.21.0",
     "socket.io": "^4.8.3",
     "xlsx": "^0.18.5"
@@ -39,6 +39,7 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^22.14.0",
     "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.20.0",
     "@types/socket.io": "^3.0.1",
     "axios": "^1.13.4",
