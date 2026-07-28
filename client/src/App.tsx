@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { SpeedInsights } from '@vercel/speed-insights/react';
-import { Analytics } from '@vercel/analytics/react';
+// import { SpeedInsights } from '@vercel/speed-insights/react';
+// import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/error-boundary';
 import { LoadingScreen } from './components/LoadingScreen';
 import Layout from './pages/Layout';
@@ -169,8 +169,8 @@ const App: React.FC = () => {
               <Route path="*" element={<LandingPage onGoToLogin={() => { window.location.href = '/login'; }} />} />
             </Routes>
           </React.Suspense>
-          <SpeedInsights />
-          <Analytics />
+          {/* <SpeedInsights /> */}
+          {/* <Analytics /> */}
         </BrowserRouter>
       </ErrorBoundary>
     );
@@ -203,8 +203,8 @@ const App: React.FC = () => {
             </Routes>
           </React.Suspense>
         </Layout>
-        <SpeedInsights />
-        <Analytics />
+        {/* <SpeedInsights /> */}
+        {/* <Analytics /> */}
       </BrowserRouter>
     </ErrorBoundary>
   );

@@ -46,7 +46,7 @@ const loginSchema = z.object({
 const registrationSchema = loginSchema.extend({
   password: z.string().min(6, 'Password must be at least 6 characters'),
   clubName: z.string().min(2, 'Club name is required'),
-  groupCategory: z.enum(['A', 'B', 'C'], {
+  groupCategory: z.enum(['A', 'B', 'C', 'other'], {
     required_error: "Please select a group category",
   }),
 });
@@ -185,13 +185,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         method: 'POST',
         body: { email: forgotEmail, otp: forgotOtp, newPassword: forgotNewPassword },
       });
-      toastSuccess(response.message || 'Password reset successfully. You can now log in.');
+      
+      // Since the backend just logged us in and set the cookie, fetch the profile
+      const userProfile = await apiRequest<{
+        id: string;
+        email: string;
+        name: string;
+        role: Role;
+        group?: ClubGroupType;
+        logoUrl: string | null;
+      }>('/api/auth/profile');
+
+      toastSuccess(response.message || 'Password reset successfully. You are now logged in.');
       setForgotOpen(false);
       setForgotStep(1);
       setForgotEmail('');
       setForgotOtp('');
       setForgotNewPassword('');
       setForgotConfirmPassword('');
+      
+      onLogin(userProfile as User);
     } catch (err) {
       console.error(err);
       setForgotError(getErrorMessage(err, 'Failed to reset password.'));
@@ -349,6 +362,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                   <SelectItem value="A">Group A (Academic/Tech)</SelectItem>
                                   <SelectItem value="B">Group B (Cultural)</SelectItem>
                                   <SelectItem value="C">Group C (Sports)</SelectItem>
+                                  <SelectItem value="other">Others</SelectItem>
                                 </SelectContent>
                               </Select>
                             </FormControl>

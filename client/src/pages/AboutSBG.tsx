@@ -207,8 +207,8 @@ const AboutSBG: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogin }) => {
         return () => { mounted = false; };
     }, []);
 
-    const sbgClub = useMemo(() => clubs.find(c => c.organization_type === 'other' && c.name.toLowerCase().includes('sbg')), [clubs]);
-    const ecClub = useMemo(() => clubs.find(c => c.organization_type === 'other' && c.name.toLowerCase().includes('election')), [clubs]);
+    const sbgClub = useMemo(() => clubs.find(c => c.organization_type === 'other' && c.name.toLowerCase().includes('student body government')), [clubs]);
+    const ecClub = useMemo(() => clubs.find(c => c.organization_type === 'other' && c.name.toLowerCase().includes('election commission')), [clubs]);
 
     const sbgMembers = useMemo(() => {
         if (!sbgClub) return [];
