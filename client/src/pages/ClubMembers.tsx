@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { apiRequest } from '../lib/api';
 import { toastError, toastSuccess } from '../lib/toast';
+import { toLocalISOString } from '../lib/utils';
 import { ClubMember, User } from '../types';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -71,7 +72,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
   // Resignation Dialog State
   const [resignDialogOpen, setResignDialogOpen] = useState(false);
   const [memberToResign, setMemberToResign] = useState<ClubMember | null>(null);
-  const [resignDate, setResignDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [resignDate, setResignDate] = useState(() => toLocalISOString(new Date()));
   const [resignReason, setResignReason] = useState('Resigned');
   const [isResigning, setIsResigning] = useState(false);
 
@@ -210,7 +211,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
     const isMemberActive = !member.tenure_end_date || new Date(member.tenure_end_date) >= new Date(new Date().setHours(0,0,0,0));
     if (isMemberActive) {
       setMemberToResign(member);
-      setResignDate(new Date().toISOString().split('T')[0]);
+      setResignDate(toLocalISOString(new Date()));
       setResignReason('Resigned');
       setResignDialogOpen(true);
     } else {
@@ -529,7 +530,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
               <Label htmlFor="tenure_start_date" className="text-sm font-medium">Tenure Start Date *</Label>
               <DatePicker
                 date={formData.tenure_start_date ? new Date(formData.tenure_start_date) : undefined}
-                setDate={(d) => setFormData({ ...formData, tenure_start_date: d ? d.toISOString().split('T')[0] : '' })}
+                setDate={(d) => setFormData({ ...formData, tenure_start_date: d ? toLocalISOString(d) : '' })}
               />
             </div>
           </div>
@@ -584,7 +585,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
               <Label className="text-sm font-medium">Date *</Label>
               <DatePicker
                 date={resignDate ? new Date(resignDate) : undefined}
-                setDate={(d) => setResignDate(d ? d.toISOString().split('T')[0] : '')}
+                setDate={(d) => setResignDate(d ? toLocalISOString(d) : '')}
               />
             </div>
             <div className="flex flex-col gap-2">

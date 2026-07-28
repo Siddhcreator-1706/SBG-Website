@@ -536,7 +536,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <form onSubmit={handleVerifyOtp} className="space-y-4 py-2">
               <div className="space-y-4">
                 <Label htmlFor="forgot-otp" className="text-textSecondary font-semibold text-sm text-center block">6-Digit Code</Label>
-                <div className="flex justify-center gap-2 sm:gap-3">
+                <div className="flex justify-center gap-1.5 sm:gap-3">
                   {[0, 1, 2, 3, 4, 5].map((index) => (
                     <Input
                       key={index}
@@ -548,7 +548,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
                       onPaste={handleOtpPaste}
-                      className="w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold rounded-xl focus:scale-105 transition-all"
+                      className="flex-1 min-w-0 max-w-[3rem] sm:max-w-[3.5rem] h-12 sm:h-14 md:h-16 text-center text-lg sm:text-xl md:text-2xl font-bold rounded-xl focus:scale-105 transition-all px-0"
                     />
                   ))}
                 </div>
