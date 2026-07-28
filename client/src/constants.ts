@@ -28,7 +28,6 @@ export const CLUBS: Club[] = [
   { name: 'AI Club', group: 'A' },
   { name: 'Academic Committee', group: 'A' },
   { name: 'Business Club', group: 'A' },
-  { name: 'DCEI', group: 'A' },
   { name: 'Debate Club', group: 'A' },
   { name: 'Developers Student Club', group: 'A' },
   { name: 'Electronics Hobby Club', group: 'A' },
