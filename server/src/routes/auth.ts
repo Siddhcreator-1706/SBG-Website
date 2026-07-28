@@ -270,13 +270,31 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
 });
 
 // Protected Routes
-router.use(authMiddleware);
 
 router.get('/profile', async (req, res) => {
     try {
-        const userId = req.user?.id;
+        const authHeader = req.headers.authorization || '';
+        const token = req.cookies?.jwt_token || (authHeader.startsWith('Bearer ')
+            ? authHeader.slice('Bearer '.length).trim()
+            : null);
+
+        if (!token) {
+            return res.json(null); // Soft fail for better UX, no 401 in console
+        }
+
+        const secret = process.env.JWT_SECRET;
+        if (!secret) return res.json(null);
+
+        let decoded;
+        try {
+            decoded = jwt.verify(token, secret) as { sub: string };
+        } catch (jwtError) {
+            return res.json(null); // Invalid/expired token
+        }
+
+        const userId = decoded.sub;
         if (!userId) {
-            return res.status(401).json({ error: 'User not authenticated' });
+            return res.json(null);
         }
 
         // 1. Fetch Profile
