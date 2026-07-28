@@ -46,7 +46,7 @@ const loginSchema = z.object({
 const registrationSchema = loginSchema.extend({
   password: z.string().min(6, 'Password must be at least 6 characters'),
   clubName: z.string().min(2, 'Club name is required'),
-  groupCategory: z.enum(['A', 'B', 'C'], {
+  groupCategory: z.enum(['A', 'B', 'C', 'other'], {
     required_error: "Please select a group category",
   }),
 });
@@ -362,6 +362,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                   <SelectItem value="A">Group A (Academic/Tech)</SelectItem>
                                   <SelectItem value="B">Group B (Cultural)</SelectItem>
                                   <SelectItem value="C">Group C (Sports)</SelectItem>
+                                  <SelectItem value="other">Others</SelectItem>
                                 </SelectContent>
                               </Select>
                             </FormControl>

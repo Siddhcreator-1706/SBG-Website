@@ -449,6 +449,7 @@ const AdminClubs: React.FC = () => {
                                     <SelectItem value="A">Group A (Academic/Tech)</SelectItem>
                                     <SelectItem value="B">Group B (Cultural)</SelectItem>
                                     <SelectItem value="C">Group C (Sports)</SelectItem>
+                                    <SelectItem value="other">Others</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -508,6 +509,7 @@ const AdminClubs: React.FC = () => {
                                     <SelectItem value="A">Group A (Academic/Tech)</SelectItem>
                                     <SelectItem value="B">Group B (Cultural)</SelectItem>
                                     <SelectItem value="C">Group C (Sports)</SelectItem>
+                                    <SelectItem value="other">Other (SBG / EC)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
