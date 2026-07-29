@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import RegisterEventDialog from '../components/RegisterEventDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { AppEvent, User } from '../types';
-import { cn } from '../lib/utils';
+import { cn, toLocalISOString } from '../lib/utils';
 
 interface ManageEventsProps {
   currentUser?: User;
@@ -34,7 +34,7 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'ongoing' | 'past'>('upcoming');
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalISOString(new Date());
 
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
@@ -87,9 +87,9 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
 
     setEditForm({
       name: event.name,
-      date: isNaN(startDate.getTime()) ? '' : startDate.toISOString().split('T')[0],
+      date: isNaN(startDate.getTime()) ? '' : toLocalISOString(startDate),
       startTime: isNaN(startDate.getTime()) ? '' : startDate.toTimeString().substring(0, 5),
-      endDate: isNaN(endDate.getTime()) ? '' : endDate.toISOString().split('T')[0],
+      endDate: isNaN(endDate.getTime()) ? '' : toLocalISOString(endDate),
       endTime: isNaN(endDate.getTime()) ? '' : endDate.toTimeString().substring(0, 5),
       venue: event.venue ? event.venue.split(', ') : [],
       event_type: (event as any).event_type || 'open_all'

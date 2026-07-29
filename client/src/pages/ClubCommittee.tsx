@@ -3,6 +3,7 @@ import { User, AppEvent } from '../types';
 
 import { apiRequest } from '../lib/api';
 import { toastError, toastSuccess } from '../lib/toast';
+import { toLocalISOString } from '../lib/utils';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -26,7 +27,7 @@ const ClubCommittee: React.FC<ClubCommitteeProps> = ({ user }) => {
   const isCommittee = user.name.toLowerCase().includes('committee');
   const entityType = isCommittee ? 'Committee' : 'Club';
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalISOString(new Date());
 
   const fetchData = async () => {
     try {

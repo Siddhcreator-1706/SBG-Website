@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select';
 import { Info, AlertTriangle } from 'lucide-react';
 import { User, AppEvent } from '../types';
-import { cn } from '../lib/utils';
+import { cn, toLocalISOString } from '../lib/utils';
 import { DatePicker } from './ui/date-picker';
 import { TimePicker } from './ui/time-picker';
 import { format, parseISO } from 'date-fns';
@@ -42,7 +42,7 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
   const [allClubs, setAllClubs] = useState<{ id: string; name: string }[]>([]);
   const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalISOString(new Date());
 
   useEffect(() => {
     if (isOpen && venues.length === 0) {

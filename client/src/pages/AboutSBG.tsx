@@ -316,7 +316,7 @@ const AboutSBG: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogin }) => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
-                    className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8"
+                    className="flex flex-row items-center gap-4 mb-8"
                 >
                     <div className="h-14 w-14 rounded-2xl bg-card border border-borderSoft/60 shadow-sm flex items-center justify-center shrink-0">
                         <img src="/sbg_logo.png" alt="SBG Logo" className="w-9 h-9 object-contain" />
@@ -559,14 +559,14 @@ const AboutSBG: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogin }) => {
             <Dialog open={ecModalOpen} onOpenChange={setEcModalOpen}>
                 <DialogContent className="max-w-md w-[95vw] rounded-2xl p-0 overflow-hidden bg-card border-borderSoft/60 shadow-2xl">
                     <div className="p-6">
-                        <DialogHeader className="mb-6 space-y-1">
+                        <DialogHeader className="mb-6 space-y-1 pr-8">
                             <div className="flex items-center gap-3 mb-2">
-                                <span className="h-10 w-10 rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+                                <span className="h-10 w-10 shrink-0 rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center">
                                     <Building2 size={20} />
                                 </span>
                                 <div>
-                                    <DialogTitle className="text-xl font-bold text-textPrimary">The Election Commission</DialogTitle>
-                                    <p className="text-sm font-medium text-violet-600 dark:text-violet-400">Independent Body</p>
+                                    <DialogTitle className="text-lg sm:text-xl font-bold text-textPrimary leading-tight">The Election Commission</DialogTitle>
+                                    <p className="text-sm font-medium text-violet-600 dark:text-violet-400 mt-0.5">Independent Body</p>
                                 </div>
                             </div>
                         </DialogHeader>
