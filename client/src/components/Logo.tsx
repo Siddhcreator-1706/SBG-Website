@@ -23,6 +23,8 @@ export function Logo({ size = 'md', showText = true, className }: LogoProps) {
       <img
         src="/sbg_logo.png"
         alt="SBG logo"
+        width="400"
+        height="400"
         className={cn('shrink-0 object-contain rounded-full', box)}
       />
       {showText && (

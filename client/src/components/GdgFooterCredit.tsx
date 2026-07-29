@@ -30,6 +30,8 @@ export function GdgFooterCredit({ className, compact }: GdgFooterCreditProps) {
         <img
           src="/gdg-logo.png"
           alt=""
+          width="120"
+          height="24"
           aria-hidden
           className={cn(
             'h-auto w-auto shrink-0 object-contain object-center',

@@ -435,9 +435,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
                 </AnimatePresence>
             </header>
 
-            {/* ====== Hero ====== */}
-            <section className="relative z-10 text-center px-4 sm:px-6 pt-12 sm:pt-20 pb-10 sm:pb-14 max-w-4xl mx-auto">
-                <motion.div
+            {/* ====== Main Content ====== */}
+            <main>
+                {/* ====== Hero ====== */}
+                <section className="relative z-10 text-center px-4 sm:px-6 pt-12 sm:pt-20 pb-10 sm:pb-14 max-w-4xl mx-auto">
+                    <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
@@ -507,10 +509,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
                                 Today
                             </Button>
                             <div className="flex items-center">
-                                <Button variant="ghost" size="sm" onClick={goToPrevMonth} className="h-8 w-8 p-0 rounded-lg">
+                                <Button variant="ghost" size="sm" onClick={goToPrevMonth} aria-label="Previous Month" className="h-8 w-8 p-0 rounded-lg">
                                     <ChevronLeft size={18} />
                                 </Button>
-                                <Button variant="ghost" size="sm" onClick={goToNextMonth} className="h-8 w-8 p-0 rounded-lg">
+                                <Button variant="ghost" size="sm" onClick={goToNextMonth} aria-label="Next Month" className="h-8 w-8 p-0 rounded-lg">
                                     <ChevronRight size={18} />
                                 </Button>
                             </div>
@@ -531,7 +533,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
                         {DAY_HEADERS.map(d => (
                             <div
                                 key={d}
-                                className="py-2.5 text-center text-[11px] sm:text-xs font-bold uppercase tracking-wider text-textMuted border-r last:border-r-0 border-borderSoft/20"
+                                className="py-2.5 text-center text-[11px] sm:text-xs font-bold uppercase tracking-wider text-textSecondary border-r last:border-r-0 border-borderSoft/20"
                             >
                                 {d}
                             </div>
@@ -879,6 +881,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
                     <GdgFooterCredit />
                 </div>
             </footer>
+            </main>
         </div>
     );
 };

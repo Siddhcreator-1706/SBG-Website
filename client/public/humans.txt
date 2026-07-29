@@ -1,12 +1,12 @@
 /* TEAM & CONTRIBUTORS */
 
-Developer: vaishcodescape
+Developer: Aditya Vaish (vaishcodescape)
 GitHub: https://github.com/vaishcodescape
 
-Developer: Siddhcreator-1706
+Developer: Siddh Shah (Siddhcreator-1706)
 GitHub: https://github.com/Siddhcreator-1706
 
-Developer: Neel7780
+Developer: Neel Khatri (Neel7780)
 GitHub: https://github.com/Neel7780
 
 Developer: pranshu05
@@ -15,7 +15,7 @@ GitHub: https://github.com/pranshu05
 Developer: PushkarP-404
 GitHub: https://github.com/PushkarP-404
 
-Developer: jeelaghera
+Developer: Aghera Jeel (jeelaghera)
 GitHub: https://github.com/jeelaghera
 
 Contributor: Kalp Chaniyara (Kalp-Chaniyara)
@@ -46,4 +46,4 @@ Backend Framework: Node.js, Express.js
 Database: PostgreSQL / Neon Tech
 PWA Support: Service Worker, Web App Manifest
 Software: Visual Studio Code, Antigravity AI
-Repository: https://github.com/ossdaiict/sleazzy
+Repository: https://github.com/sbg-siddh-coder/SBG-Website

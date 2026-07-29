@@ -327,8 +327,10 @@ const ClubsCommitteesPage: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogi
                 </AnimatePresence>
             </header>
 
-            {/* ====== Hero Section ====== */}
-            <section className="relative z-10 text-center px-4 sm:px-6 pt-12 pb-8 max-w-4xl mx-auto">
+            {/* ====== Main Content ====== */}
+            <main>
+                {/* ====== Hero Section ====== */}
+                <section className="relative z-10 text-center px-4 sm:px-6 pt-12 pb-8 max-w-4xl mx-auto">
                 <motion.h1
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -621,6 +623,7 @@ const ClubsCommitteesPage: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogi
                     )}
                 </AnimatePresence>
             </section>
+            </main>
         </div>
     );
 };

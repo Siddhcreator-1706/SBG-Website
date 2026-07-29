@@ -66,6 +66,20 @@ export default defineConfig(({ mode }) => {
       ],
       define: {
       },
+      build: {
+        sourcemap: true,
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              'vendor': ['react', 'react-dom', 'react-router-dom'],
+              'framer-motion': ['framer-motion'],
+              'lucide': ['lucide-react'],
+              'ui': ['@radix-ui/react-dialog', '@radix-ui/react-slot', '@radix-ui/react-popover', 'clsx', 'tailwind-merge', 'class-variance-authority'],
+              'date-fns': ['date-fns']
+            }
+          }
+        }
+      },
       resolve: {
         alias: {
           '@': path.resolve(__dirname, 'src'),
