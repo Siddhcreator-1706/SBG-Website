@@ -34,7 +34,8 @@ export default defineConfig(({ mode }) => {
             'apple-touch-icon.png',
             'icons/android-chrome-192x192.png',
             'icons/android-chrome-512x512.png',
-            'sbg_logo.png',
+            'sbg_logo.webp',
+            'gdg-logo.webp',
             'robots.txt',
             'sitemap.xml'
           ],

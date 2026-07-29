@@ -28,7 +28,7 @@ export function GdgFooterCredit({ className, compact }: GdgFooterCreditProps) {
       </span>
       <span className="inline-flex items-center gap-2">
         <img
-          src="/gdg-logo.png"
+          src="/gdg-logo.webp"
           alt=""
           width="120"
           height="24"

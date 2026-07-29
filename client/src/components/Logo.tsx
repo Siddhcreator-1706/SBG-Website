@@ -21,7 +21,7 @@ export function Logo({ size = 'md', showText = true, className }: LogoProps) {
   return (
     <div className={cn('flex items-center', gap, className)}>
       <img
-        src="/sbg_logo.png"
+        src="/sbg_logo.webp"
         alt="SBG logo"
         width="400"
         height="400"

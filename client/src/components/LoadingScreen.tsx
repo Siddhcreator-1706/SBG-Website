@@ -18,7 +18,7 @@ export const LoadingScreen = () => {
           <div className="absolute inset-0 rounded-full border border-dashed border-brand/40 animate-[spin_8s_linear_infinite]"></div>
           <div className="absolute inset-2 rounded-full border border-dashed border-[#E84E36]/30 animate-[spin_12s_linear_infinite_reverse]"></div>
           
-          <img src="/sbg_logo.png" alt="SBG Logo" className="w-20 h-20 object-contain drop-shadow-2xl animate-pulse" />
+          <img src="/sbg_logo.webp" alt="SBG Logo" fetchPriority="high" className="w-20 h-20 object-contain drop-shadow-2xl animate-pulse" />
         </div>
 
         <div className="flex flex-col items-center gap-4 w-full">
