@@ -316,7 +316,7 @@ const AboutSBG: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogin }) => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
-                    className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8"
+                    className="flex flex-row items-center gap-4 mb-8"
                 >
                     <div className="h-14 w-14 rounded-2xl bg-card border border-borderSoft/60 shadow-sm flex items-center justify-center shrink-0">
                         <img src="/sbg_logo.png" alt="SBG Logo" className="w-9 h-9 object-contain" />

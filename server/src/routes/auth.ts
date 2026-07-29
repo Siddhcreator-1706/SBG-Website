@@ -369,7 +369,7 @@ router.get('/profile', async (req, res) => {
     }
 });
 
-router.post('/change-password', async (req, res) => {
+router.post('/change-password', authMiddleware, async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user?.id;
 
