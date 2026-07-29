@@ -359,7 +359,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
                         <div className="hidden md:block">
                             <Button
                                 onClick={onGoToLogin}
-                                className="rounded-xl h-10 px-3 sm:px-6 font-semibold bg-brand text-white hover:bg-brandLink transition-all shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/30 gap-1 text-xs sm:text-sm"
+                                className="rounded-xl h-10 px-3 sm:px-6 font-bold bg-gradient-button text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all gap-1 text-xs sm:text-sm"
                             >
                                 <span>Sign In</span>
                                 <ArrowRight size={14} className="hidden sm:inline" />
@@ -424,7 +424,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
                                         onGoToLogin();
                                         setIsMobileMenuOpen(false);
                                     }}
-                                    className="justify-center rounded-xl h-11 px-4 font-semibold bg-brand text-white hover:bg-brandLink transition-all shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/30 gap-1.5 text-sm w-full mt-2"
+                                    className="justify-center rounded-xl h-11 px-4 font-bold bg-gradient-button text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all gap-1.5 text-sm w-full mt-2"
                                 >
                                     <span>Sign In</span>
                                     <ArrowRight size={16} />
@@ -457,7 +457,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
                 >
                     Discover What's
                     <br />
-                    <span className="bg-clip-text text-transparent bg-linear-to-r from-brand via-[#E84E36] to-[#FDC02F]">
+                    <span className="text-gradient-heading">
                         Happening on Campus
                     </span>
                 </motion.h1>
@@ -746,10 +746,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
                             <div className="p-5 sm:p-6 space-y-4">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="text-xl font-bold text-textPrimary tracking-tight truncate flex items-center gap-2">
+                                        <h3 className="text-xl font-bold text-gradient-heading tracking-tight truncate flex items-center gap-2">
                                             <span className="truncate">{selectedEvent.eventName}</span>
                                             {!isSameDay(selectedEvent.startTime, selectedEvent.endTime) && (
-                                                <span className="shrink-0 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-brand/10 text-brand border border-brand/20">Multi-Day</span>
+                                                <span className="shrink-0 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-gradient-button text-brand border border-brand/20">Multi-Day</span>
                                             )}
                                         </h3>
                                         <p className="text-sm text-textSecondary mt-1">{selectedEvent.clubName}</p>

@@ -269,7 +269,7 @@ const AboutSBG: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogin }) => {
                         <div className="hidden md:block">
                             <Button
                                 onClick={onGoToLogin}
-                                className="rounded-xl h-10 px-3 sm:px-6 font-semibold bg-brand text-white hover:bg-brandLink transition-all shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/30 gap-1 text-xs sm:text-sm"
+                                className="rounded-xl h-10 px-3 sm:px-6 font-bold bg-gradient-sbg text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all gap-1 text-xs sm:text-sm"
                             >
                                 <span>Sign In</span>
                                 <ArrowRight size={14} className="hidden sm:inline" />
@@ -299,7 +299,7 @@ const AboutSBG: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogin }) => {
                                 <Button variant="ghost" onClick={() => { navigate('/'); setIsMobileMenuOpen(false); }} className="justify-start rounded-xl h-11 px-4 font-semibold text-textSecondary hover:text-textPrimary hover:bg-hoverSoft transition-all text-sm w-full">Home</Button>
                                 <Button variant="ghost" onClick={() => { navigate('/about-sbg'); setIsMobileMenuOpen(false); }} className="justify-start rounded-xl h-11 px-4 font-semibold text-brand bg-brand/5 hover:bg-brand/10 transition-all text-sm w-full">About SBG</Button>
                                 <Button variant="ghost" onClick={() => { navigate('/clubs-committees'); setIsMobileMenuOpen(false); }} className="justify-start rounded-xl h-11 px-4 font-semibold text-textSecondary hover:text-textPrimary hover:bg-hoverSoft transition-all text-sm w-full">Clubs & Committees</Button>
-                                <Button onClick={() => { onGoToLogin(); setIsMobileMenuOpen(false); }} className="justify-center rounded-xl h-11 px-4 font-semibold bg-brand text-white hover:bg-brandLink transition-all shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/30 gap-1.5 text-sm w-full mt-2">
+                                <Button onClick={() => { onGoToLogin(); setIsMobileMenuOpen(false); }} className="justify-center rounded-xl h-11 px-4 font-bold bg-gradient-sbg text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all gap-1.5 text-sm w-full mt-2">
                                     <span>Sign In</span>
                                     <ArrowRight size={16} />
                                 </Button>

@@ -7,29 +7,42 @@
    Premium "Aurora" Theme — SBG
    ================================================================ */
 :root {
-  --bgMain: #F1F5F9;
+  /* Logo Text Gradient (Sleek Dark Slate to Zinc) */
+  --logo-grad-start: #09090B;
+  --logo-grad-mid: #27272A;
+  --logo-grad-end: #52525B;
+
+  /* Heading Text Gradient (Royal Blue to Electric Purple - highest contrast and vibrancy) */
+  --heading-grad-start: #1D4ED8;
+  --heading-grad-end: #7E22CE;
+
+  /* Button Background Gradient (Deep Blue to Indigo) */
+  --btn-grad-start: #2563EB;
+  --btn-grad-end: #4F46E5;
+
+  --bgMain: #F8FAFC;
   --card: #FFFFFF;
-  --borderSoft: rgba(15, 23, 42, 0.22);
-  --hoverSoft: rgba(15, 23, 42, 0.04);
-  --textPrimary: #0F172A;
-  --textSecondary: #475569;
-  --textMuted: #64748B;
+  --borderSoft: rgba(15, 23, 42, 0.16);
+  --hoverSoft: rgba(15, 23, 42, 0.06);
+  --textPrimary: #020617;
+  --textSecondary: #334155;
+  --textMuted: #94A3B8;
 
-  --brand: #2C3E8A;
-  --brand-glow: rgba(44, 62, 138, 0.15);
-  --brandLink: #1E2B63;
+  --brand: #4F46E5;
+  --brand-glow: rgba(79, 70, 229, 0.15);
+  --brandLink: #6D28D9;
 
-  --success: #059669;
-  --error: #E84E36;
-  --warning: #FDC02F;
+  --success: #10B981;
+  --error: #EF4444;
+  --warning: #F59E0B;
 
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --accent: rgba(15, 23, 42, 0.04);
+  --accent-foreground: #0F172A;
 
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.2);
   --glass-blur: 16px;
 
   --sidebar-width: 272px;
@@ -37,17 +50,30 @@
 }
 
 .dark {
+  /* Logo Text Gradient (Pure White to Platinum Silver) */
+  --logo-grad-start: #FFFFFF;
+  --logo-grad-mid: #E4E4E7;
+  --logo-grad-end: #A1A1AA;
+
+  /* Heading Text Gradient (Gold to Amber) - Kept as requested */
+  --heading-grad-start: #FDE047;
+  --heading-grad-end: #F59E0B;
+
+  /* Button Background Gradient (Electric Blue to Cyan) */
+  --btn-grad-start: #3B82F6;
+  --btn-grad-end: #06B6D4;
+
   --bgMain: #030712;
   --card: rgba(17, 24, 39, 0.6);
   --borderSoft: rgba(255, 255, 255, 0.1);
-  --hoverSoft: rgba(255, 255, 255, 0.08);
+  --hoverSoft: rgba(255, 255, 255, 0.05);
   --textPrimary: #F8FAFC;
   --textSecondary: #94A3B8;
   --textMuted: #64748B;
 
-  --brand: #2563EB;
-  --brand-glow: rgba(37, 99, 235, 0.25);
-  --brandLink: #93C5FD;
+  --brand: #8B5CF6;
+  --brand-glow: rgba(139, 92, 246, 0.25);
+  --brandLink: #D946EF;
 
   --success: #34d399;
   --error: #FF6B52;
@@ -55,12 +81,30 @@
 
   --popover: #111827;
   --popover-foreground: #F8FAFC;
-  --accent: rgba(255, 255, 255, 0.1);
+  --accent: rgba(255, 255, 255, 0.05);
   --accent-foreground: #F8FAFC;
 
   --glass-bg: rgba(17, 24, 39, 0.65);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.1);
   --glass-blur: 24px;
+}
+
+@utility text-gradient-logo {
+  background: linear-gradient(90deg, var(--logo-grad-start) 0%, var(--logo-grad-mid) 50%, var(--logo-grad-end) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility text-gradient-heading {
+  background: linear-gradient(90deg, var(--heading-grad-start) 0%, var(--heading-grad-end) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility bg-gradient-button {
+  background: linear-gradient(90deg, var(--btn-grad-start) 0%, var(--btn-grad-end) 100%);
 }
 
 @theme inline {

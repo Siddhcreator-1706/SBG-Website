@@ -251,7 +251,7 @@ const ClubsCommitteesPage: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogi
                         <div className="hidden md:block">
                             <Button
                                 onClick={onGoToLogin}
-                                className="rounded-xl h-10 px-3 sm:px-6 font-semibold bg-brand text-white hover:bg-brandLink transition-all shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/30 gap-1 text-xs sm:text-sm"
+                                className="rounded-xl h-10 px-3 sm:px-6 font-bold bg-gradient-sbg text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all gap-1 text-xs sm:text-sm"
                             >
                                 <span>Sign In</span>
                                 <ArrowRight size={14} className="hidden sm:inline" />
@@ -316,7 +316,7 @@ const ClubsCommitteesPage: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogi
                                         onGoToLogin();
                                         setIsMobileMenuOpen(false);
                                     }}
-                                    className="justify-center rounded-xl h-11 px-4 font-semibold bg-brand text-white hover:bg-brandLink transition-all shadow-md shadow-brand/20 hover:shadow-lg hover:shadow-brand/30 gap-1.5 text-sm w-full mt-2"
+                                    className="justify-center rounded-xl h-11 px-4 font-bold bg-gradient-sbg text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all gap-1.5 text-sm w-full mt-2"
                                 >
                                     <span>Sign In</span>
                                     <ArrowRight size={16} />

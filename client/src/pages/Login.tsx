@@ -285,7 +285,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <Button
           variant="ghost"
           onClick={() => navigate('/')}
-          className="rounded-xl h-10 px-3 sm:px-4 font-semibold text-textSecondary hover:text-textPrimary hover:bg-hoverSoft/80 transition-all flex items-center gap-1.5 border border-borderSoft bg-white/80 dark:bg-card/80 backdrop-blur"
+          className="rounded-lg h-9 px-3 sm:px-4 font-semibold text-sm text-textPrimary hover:bg-hoverSoft/80 transition-all flex items-center gap-1.5 border border-borderSoft bg-card/90 backdrop-blur shadow-sm"
         >
           <ArrowLeft size={16} />
           <span>Back to Home</span>
@@ -298,8 +298,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="w-full max-w-[420px] relative z-10"
       >
-        <div className="p-px rounded-2xl bg-linear-to-r from-brand/60 via-[#E84E36]/60 to-[#FDC02F]/60 dark:from-brand/40 dark:to-[#FF6B52]/40 shadow-2xl">
-          <div className="rounded-2xl overflow-hidden bg-white/95 dark:bg-[#0A0F1F]/95 backdrop-blur-xl">
+        <div className="rounded-xl border-2 border-borderSoft shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(255,255,255,0.04)] bg-white/95 dark:bg-[#0A0F1F]/95 backdrop-blur-xl">
             {/* Header */}
             <div className="border-b border-borderSoft/50 dark:border-white/10 pb-8 pt-8 sm:pt-10 text-center px-6 sm:px-8">
               <motion.div
@@ -384,7 +383,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                             <Mail size={18} className="absolute left-3.5 top-3 text-textMuted z-10" />
                             <Input
                               type="email"
-                              className="pl-11 h-11 rounded-xl"
+                              className="pl-11 h-11 rounded-md border-borderSoft bg-transparent focus:ring-2 focus:ring-brand/20 transition-all"
                               placeholder="club_name@dau.ac.in"
                               {...field}
                             />
@@ -415,7 +414,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                 setForgotStep(1);
                                 setForgotOpen(true);
                               }}
-                              className="text-xs font-semibold text-brand hover:text-brandLink hover:underline focus:outline-none"
+                              className="text-xs font-semibold text-brand hover:text-brandLink hover:underline focus:outline-none cursor-pointer"
                             >
                               Forgot Password?
                             </button>
@@ -426,7 +425,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                             <Lock size={18} className="absolute left-3.5 top-3 text-textMuted z-10" />
                             <Input
                               type="password"
-                              className="pl-11 h-11 rounded-xl"
+                              className="pl-11 h-11 rounded-md border-borderSoft bg-transparent focus:ring-2 focus:ring-brand/20 transition-all"
                               placeholder="Enter your password"
                               {...field}
                             />
@@ -446,7 +445,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <motion.div whileTap={{ scale: 0.98 }} className="pt-2">
                     <Button
                       type="submit"
-                      className="w-full rounded-xl h-12 text-base font-semibold bg-linear-to-r from-brand via-[#E84E36] to-[#FDC02F] text-white shadow-lg shadow-brand/25 hover:shadow-xl hover:shadow-brand/30 transition-all"
+                      className="w-full rounded-md h-12 text-sm uppercase tracking-wide font-bold bg-gradient-button text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
                       disabled={form.formState.isSubmitting}
                     >
                       {form.formState.isSubmitting ? (
@@ -465,12 +464,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               {/* Registration toggle removed: admin-only now */}
             </div>
           </div>
-        </div>
       </motion.div>
 
       {/* Forgot Password Dialog */}
       <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
-        <DialogContent className="sm:max-w-[420px] rounded-2xl bg-white/95 dark:bg-[#0A0F1F]/95 backdrop-blur-xl border border-borderSoft/50 dark:border-white/10 shadow-2xl">
+        <DialogContent className="sm:max-w-[420px] rounded-lg bg-white/95 dark:bg-[#0A0F1F]/95 backdrop-blur-xl border border-borderSoft/50 dark:border-white/10 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-textPrimary">
               {forgotStep === 1 && 'Reset Password'}

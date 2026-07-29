@@ -31,9 +31,7 @@ export function Logo({ size = 'md', showText = true, className }: LogoProps) {
         <span
           className={cn(
             text,
-            'font-extrabold tracking-tight select-none bg-clip-text text-transparent',
-            'bg-linear-to-r from-brand to-[#E84E36]',
-            'dark:from-brand dark:to-[#FF6B52]'
+            'font-extrabold tracking-tight select-none text-gradient-logo'
           )}
         >
           SBG
