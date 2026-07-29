@@ -7,13 +7,13 @@ services:
       dockerfile: Dockerfile.dev
     container_name: sbg-server-dev
     ports:
-      - "3006:3006"
+      - "3005:3005"
+    env_file:
+      - ./server/.env
     environment:
       - NODE_ENV=development
-      - PORT=3006
-      - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET:-local-dev-secret}
-      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173,http://localhost:3006}
+      - PORT=3005
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173,http://localhost:3005}
       - CLIENT_DIST_DIR=/app/client
     volumes:
       - ./server/src:/app/server/src
@@ -37,7 +37,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:3006
+      - VITE_API_URL=http://localhost:3005
     volumes:
       - ./client/src:/app/client/src
       - ./client/public:/app/client/public

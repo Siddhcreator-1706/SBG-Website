@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-// import { SpeedInsights } from '@vercel/speed-insights/react';
-// import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/error-boundary';
 import { LoadingScreen } from './components/LoadingScreen';
 import Layout from './pages/Layout';
@@ -78,7 +76,7 @@ const App: React.FC = () => {
     const initAuth = async () => {
       try {
         const userProfile = await apiRequest<User>('/api/auth/profile');
-        
+
         if (!isMounted) return;
         setUser(userProfile);
         cacheUser(userProfile);
@@ -128,7 +126,7 @@ const App: React.FC = () => {
     setUser(null);
     cacheUser(null);
     reconnectSocket();
-    
+
     try {
       await apiRequest('/api/auth/logout', { method: 'POST' });
     } catch (err) {
@@ -169,8 +167,6 @@ const App: React.FC = () => {
               <Route path="*" element={<LandingPage onGoToLogin={() => { window.location.href = '/login'; }} />} />
             </Routes>
           </React.Suspense>
-          {/* <SpeedInsights /> */}
-          {/* <Analytics /> */}
         </BrowserRouter>
       </ErrorBoundary>
     );
@@ -203,8 +199,6 @@ const App: React.FC = () => {
             </Routes>
           </React.Suspense>
         </Layout>
-        {/* <SpeedInsights /> */}
-        {/* <Analytics /> */}
       </BrowserRouter>
     </ErrorBoundary>
   );

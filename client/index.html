@@ -1,21 +1,240 @@
 <!DOCTYPE html>
-<html lang="en" suppressHydrationWarning>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#6366f1" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#030712" media="(prefers-color-scheme: dark)" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="SBG" />
-    <meta name="description" content="SBG — Discover events, reserve spaces, and manage schedules." />
-    <link rel="apple-touch-icon" href="/sbg_logo.png" />
-    <link rel="icon" type="image/png" href="/sbg_logo.png" />
-    <title>SBG</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<html lang="en-IN" dir="ltr">
+
+<head>
+  <!-- Character Encoding & Viewport -->
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="color-scheme" content="light dark" />
+
+  <!-- Theme Colors -->
+  <meta name="theme-color" content="#6366f1" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#030712" media="(prefers-color-scheme: dark)" />
+
+  <!-- ========== PWA / Native App Meta ========== -->
+  <!-- Android -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="SBG DAU" />
+
+  <!-- iOS / Safari -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SBG DAU" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+  <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
+  <link rel="apple-touch-icon" sizes="128x128" href="/icons/icon-128x128.png" />
+
+  <!-- Windows / MS -->
+  <meta name="msapplication-TileColor" content="#030712" />
+  <meta name="msapplication-TileImage" content="/icons/mstile-150x150.png" />
+  <meta name="msapplication-config" content="/browserconfig.xml" />
+
+  <!-- ========== Favicons ========== -->
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+
+  <!-- ========== PWA Manifest ========== -->
+  <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
+
+  <!-- ========== Primary SEO Meta Tags ========== -->
+  <title>SBG DAU</title>
+  <meta name="title" content="SBG DAU — Student Body Government Portal" />
+  <meta name="description"
+    content="Official portal of the Student Body Government (SBG) at Dhirubhai Ambani University (DAU), Gandhinagar. Browse campus clubs & committees, discover upcoming events, reserve venues, submit event reports, and manage campus life — all in one place." />
+  <meta name="keywords"
+    content="SBG, DAU, DA-IICT, Student Body Government, Dhirubhai Ambani University, Campus Events, Club Management, Venue Booking, Event Reports, Gandhinagar, Gujarat, University Portal, College Clubs, Student Council" />
+  <meta name="author" content="SBG Web Committee, DAU" />
+  <meta name="generator" content="Vite + React" />
+  <meta name="subject" content="Student Body Government Portal" />
+  <meta name="classification" content="Education" />
+  <meta name="category" content="Education" />
+  <meta name="coverage" content="Worldwide" />
+  <meta name="distribution" content="Global" />
+  <meta name="rating" content="General" />
+
+  <!-- Crawler Directives -->
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+  <meta name="bingbot" content="index, follow" />
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://sbg.dau.ac.in/" />
+
+  <!-- ========== Open Graph (Facebook, LinkedIn, Discord, Slack) ========== -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://sbg.dau.ac.in/" />
+  <meta property="og:site_name" content="SBG DAU" />
+  <meta property="og:title" content="SBG DAU — Student Body Government Portal" />
+  <meta property="og:description"
+    content="Official portal of the Student Body Government (SBG) at DAU, Gandhinagar. Explore clubs, events, venues, and campus life." />
+  <meta property="og:image" content="https://sbg.dau.ac.in/icons/android-chrome-512x512.png" />
+  <meta property="og:image:secure_url" content="https://sbg.dau.ac.in/icons/android-chrome-512x512.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta property="og:image:alt" content="SBG DAU — Student Body Government Logo" />
+  <meta property="og:locale" content="en_IN" />
+
+  <!-- ========== Twitter Cards ========== -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://sbg.dau.ac.in/" />
+  <meta name="twitter:title" content="SBG DAU — Student Body Government Portal" />
+  <meta name="twitter:description"
+    content="Official portal of the Student Body Government (SBG) at DAU, Gandhinagar. Explore clubs, events, venues, and campus life." />
+  <meta name="twitter:image" content="https://sbg.dau.ac.in/icons/android-chrome-512x512.png" />
+  <meta name="twitter:image:alt" content="SBG DAU — Student Body Government Logo" />
+
+  <!-- ========== SEO Resource Links ========== -->
+  <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
+  <link rel="author" type="text/plain" href="/humans.txt" />
+
+  <!-- ========== Performance Hints ========== -->
+  <link rel="dns-prefetch" href="//sbg.dau.ac.in" />
+  <link rel="preconnect" href="https://sbg.dau.ac.in" crossorigin />
+
+  <!-- ========== JSON-LD Structured Data ========== -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://sbg.dau.ac.in/#organization",
+          "name": "Student Body Government, DAU",
+          "alternateName": ["SBG DAU", "SBG DA-IICT", "SBG"],
+          "url": "https://sbg.dau.ac.in",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://sbg.dau.ac.in/icons/android-chrome-512x512.png",
+            "width": 512,
+            "height": 512,
+            "caption": "SBG DAU Logo"
+          },
+          "image": "https://sbg.dau.ac.in/icons/android-chrome-512x512.png",
+          "description": "The Student Body Government (SBG) at DAU manages campus events, student clubs, committees, venue reservations, and event reporting for Dhirubhai Ambani University.",
+          "parentOrganization": {
+            "@type": "CollegeOrUniversity",
+            "@id": "https://dau.ac.in/#university",
+            "name": "Dhirubhai Ambani University",
+            "alternateName": ["DAU", "DA-IICT"],
+            "url": "https://dau.ac.in",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "Near Indroda Circle, Gandhinagar",
+              "addressLocality": "Gandhinagar",
+              "addressRegion": "Gujarat",
+              "postalCode": "382007",
+              "addressCountry": "IN"
+            }
+          },
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Gandhinagar",
+            "addressRegion": "Gujarat",
+            "postalCode": "382007",
+            "addressCountry": "IN"
+          },
+          "sameAs": []
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://sbg.dau.ac.in/#website",
+          "name": "SBG DAU",
+          "alternateName": "SBG DAU Portal",
+          "url": "https://sbg.dau.ac.in",
+          "description": "Official portal of the Student Body Government (SBG) at DAU — browse clubs, discover events, reserve venues, and manage campus life.",
+          "publisher": {
+            "@id": "https://sbg.dau.ac.in/#organization"
+          },
+          "inLanguage": "en-IN",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://sbg.dau.ac.in/?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://sbg.dau.ac.in/#webpage",
+          "url": "https://sbg.dau.ac.in/",
+          "name": "SBG DAU — Student Body Government Portal",
+          "description": "Official portal of the Student Body Government (SBG) at DAU. Browse campus clubs & committees, discover upcoming events, reserve venues, and manage campus life.",
+          "isPartOf": {
+            "@id": "https://sbg.dau.ac.in/#website"
+          },
+          "about": {
+            "@id": "https://sbg.dau.ac.in/#organization"
+          },
+          "inLanguage": "en-IN",
+          "breadcrumb": {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://sbg.dau.ac.in/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Clubs & Committees",
+                "item": "https://sbg.dau.ac.in/clubs-committees"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "About SBG",
+                "item": "https://sbg.dau.ac.in/about-sbg"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <!-- SEO: Visible content for crawlers that don't execute JavaScript -->
+  <noscript>
+    <div style="max-width:800px;margin:0 auto;padding:2rem;font-family:system-ui,sans-serif">
+      <h1>SBG DAU — Student Body Government</h1>
+      <p>Welcome to the official portal of the <strong>Student Body Government (SBG)</strong> at <strong>Dhirubhai Ambani University (DAU)</strong>, Gandhinagar, Gujarat.</p>
+      <h2>What is SBG?</h2>
+      <p>The Student Body Government is the elected representative body of the students at DAU. SBG oversees and coordinates all student-run clubs, committees, events, and campus activities.</p>
+      <h2>Features</h2>
+      <ul>
+        <li><strong>Clubs & Committees</strong> — Browse all student-run clubs and committees at DAU.</li>
+        <li><strong>Events</strong> — Discover upcoming campus events, workshops, and activities.</li>
+        <li><strong>Venue Booking</strong> — Reserve campus spaces for club events and meetings.</li>
+        <li><strong>Event Reports</strong> — Submit and review post-event reports.</li>
+        <li><strong>Archives</strong> — Explore historical records of past events and activities.</li>
+      </ul>
+      <h2>Quick Links</h2>
+      <nav>
+        <ul>
+          <li><a href="/clubs-committees">Clubs & Committees</a></li>
+          <li><a href="/about-sbg">About SBG</a></li>
+          <li><a href="/login">Login</a></li>
+        </ul>
+      </nav>
+      <p>This application requires JavaScript to run. Please enable JavaScript in your browser to use SBG DAU.</p>
+    </div>
+  </noscript>
+
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

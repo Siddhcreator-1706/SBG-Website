@@ -265,9 +265,36 @@ app.use('/api/settings', settingsRoutes);
 // Start background cron jobs
 startCronJobs();
 
-// Serve static frontend files
+// Serve static frontend files with SEO-friendly headers
 const clientBuildPath = path.join(__dirname, '../../client/dist');
-app.use(express.static(clientBuildPath));
+
+// Cache immutable hashed assets aggressively (JS/CSS bundles)
+app.use('/assets', express.static(path.join(clientBuildPath, 'assets'), {
+  maxAge: '1y',
+  immutable: true,
+}));
+
+// Cache other static files (icons, images, manifests) for 1 day
+app.use(express.static(clientBuildPath, {
+  maxAge: '1d',
+  setHeaders: (res, filePath) => {
+    // Service worker must never be cached
+    if (filePath.endsWith('sw.js') || filePath.endsWith('workbox-*.js')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  },
+}));
+
+// SEO & Security headers for all HTML responses
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api')) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  }
+  next();
+});
 
 // Catch-all route to serve the React SPA for non-API requests
 app.get('*', (req, res) => {

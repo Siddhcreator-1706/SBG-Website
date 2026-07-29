@@ -50,3 +50,12 @@ Thumbs.db
 # VPS specific (generated on server)
 ecosystem.config.js.backup
 webhook-server.log
+# Scripts & Archives
+*.tar.gz
+*.ps1
+*.psm1
+*.psd1
+
+# Docker
+docker-compose.override.yml
+.docker/

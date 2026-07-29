@@ -63,7 +63,7 @@ interface Member {
     organization_type: string;
 }
 
-const SBG_DESCRIPTION = `The students of DAU (Formerly DA-IICT) have constituted a self-governing democratic organization called DAU Student Body Government, to achieve the following:`;
+const SBG_DESCRIPTION = `The students of DAU (Formerly DAU) have constituted a self-governing democratic organization called DAU Student Body Government, to achieve the following:`;
 
 const SBG_OBJECTIVES = [
     'Monitoring and regulation of all student activities.',
@@ -119,11 +119,11 @@ const MemberAvatar = ({ member }: { member: Member }) => {
     // "Convener" -> "convener.jpg"
     // "Dy. Convener" -> "dy_convener.jpg"
     const expectedFilename = member.designation.trim().toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') + '.jpg';
-    
+
     const photoPath = `/sbg_photos/${expectedFilename}`;
 
     const [imgError, setImgError] = useState(() => !!missingImageCache[photoPath]);
-    
+
 
     if (imgError) {
         return (
@@ -134,8 +134,8 @@ const MemberAvatar = ({ member }: { member: Member }) => {
     }
 
     return (
-        <img 
-            src={photoPath} 
+        <img
+            src={photoPath}
             alt={member.full_name}
             onError={() => {
                 missingImageCache[photoPath] = true;
@@ -187,7 +187,7 @@ const AboutSBG: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogin }) => {
                 setLoading(false);
                 return;
             }
-            
+
             setLoading(true);
             try {
                 const data = await preloadAboutSBG();
@@ -420,7 +420,7 @@ const AboutSBG: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogin }) => {
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                             </svg>
                                         </div>
-                                        <button 
+                                        <button
                                             onClick={() => setEcModalOpen(true)}
                                             className="flex items-center gap-3 rounded-xl border border-borderSoft/60 bg-card hover:bg-hoverSoft/40 hover:border-violet-500/30 transition-all px-4 py-3 text-left w-full cursor-pointer shadow-sm relative z-10"
                                         >
@@ -501,9 +501,9 @@ const AboutSBG: React.FC<{ onGoToLogin: () => void }> = ({ onGoToLogin }) => {
                                     <span className="text-sm font-medium text-textSecondary group-hover:text-brand transition-colors">Organisation members</span>
                                     <span className="font-semibold text-textPrimary">{loading ? '–' : (stats as any).members_organisation || 0}</span>
                                 </button>
-                                
+
                                 <div className="h-px bg-borderSoft/60 my-1 mx-2" />
-                                
+
                                 <div className="flex items-center justify-between p-3 rounded-xl border border-brand/20 bg-brand/5 hover:bg-brand/10 transition-all group cursor-default">
                                     <span className="text-sm font-bold text-textPrimary group-hover:text-brand transition-colors">Total student members</span>
                                     <span className="font-bold text-brand">{loading ? '–' : ((stats as any).members_club || 0) + ((stats as any).members_committee || 0) + ((stats as any).members_organisation || 0)}</span>

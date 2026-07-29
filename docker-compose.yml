@@ -6,21 +6,20 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://localhost:3006
         - BUILD_ID=${BUILD_ID:-local-$(date +%s)}
     container_name: sbg-website
     ports:
-      - "3006:3006"
+      - "3005:3005"
+    env_file:
+      - ./server/.env
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - PORT=3006
-      - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3006}
+      - PORT=3005
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3005}
       - CLIENT_DIST_DIR=/app/client
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3006', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3005', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
       interval: 30s
       timeout: 10s
       retries: 3

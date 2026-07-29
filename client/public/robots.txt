@@ -1,0 +1,103 @@
+# ==============================================================================
+# Robots.txt for SBG DAU (Student Body Government - Dhirubhai Ambani University)
+# Website: https://sbg.dau.ac.in
+# Repository: https://github.com/ossdaiict/sleazzy
+# Last Updated: 2026-07-29
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Default Rules for All Search Engine Crawlers
+# ------------------------------------------------------------------------------
+User-agent: *
+# Allow crawling of public pages
+Allow: /$
+Allow: /about-sbg
+Allow: /clubs-committees
+Allow: /login
+
+# Allow assets required for proper page rendering & preview generation
+Allow: /assets/
+Allow: /icons/
+Allow: /sbg_photos/
+Allow: /sbg_logo.png
+Allow: /gdg-logo.png
+Allow: /favicon*.png
+Allow: /favicon.ico
+Allow: /manifest.json
+Allow: /browserconfig.xml
+Allow: /humans.txt
+Allow: /sitemap.xml
+
+# Disallow authenticated, admin, and portal-internal routes
+Disallow: /admin/
+Disallow: /admin/*
+Disallow: /book
+Disallow: /book/*
+Disallow: /my-bookings
+Disallow: /manage-events
+Disallow: /event-reports
+Disallow: /members
+Disallow: /committee
+Disallow: /policy
+Disallow: /archives
+Disallow: /api/
+Disallow: /api/*
+
+# ------------------------------------------------------------------------------
+# Googlebot Specific Rules
+# ------------------------------------------------------------------------------
+User-agent: Googlebot
+Allow: /$
+Allow: /about-sbg
+Allow: /clubs-committees
+Allow: /login
+Allow: /assets/
+Allow: /icons/
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Googlebot-Image
+Allow: /sbg_logo.png
+Allow: /gdg-logo.png
+Allow: /sbg_photos/
+Allow: /icons/
+Allow: /favicon*.png
+
+# ------------------------------------------------------------------------------
+# Bingbot Specific Rules
+# ------------------------------------------------------------------------------
+User-agent: Bingbot
+Allow: /$
+Allow: /about-sbg
+Allow: /clubs-committees
+Allow: /login
+Allow: /assets/
+Allow: /icons/
+Disallow: /admin/
+Disallow: /api/
+
+# ------------------------------------------------------------------------------
+# AI & Scraping Bot Rules
+# ------------------------------------------------------------------------------
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Anthropic-AI
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+# ------------------------------------------------------------------------------
+# Sitemap Index Location
+# ------------------------------------------------------------------------------
+Sitemap: https://sbg.dau.ac.in/sitemap.xml

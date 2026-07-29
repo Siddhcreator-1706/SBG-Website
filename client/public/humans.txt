@@ -1,0 +1,49 @@
+/* TEAM & CONTRIBUTORS */
+
+Developer: vaishcodescape
+GitHub: https://github.com/vaishcodescape
+
+Developer: Siddhcreator-1706
+GitHub: https://github.com/Siddhcreator-1706
+
+Developer: Neel7780
+GitHub: https://github.com/Neel7780
+
+Developer: pranshu05
+GitHub: https://github.com/pranshu05
+
+Developer: PushkarP-404
+GitHub: https://github.com/PushkarP-404
+
+Developer: jeelaghera
+GitHub: https://github.com/jeelaghera
+
+Contributor: Kalp Chaniyara (Kalp-Chaniyara)
+GitHub: https://github.com/Kalp-Chaniyara
+
+Contributor: Param Savjani (paramsavjani)
+GitHub: https://github.com/paramsavjani
+
+Contributor: Atik (atik-7866)
+GitHub: https://github.com/atik-7866
+
+Contributor: Harshraj (harshraj-007)
+GitHub: https://github.com/harshraj-007
+
+/* ORGANIZATION */
+
+Name: Student Body Government (SBG), Dhirubhai Ambani University (DAU / DA-IICT)
+Site: https://sbg.dau.ac.in
+Location: Gandhinagar, Gujarat, India
+
+/* SITE TECHNOLOGY */
+
+Last Updated: 2026/07/29
+Language: English (en-IN)
+Standards: HTML5, CSS3, TypeScript (ES2022)
+Frontend Framework: React 18, Vite, TailwindCSS
+Backend Framework: Node.js, Express.js
+Database: PostgreSQL / Neon Tech
+PWA Support: Service Worker, Web App Manifest
+Software: Visual Studio Code, Antigravity AI
+Repository: https://github.com/ossdaiict/sleazzy
