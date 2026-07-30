@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, ChevronRight, AlertCircle, Calendar as CalendarIcon, Users, AlertTriangle, RefreshCw, Plus, Check, X } from 'lucide-react';
+import { CheckCircle, XCircle, ChevronRight, AlertCircle, Calendar as CalendarIcon, Users, AlertTriangle, RefreshCw, Plus, Check, X, Settings, ChevronDown, Download } from 'lucide-react';
 import { apiRequest, mapBooking, type ApiBooking, type ApiVenue } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { toastError, toastSuccess } from '../lib/toast';
@@ -11,6 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Skeleton } from '../components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '../components/ui/dropdown-menu';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import { Calendar, type CalendarEvent } from '../components/ui/calendar';
 import AddBookingDialog from '../components/AddBookingDialog';
 import RegisterEventDialog from '../components/RegisterEventDialog';
@@ -35,6 +39,45 @@ const AdminDashboard: React.FC = () => {
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [registerDialogOpen, setRegisterDialogOpen] = React.useState(false);
   const [isProcessingAction, setIsProcessingAction] = React.useState(false);
+
+  // SBG Settings State
+  const [sbgSettingsOpen, setSbgSettingsOpen] = React.useState(false);
+  const [isSavingSettings, setIsSavingSettings] = React.useState(false);
+  const [sbgSettings, setSbgSettings] = React.useState({
+    sbg_constitution_link: '',
+    sbg_linkedin: '',
+    sbg_email: ''
+  });
+
+  const fetchSbgSettings = async () => {
+    try {
+      const config = await apiRequest<Record<string, string>>('/api/settings', { auth: true });
+      setSbgSettings({
+        sbg_constitution_link: config.sbg_constitution_link || '',
+        sbg_linkedin: config.sbg_linkedin || '',
+        sbg_email: config.sbg_email || ''
+      });
+    } catch (err) {
+      console.error('Failed to fetch SBG settings', err);
+    }
+  };
+
+  const saveSbgSettings = async () => {
+    setIsSavingSettings(true);
+    try {
+      await apiRequest('/api/settings', {
+        method: 'POST',
+        auth: true,
+        body: sbgSettings
+      });
+      toastSuccess('SBG Settings saved successfully');
+      setSbgSettingsOpen(false);
+    } catch (error: any) {
+      toastError(error, 'Failed to save SBG settings');
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
 
   const getVenueName = (id: string) => venues.find(v => v.id === id)?.name || id;
 
@@ -94,6 +137,7 @@ const AdminDashboard: React.FC = () => {
 
   React.useEffect(() => {
     fetchData();
+    fetchSbgSettings();
   }, [fetchData]);
 
   // Socket.io: join admin room and listen for new booking requests
@@ -256,122 +300,94 @@ const AdminDashboard: React.FC = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tighter leading-tight">Admin Dashboard</h2>
-          <p className="text-textSecondary mt-2 sm:mt-3 text-sm sm:text-base font-medium max-w-2xl">Monitor venue bookings, manage approvals, and track system performance.</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <Button
-                variant="outline"
-                onClick={() => setRegisterDialogOpen(true)}
-                className="gap-2 rounded-xl h-10 font-semibold shadow-sm border-borderSoft hover:bg-hoverSoft"
-              >
-                <Plus size={16} />
-                Register Event
-              </Button>
-              <Button
-                onClick={() => setAddDialogOpen(true)}
-                className="gap-2 rounded-xl h-10 font-semibold shadow-sm shadow-brand/15 bg-brand text-bgMain hover:opacity-90"
-              >
-                <CalendarIcon size={16} />
-                Book Venues
-              </Button>
-            </div>
-            <Button
-              variant="outline"
-              onClick={exportAllEvents}
-              disabled={isLoading || calendarEvents.length === 0}
-              className="gap-2 rounded-xl h-10 font-semibold"
-            >
-              Export CSV
-            </Button>
+          <div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tighter leading-tight">Admin Dashboard</h2>
+            <p className="text-textSecondary mt-2 sm:mt-3 text-sm sm:text-base font-medium max-w-2xl">Monitor venue bookings, manage approvals, and track system performance.</p>
+          </div>
+          <div className="flex gap-2 items-center w-full sm:w-auto mt-2 sm:mt-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="gap-2 rounded-xl h-10 font-semibold bg-brand text-white shadow-md hover:opacity-90 w-full sm:w-auto">
+                  Quick Actions <ChevronDown size={16} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-56 rounded-xl">
+                <DropdownMenuLabel>Manage Platform</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => setAddDialogOpen(true)} className="gap-2 cursor-pointer font-medium">
+                  <CalendarIcon size={16} className="text-brand" /> Book Venues
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setRegisterDialogOpen(true)} className="gap-2 cursor-pointer font-medium">
+                  <Plus size={16} className="text-brand" /> Register Event
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Data & Settings</DropdownMenuLabel>
+                <DropdownMenuItem onClick={exportAllEvents} disabled={isLoading || calendarEvents.length === 0} className="gap-2 cursor-pointer font-medium">
+                  <Download size={16} className="text-textSecondary" /> Export CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSbgSettingsOpen(true)} className="gap-2 cursor-pointer font-medium">
+                  <Settings size={16} className="text-textSecondary" /> SBG Settings
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </motion.div>
       </div>
 
-      {/* Enhanced Key Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 px-1 sm:px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0, ease: [0.25, 0.46, 0.45, 0.94] }}
-          whileHover={{ y: -4 }}
-        >
-          <Card className="rounded-lg border border-borderSoft hover:border-warning/50 transition-all shadow-sm bg-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-xs font-bold text-textMuted uppercase tracking-wider">Pending</div>
-                <div className="p-2 bg-warning/10 text-warning rounded-md border border-warning/20">
-                  <AlertCircle size={18} />
+      {/* Mini Stats Grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="px-1 sm:px-4"
+      >
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 w-full">
+          <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 transition-colors">
+            <div className="p-1.5 sm:p-2 bg-warning/10 text-warning rounded-lg shrink-0">
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">Pending</div>
+              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">{stats.pending}</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-brand/40 transition-colors">
+            <div className="p-1.5 sm:p-2 bg-brand/10 text-brand rounded-lg shrink-0">
+              <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">Scheduled</div>
+              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">{stats.scheduled}</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-error/40 transition-colors">
+            <div className="p-1.5 sm:p-2 bg-error/10 text-error rounded-lg shrink-0">
+              <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">Conflicts</div>
+              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">{stats.conflicts}</div>
+            </div>
+          </div>
+
+          <Link to="/admin/clubs" className="block focus-visible:ring-2 focus-visible:ring-success rounded-xl outline-none">
+            <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-success/40 hover:bg-success/5 transition-all group">
+              <div className="p-1.5 sm:p-2 bg-success/10 text-success rounded-lg shrink-0 group-hover:scale-110 transition-transform">
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">Clubs</div>
+                <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5 flex items-center gap-1">
+                  {stats.activeClubs} <ChevronRight className="w-3 h-3 text-success opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
-              <div className="text-3xl sm:text-4xl font-extrabold text-textPrimary tracking-tight">{stats.pending}</div>
-              <p className="text-xs text-textMuted mt-2">Awaiting approval</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
-          whileHover={{ y: -4 }}
-        >
-          <Card className="rounded-lg border border-borderSoft hover:border-brand/50 transition-all shadow-sm bg-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-xs font-bold text-textMuted uppercase tracking-wider">Scheduled</div>
-                <div className="p-2 bg-brand/10 text-brand rounded-md border border-brand/20">
-                  <CalendarIcon size={18} />
-                </div>
-              </div>
-              <div className="text-3xl sm:text-4xl font-extrabold text-textPrimary tracking-tight">{stats.scheduled}</div>
-              <p className="text-xs text-textMuted mt-2">Confirmed events</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-          whileHover={{ y: -4 }}
-        >
-          <Card className="rounded-lg border border-borderSoft hover:border-error/50 transition-all shadow-sm bg-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-xs font-bold text-textMuted uppercase tracking-wider">Conflicts</div>
-                <div className="p-2 bg-error/10 text-error rounded-md border border-error/20">
-                  <XCircle size={18} />
-                </div>
-              </div>
-              <div className="text-3xl sm:text-4xl font-extrabold text-textPrimary tracking-tight">{stats.conflicts}</div>
-              <p className="text-xs text-textMuted mt-2">Time overlaps</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-          whileHover={{ y: -4 }}
-        >
-          <Link to="/admin/clubs" className="block outline-none focus-visible:ring-2 focus-visible:ring-success rounded-lg group">
-            <Card className="rounded-lg border border-borderSoft group-hover:border-success/50 transition-all shadow-sm bg-card">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="text-xs font-bold text-textMuted uppercase tracking-wider">Active Clubs</div>
-                  <div className="p-2 bg-success/10 text-success rounded-md border border-success/20">
-                    <CheckCircle size={18} />
-                  </div>
-                </div>
-                <div className="text-3xl sm:text-4xl font-extrabold text-textPrimary tracking-tight">{stats.activeClubs}</div>
-                <p className="text-xs text-textMuted mt-2 flex items-center gap-1 group-hover:text-success transition-colors">
-                  Manage Organizations <ChevronRight size={14} />
-                </p>
-              </CardContent>
-            </Card>
+            </div>
           </Link>
-        </motion.div>
-      </div>
+        </div>
+      </motion.div>
 
       {/* Calendar Widget */}
       <motion.div
@@ -469,15 +485,12 @@ const AdminDashboard: React.FC = () => {
                 <Button variant="outline" size="sm" asChild className="hidden sm:flex whitespace-nowrap border-[1.5px]">
                   <Link to="/admin/requests">View All</Link>
                 </Button>
-                <Button variant="outline" size="sm" onClick={exportAllEvents} disabled={isLoading || calendarEvents.length === 0} className="whitespace-nowrap border-[1.5px] border-slate-300 dark:border-slate-600">
-                  Export CSV
-                </Button>
               </div>
             </div>
             <div className="sm:hidden px-4 pt-4 pb-2">
-               <Button variant="outline" size="sm" asChild className="w-full border-[1.5px]">
-                  <Link to="/admin/requests">View All Events</Link>
-                </Button>
+              <Button variant="outline" size="sm" asChild className="w-full border-[1.5px]">
+                <Link to="/admin/requests">View All</Link>
+              </Button>
             </div>
           </CardHeader>
 
@@ -575,10 +588,15 @@ const AdminDashboard: React.FC = () => {
                 <CardTitle className="text-lg sm:text-xl">Pending Requests</CardTitle>
                 <CardDescription className="mt-1">Requests requiring immediate attention (Category B or Conflicts)</CardDescription>
               </div>
-              <Button variant="outline" size="sm" asChild className="border-[1.5px] border-slate-300 dark:border-slate-600">
-                <Link to="/admin/requests">
-                  View All <ChevronRight size={16} />
-                </Link>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" asChild className="hidden sm:flex whitespace-nowrap border-[1.5px]">
+                  <Link to="/admin/requests">View All</Link>
+                </Button>
+              </div>
+            </div>
+            <div className="sm:hidden px-4 pt-4 pb-2">
+              <Button variant="outline" size="sm" asChild className="w-full border-[1.5px]">
+                <Link to="/admin/requests">View All</Link>
               </Button>
             </div>
           </CardHeader>
@@ -676,7 +694,7 @@ const AdminDashboard: React.FC = () => {
                           onClick={() => handleSendEmail(req.batchId, undefined)} // For dashboard pending requests we only have batchId easily available in req
                           title="Send an email to the club with the current status of all venues in this booking"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
                           <span className="hidden sm:inline">Send Mail</span>
                         </Button>
                         <Button
@@ -719,6 +737,55 @@ const AdminDashboard: React.FC = () => {
         currentUser={{ role: 'admin' } as any}
         onEventCreated={fetchData}
       />
+
+      {/* SBG Settings Dialog */}
+      <Dialog open={sbgSettingsOpen} onOpenChange={setSbgSettingsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>SBG Settings</DialogTitle>
+            <DialogDescription>Manage public information shown on the About SBG page.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Constitution Link (URL)</Label>
+              <Input
+                value={sbgSettings.sbg_constitution_link}
+                onChange={e => setSbgSettings({ ...sbgSettings, sbg_constitution_link: e.target.value })}
+                placeholder="https://..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>SBG LinkedIn (URL)</Label>
+              <Input
+                value={sbgSettings.sbg_linkedin}
+                onChange={e => setSbgSettings({ ...sbgSettings, sbg_linkedin: e.target.value })}
+                placeholder="https://linkedin.com/..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>SBG Contact Email</Label>
+              <Input
+                value={sbgSettings.sbg_email}
+                onChange={e => setSbgSettings({ ...sbgSettings, sbg_email: e.target.value })}
+                placeholder="sbg@dau.ac.in"
+                type="email"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSbgSettingsOpen(false)}>Cancel</Button>
+            <Button
+              className="bg-brand text-white hover:bg-brandLink"
+              onClick={saveSbgSettings}
+              disabled={isSavingSettings}
+            >
+              {isSavingSettings ? 'Saving...' : 'Save Settings'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

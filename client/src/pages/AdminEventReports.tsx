@@ -5,7 +5,7 @@ import { GlassCard } from '../components/glass-card';
 import { GradientBackground } from '../components/gradient-background';
 import { toastError } from '../lib/toast';
 import { toast } from 'sonner';
-import { Settings } from 'lucide-react';
+import { Settings, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -119,7 +119,13 @@ export default function AdminEventReports() {
               Formats
             </Button>
             {tab === 'submitted' && (
-              <Button onClick={handleExport}>Export to Excel</Button>
+              <Button 
+                onClick={handleExport}
+                className="gap-2 rounded-xl h-10 font-semibold border-[1.5px] border-slate-300 dark:border-slate-600 bg-card text-textSecondary hover:bg-hoverSoft shadow-sm"
+              >
+                <Download size={16} />
+                Export to Excel
+              </Button>
             )}
           </div>
         </div>

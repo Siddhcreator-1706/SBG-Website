@@ -34,3 +34,9 @@ export const db = new Pool({
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000, // Increased from 2000 to prevent Neon cold-start timeouts
 });
+
+// Catch idle client errors so they don't crash the Node.js process
+// The pg Pool will automatically remove and replace the faulty client on the next query
+db.on('error', (err, client) => {
+  console.error('Unexpected error on idle database client', err);
+});
