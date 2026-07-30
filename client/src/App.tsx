@@ -22,6 +22,7 @@ const EventReports = React.lazy(() => import('./pages/EventReports'));
 const AdminEventReports = React.lazy(() => import('./pages/AdminEventReports'));
 const Archives = React.lazy(() => import('./pages/Archives'));
 import { User } from './types';
+import { PublicLayout } from './components/PublicLayout';
 import { apiRequest } from './lib/api';
 import { getSocket, reconnectSocket, SOCKET_EVENTS } from './lib/socket';
 
@@ -162,9 +163,11 @@ const App: React.FC = () => {
           <React.Suspense fallback={<LoadingScreen />}>
             <Routes>
               <Route path="/login" element={<Login onLogin={handleLogin} />} />
-              <Route path="/clubs-committees" element={<ClubsCommitteesPage onGoToLogin={() => { window.location.href = '/login'; }} />} />
-              <Route path="/about-sbg" element={<AboutSBG onGoToLogin={() => { window.location.href = '/login'; }} />} />
-              <Route path="*" element={<LandingPage onGoToLogin={() => { window.location.href = '/login'; }} />} />
+              <Route element={<PublicLayout onGoToLogin={() => { window.location.href = '/login'; }} />}>
+                <Route path="/clubs-committees" element={<ClubsCommitteesPage />} />
+                <Route path="/about-sbg" element={<AboutSBG />} />
+                <Route path="*" element={<LandingPage />} />
+              </Route>
             </Routes>
           </React.Suspense>
         </BrowserRouter>

@@ -834,7 +834,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                     id="edit-website"
                     value={editForm.website_url}
                     onChange={e => setEditForm({ ...editForm, website_url: e.target.value })}
-                    placeholder="e.g. clubs.daiict.ac.in/myclub"
+                    placeholder="e.g. clubs.dau.ac.in/myclub"
                     className="rounded-xl bg-bgMain border-borderSoft text-textPrimary h-9 text-sm"
                   />
                 </div>

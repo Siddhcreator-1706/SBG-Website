@@ -518,7 +518,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <Button
                   type="submit"
                   disabled={forgotLoading}
-                  className="rounded-xl h-11 text-sm font-semibold bg-linear-to-r from-brand via-[#E84E36] to-[#FDC02F] text-white shadow-md shadow-brand/10 hover:shadow-lg hover:shadow-brand/20 transition-all flex items-center justify-center min-w-[120px]"
+                  className="rounded-xl h-11 text-sm font-semibold bg-gradient-button text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all flex items-center justify-center min-w-[120px]"
                 >
                   {forgotLoading ? (
                     <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

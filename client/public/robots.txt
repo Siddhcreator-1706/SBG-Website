@@ -1,7 +1,7 @@
 # ==============================================================================
 # Robots.txt for SBG DAU (Student Body Government - Dhirubhai Ambani University)
 # Website: https://sbg.dau.ac.in
-# Repository: https://github.com/ossdaiict/sleazzy
+# Repository: https://github.com/sbg-siddh-coder/SBG-Website
 # Last Updated: 2026-07-29
 # ==============================================================================
 

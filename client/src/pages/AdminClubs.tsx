@@ -170,8 +170,8 @@ const AdminClubs: React.FC = () => {
 
     const handleEditClick = (club: ApiClub) => {
         setEditingClub(club);
-        setEditFormData({ 
-            name: club.name, 
+        setEditFormData({
+            name: club.name,
             groupCategory: club.group_category || 'A',
             organizationType: club.organization_type || 'club',
             memberTag: club.member_tag || ''
@@ -594,7 +594,7 @@ const AdminClubs: React.FC = () => {
                                 const startDate = new Date(event.date);
                                 const endDate = event.dynamic_end_date ? new Date(event.dynamic_end_date) : new Date(startDate);
                                 endDate.setHours(23, 59, 59, 999);
-                                
+
                                 let timelineStatus = 'Ongoing';
                                 let badgeVariant: 'success' | 'outline' | 'secondary' = 'success';
                                 if (now < startDate) {
@@ -606,33 +606,33 @@ const AdminClubs: React.FC = () => {
                                 }
 
                                 return (
-                                <Card key={event.id} className="rounded-lg bg-card border border-borderSoft hover:border-brand/50 transition-colors shadow-sm">
-                                    <CardContent className="p-4">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h4 className="font-semibold text-textPrimary leading-tight pr-4">{event.name}</h4>
-                                            <Badge
-                                                variant={badgeVariant}
-                                                className="text-[10px] px-1.5 py-0 h-5 shrink-0"
-                                            >
-                                                {timelineStatus}
-                                            </Badge>
-                                        </div>
+                                    <Card key={event.id} className="rounded-lg bg-card border border-borderSoft hover:border-brand/50 transition-colors shadow-sm">
+                                        <CardContent className="p-4">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h4 className="font-semibold text-textPrimary leading-tight pr-4">{event.name}</h4>
+                                                <Badge
+                                                    variant={badgeVariant}
+                                                    className="text-[10px] px-1.5 py-0 h-5 shrink-0"
+                                                >
+                                                    {timelineStatus}
+                                                </Badge>
+                                            </div>
 
-                                        <div className="grid grid-cols-2 gap-2 text-sm mt-3">
-                                            <div>
-                                                <span className="text-textMuted text-xs block uppercase tracking-wider mb-0.5">Date</span>
-                                                <div className="font-medium text-textSecondary">{new Date(event.date).toLocaleDateString()}</div>
+                                            <div className="grid grid-cols-2 gap-2 text-sm mt-3">
+                                                <div>
+                                                    <span className="text-textMuted text-xs block uppercase tracking-wider mb-0.5">Date</span>
+                                                    <div className="font-medium text-textSecondary">{new Date(event.date).toLocaleDateString()}</div>
+                                                </div>
+                                                <div>
+                                                    <span className="text-textMuted text-xs block uppercase tracking-wider mb-0.5">Venue</span>
+                                                    <div className="font-medium text-textSecondary truncate max-w-full" title={event.venue}>{event.venue}</div>
+                                                    {event.event_type === 'co_curricular' && (
+                                                        <div className="text-xs text-brand mt-0.5 font-medium">Co-curricular</div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div>
-                                                <span className="text-textMuted text-xs block uppercase tracking-wider mb-0.5">Venue</span>
-                                                <div className="font-medium text-textSecondary truncate max-w-full" title={event.venue}>{event.venue}</div>
-                                                {event.event_type === 'co_curricular' && (
-                                                    <div className="text-xs text-brand mt-0.5 font-medium">Co-curricular</div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                        </CardContent>
+                                    </Card>
                                 )
                             })
                         )}
@@ -670,7 +670,7 @@ const AdminClubs: React.FC = () => {
                             <Input
                                 value={sbgSettings.sbg_email}
                                 onChange={e => setSbgSettings({ ...sbgSettings, sbg_email: e.target.value })}
-                                placeholder="sbg@daiict.ac.in"
+                                placeholder="sbg@dau.ac.in"
                                 type="email"
                             />
                         </div>

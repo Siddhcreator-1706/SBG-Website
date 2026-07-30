@@ -70,11 +70,7 @@ function isSameDay(a: Date, b: Date) {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-interface LandingPageProps {
-    onGoToLogin: () => void;
-}
-
-const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
+const LandingPage: React.FC = () => {
     const navigate = useNavigate();
     const [events, setEvents] = useState<PublicEvent[]>([]);
     const [publicMembers, setPublicMembers] = useState<any[]>([]);
@@ -86,22 +82,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
     const [venues, setVenues] = useState<ApiVenue[]>([]);
     const [selectedEvent, setSelectedEvent] = useState<PublicEvent | null>(null);
     const [selectedDayEvents, setSelectedDayEvents] = useState<PublicEvent[] | null>(null);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const headerRef = useRef<HTMLElement>(null);
-
-    // Close menu when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (isMobileMenuOpen && headerRef.current && !headerRef.current.contains(event.target as Node)) {
-                setIsMobileMenuOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isMobileMenuOpen]);
 
     const fetchEvents = useCallback(async () => {
         try {
@@ -155,17 +135,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
         };
     }, [fetchEvents]);
 
-    // Close mobile menu on scroll
-    useEffect(() => {
-        const handleScroll = () => {
-            if (isMobileMenuOpen) {
-                setIsMobileMenuOpen(false);
-            }
-        };
 
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [isMobileMenuOpen]);
 
     const calendarDays = useMemo(() => {
         const year = currentMonth.getFullYear();
@@ -315,125 +285,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToLogin }) => {
 
     return (
         <div className="min-h-dvh relative overflow-clip bg-bgMain">
-            {/* ====== Header ====== */}
-            <header ref={headerRef} className="sticky top-0 z-30 bg-bgMain/80 backdrop-blur-xl border-b border-borderSoft/40">
-                <div className="flex items-center justify-between px-3 sm:px-6 py-3 max-w-7xl mx-auto">
-                    {/* Left: Logo & Nav Links */}
-                    <div className="flex items-center gap-3 sm:gap-6 min-w-0">
-                        <div className="shrink-0">
-                            <Logo size="md" />
-                        </div>
-                        
-                        {/* Desktop Nav Links */}
-                        <div className="hidden md:flex items-center gap-1 sm:gap-2">
-                            <Button
-                                variant="ghost"
-                                onClick={() => navigate('/')}
-                                className="rounded-xl h-10 px-2.5 sm:px-4 font-semibold text-brand bg-brand/5 hover:bg-brand/10 transition-all text-xs sm:text-sm"
-                            >
-                                Home
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                onClick={() => navigate('/about-sbg')}
-                                className="rounded-xl h-10 px-2.5 sm:px-4 font-semibold text-textSecondary hover:text-textPrimary hover:bg-hoverSoft transition-all text-xs sm:text-sm"
-                            >
-                                About SBG
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                onClick={() => navigate('/clubs-committees')}
-                                className="rounded-xl h-10 px-2.5 sm:px-4 font-semibold text-textSecondary hover:text-textPrimary hover:bg-hoverSoft transition-all text-xs sm:text-sm"
-                            >
-                                <span className="hidden sm:inline">Clubs & Committees</span>
-                                <span className="sm:hidden">Clubs</span>
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Right: Utilities */}
-                    <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
-                        <ThemeToggle />
-                        
-                        {/* Sign In (Desktop Only) */}
-                        <div className="hidden md:block">
-                            <Button
-                                onClick={onGoToLogin}
-                                className="rounded-xl h-10 px-3 sm:px-6 font-bold bg-gradient-button text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all gap-1 text-xs sm:text-sm"
-                            >
-                                <span>Sign In</span>
-                                <ArrowRight size={14} className="hidden sm:inline" />
-                            </Button>
-                        </div>
-
-                        {/* Mobile Hamburger Button */}
-                        <Button
-                            variant="ghost"
-                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="md:hidden p-2 rounded-xl border border-borderSoft/40 bg-hoverSoft/20 text-textPrimary hover:bg-hoverSoft/40 transition-all"
-                            aria-label="Toggle menu"
-                        >
-                            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Mobile Dropdown Menu */}
-                <AnimatePresence>
-                    {isMobileMenuOpen && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="md:hidden border-t border-borderSoft/40 bg-bgMain/95 backdrop-blur-xl overflow-hidden"
-                        >
-                            <div className="flex flex-col gap-2 p-4">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => {
-                                        navigate('/');
-                                        setIsMobileMenuOpen(false);
-                                    }}
-                                    className="justify-start rounded-xl h-11 px-4 font-semibold text-brand bg-brand/5 hover:bg-brand/10 transition-all text-sm w-full"
-                                >
-                                    Home
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => {
-                                        navigate('/about-sbg');
-                                        setIsMobileMenuOpen(false);
-                                    }}
-                                    className="justify-start rounded-xl h-11 px-4 font-semibold text-textSecondary hover:text-textPrimary hover:bg-hoverSoft transition-all text-sm w-full"
-                                >
-                                    About SBG
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => {
-                                        navigate('/clubs-committees');
-                                        setIsMobileMenuOpen(false);
-                                    }}
-                                    className="justify-start rounded-xl h-11 px-4 font-semibold text-textSecondary hover:text-textPrimary hover:bg-hoverSoft transition-all text-sm w-full"
-                                >
-                                    Clubs & Committees
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        onGoToLogin();
-                                        setIsMobileMenuOpen(false);
-                                    }}
-                                    className="justify-center rounded-xl h-11 px-4 font-bold bg-gradient-button text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all gap-1.5 text-sm w-full mt-2"
-                                >
-                                    <span>Sign In</span>
-                                    <ArrowRight size={16} />
-                                </Button>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </header>
 
             {/* ====== Main Content ====== */}
             <main>
