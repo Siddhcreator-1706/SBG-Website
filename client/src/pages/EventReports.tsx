@@ -9,7 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-
+import { Skeleton } from '../components/ui/skeleton';
+import { motion } from 'framer-motion';
+import { cn } from '../lib/utils';
+import { FileText, CheckCircle } from 'lucide-react';
+import { Card } from '../components/ui/card';
 export default function EventReports() {
   const [pending, setPending] = useState<any[]>([]);
   const [submitted, setSubmitted] = useState<any[]>([]);
@@ -123,18 +127,22 @@ export default function EventReports() {
     );
   };
 
-  if (loading) return <div>Loading...</div>;
 
   return (
-    <div className="relative min-h-dvh">
-      <GradientBackground />
-      <div className="relative z-10 space-y-8 pb-12">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-textPrimary leading-tight">Event Reports</h1>
-          <p className="text-textMuted max-w-3xl">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-8 px-4"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <motion.h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-textPrimary tracking-tighter">Event Reports</motion.h2>
+          <p className="text-textSecondary mt-2 sm:mt-3 text-sm sm:text-base font-medium leading-relaxed max-w-xl">
             Submit reports for your past events. If reports are overdue (7 days or end of month), you will not be able to make new bookings.
           </p>
         </div>
+      </div>
 
         {(settings.event_report_format_link || settings.awards_format_link) && (
           <div className="flex flex-wrap gap-4 p-4 bg-hoverSoft rounded-xl border border-borderSoft">
@@ -162,38 +170,59 @@ export default function EventReports() {
           </div>
         )}
 
-        <div className="flex gap-2 border-b border-borderSoft">
+        <div className="flex bg-card p-1 rounded-xl border border-borderSoft w-fit">
           <button
             onClick={() => setTab('pending')}
-            className={`pb-3 px-4 font-medium text-sm transition-colors ${tab === 'pending' ? 'border-b-2 border-brand text-brand' : 'text-textMuted hover:text-textPrimary'}`}
+            className={cn(
+              "px-6 py-2.5 rounded-lg text-sm font-semibold transition-all",
+              tab === 'pending' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary"
+            )}
           >
             Pending Reports ({pending.length})
           </button>
           <button
             onClick={() => setTab('submitted')}
-            className={`pb-3 px-4 font-medium text-sm transition-colors ${tab === 'submitted' ? 'border-b-2 border-brand text-brand' : 'text-textMuted hover:text-textPrimary'}`}
+            className={cn(
+              "px-6 py-2.5 rounded-lg text-sm font-semibold transition-all",
+              tab === 'submitted' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary"
+            )}
           >
             Submitted Reports
           </button>
         </div>
 
-        {tab === 'pending' && (
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <GlassCard key={i} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-2 w-full max-w-sm">
+                  <Skeleton className="h-6 w-3/4 rounded-md" />
+                  <Skeleton className="h-4 w-1/2 rounded-md" />
+                  <Skeleton className="h-4 w-1/3 rounded-md" />
+                </div>
+                <Skeleton className="h-10 w-32 rounded-md shrink-0" />
+              </GlassCard>
+            ))}
+          </div>
+        ) : (
+          <>
+            {tab === 'pending' && (
           <div className="space-y-4">
             {pending.length === 0 ? (
-              <div className="py-12 text-center text-textMuted">
-                <p className="text-lg font-medium">All caught up! 🎉</p>
-                <p className="text-sm mt-1">You have no pending event reports.</p>
-              </div>
+              <Card className="border-2 border-dashed border-borderSoft rounded-lg p-16 text-center bg-card shadow-none">
+                <CheckCircle className="h-16 w-16 mx-auto text-textMuted/60 mb-4" />
+                <p className="text-textMuted text-lg font-semibold">You have no pending event reports.</p>
+              </Card>
             ) : (
               pending.map(p => (
-                <GlassCard key={p.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div key={p.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-borderSoft rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
                   <div className="space-y-1">
                     <h3 className="font-semibold text-lg text-textPrimary">{p.name}</h3>
                     <p className="text-sm text-textMuted">Ended: {new Date(p.final_end_date).toLocaleDateString()}</p>
                     <p className="text-sm mt-1">{getDeadlineText(p)}</p>
                   </div>
-                  <Button className="shrink-0" onClick={() => setSelectedEventId(p.id)}>Submit Report</Button>
-                </GlassCard>
+                  <Button className="shrink-0 rounded-xl bg-brand text-white hover:bg-brand/90" onClick={() => setSelectedEventId(p.id)}>Submit Report</Button>
+                </div>
               ))
             )}
           </div>
@@ -202,40 +231,41 @@ export default function EventReports() {
         {tab === 'submitted' && (
           <div className="space-y-4">
             {submitted.length === 0 ? (
-              <div className="py-12 text-center text-textMuted">
-                <p className="text-sm">No reports submitted yet.</p>
-              </div>
+              <Card className="border-2 border-dashed border-borderSoft rounded-lg p-16 text-center bg-card shadow-none">
+                <FileText className="h-16 w-16 mx-auto text-textMuted/40 mb-4" />
+                <p className="text-textMuted text-lg font-semibold">No reports submitted yet.</p>
+              </Card>
             ) : (
               submitted.map(s => (
-                <GlassCard key={s.id} className="p-5 space-y-3">
+                <div key={s.id} className="p-5 space-y-3 bg-card border border-borderSoft rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
                   <div className="flex justify-between items-start gap-4">
                     <div className="space-y-0.5">
                       <h3 className="font-semibold text-lg text-textPrimary">{s.event_name}</h3>
                       <p className="text-sm text-textMuted">Submitted on: {new Date(s.created_at).toLocaleDateString()}</p>
                     </div>
-                    <Button variant="outline" size="sm" className="shrink-0" onClick={() => handleEdit(s)}>Edit Report</Button>
+                    <Button variant="outline" size="sm" className="shrink-0 rounded-lg hover:bg-hoverSoft" onClick={() => handleEdit(s)}>Edit Report</Button>
                   </div>
-                  <div className="flex flex-wrap gap-4 text-sm pt-1 border-t border-borderSoft">
-                    <a href={s.report_doc_link} target="_blank" rel="noreferrer" className="text-brand hover:underline">📄 Report Doc</a>
-                    <a href={s.photos_drive_link} target="_blank" rel="noreferrer" className="text-brand hover:underline">📸 Photos</a>
-                    {s.participants_sheet_link && <a href={s.participants_sheet_link} target="_blank" rel="noreferrer" className="text-brand hover:underline">👥 Participants</a>}
+                  <div className="flex flex-wrap gap-4 text-sm pt-3 mt-1 border-t border-borderSoft">
+                    <a href={s.report_doc_link} target="_blank" rel="noreferrer" className="text-brand hover:underline flex items-center gap-1 font-medium">📄 Report Doc</a>
+                    <a href={s.photos_drive_link} target="_blank" rel="noreferrer" className="text-brand hover:underline flex items-center gap-1 font-medium">📸 Photos</a>
+                    {s.participants_sheet_link && <a href={s.participants_sheet_link} target="_blank" rel="noreferrer" className="text-brand hover:underline flex items-center gap-1 font-medium">👥 Participants</a>}
                   </div>
-                </GlassCard>
+                </div>
               ))
             )}
           </div>
         )}
 
         <Dialog open={!!selectedEventId || !!editingReportId} onOpenChange={(open) => !open && closeDialog()}>
-          <DialogContent className="sm:max-w-[600px] max-h-[85dvh] overflow-y-auto">
-            <DialogHeader className="pb-2">
+          <DialogContent className="sm:max-w-md rounded-2xl bg-card border border-borderSoft text-textPrimary overflow-y-auto max-h-[85dvh]">
+            <DialogHeader className="pb-1">
               <DialogTitle className="text-xl font-bold">{editingReportId ? 'Edit Event Report' : 'Submit Event Report'}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-6 py-2">
-              <div className="flex flex-col gap-3">
-                <Label className="text-sm font-semibold">Level of Event</Label>
+            <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+              <div className="grid gap-2">
+                <Label className="text-textSecondary font-semibold">Level of Event</Label>
                 <Select value={form.level} onValueChange={(v) => setForm({ ...form, level: v })}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="bg-bgMain h-10 rounded-xl border-borderSoft w-full">
                     <SelectValue placeholder="Select level" />
                   </SelectTrigger>
                   <SelectContent>
@@ -249,67 +279,75 @@ export default function EventReports() {
               </div>
               
               {form.level === 'other' && (
-                <div className="flex flex-col gap-3">
-                  <Label className="text-sm font-semibold">Level Description *</Label>
+                <div className="grid gap-2">
+                  <Label className="text-textSecondary font-semibold">Level Description *</Label>
                   <Input 
                     required 
                     value={form.level_description} 
                     onChange={e => setForm({...form, level_description: e.target.value})} 
                     placeholder="Describe the level..."
+                    className="bg-bgMain h-10 rounded-xl border-borderSoft"
                   />
                 </div>
               )}
               
-              <div className="flex flex-col gap-3">
-                <Label className="text-sm font-semibold">Google Docs Link to Report *</Label>
+              <div className="grid gap-2">
+                <Label className="text-textSecondary font-semibold">Google Docs Link to Report *</Label>
                 <Input 
                   type="url" 
                   required 
                   value={form.report_doc_link} 
                   onChange={e => setForm({...form, report_doc_link: e.target.value})} 
                   placeholder="https://docs.google.com/..."
+                  className="bg-bgMain h-10 rounded-xl border-borderSoft"
                 />
               </div>
               
-              <div className="flex flex-col gap-3">
-                <Label className="text-sm font-semibold">Participants Sheet Link <span className="text-textMuted font-normal">(Optional)</span></Label>
+              <div className="grid gap-2">
+                <Label className="text-textSecondary font-semibold">Participants Sheet Link <span className="text-textMuted font-normal text-xs">(Optional)</span></Label>
                 <Input 
                   type="url" 
                   value={form.participants_sheet_link} 
                   onChange={e => setForm({...form, participants_sheet_link: e.target.value})} 
                   placeholder="https://docs.google.com/spreadsheets/..."
+                  className="bg-bgMain h-10 rounded-xl border-borderSoft"
                 />
               </div>
               
-              <div className="flex flex-col gap-3">
-                <Label className="text-sm font-semibold">Google Drive Photos Link <span className="text-textMuted font-normal">(Min 3 photos) *</span></Label>
+              <div className="grid gap-2">
+                <Label className="text-textSecondary font-semibold">Google Drive Photos Link <span className="text-textMuted font-normal text-xs">(Min 3 photos) *</span></Label>
                 <Input 
                   type="url" 
                   required 
                   value={form.photos_drive_link} 
                   onChange={e => setForm({...form, photos_drive_link: e.target.value})} 
                   placeholder="https://drive.google.com/..."
+                  className="bg-bgMain h-10 rounded-xl border-borderSoft"
                 />
               </div>
               
-              <div className="flex flex-col gap-3">
-                <Label className="text-sm font-semibold">Awards and Achievements Link <span className="text-textMuted font-normal">(Optional)</span></Label>
+              <div className="grid gap-2">
+                <Label className="text-textSecondary font-semibold">Awards and Achievements Link <span className="text-textMuted font-normal text-xs">(Optional)</span></Label>
                 <Input 
                   type="url" 
                   value={form.awards_doc_link} 
                   onChange={e => setForm({...form, awards_doc_link: e.target.value})} 
                   placeholder="https://docs.google.com/..."
+                  className="bg-bgMain h-10 rounded-xl border-borderSoft"
                 />
               </div>
               
-              <DialogFooter className="pt-4 border-t border-borderSoft">
-                <Button type="submit">{editingReportId ? 'Update Report' : 'Submit Report'}</Button>
+              <DialogFooter className="pt-4 mt-2 border-t border-borderSoft">
+                <Button type="submit" className="w-full sm:w-auto rounded-xl bg-brand text-white hover:bg-brand/90">
+                  {editingReportId ? 'Update Report' : 'Submit Report'}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
 
-      </div>
-    </div>
+          </>
+        )}
+      </motion.div>
   );
 }

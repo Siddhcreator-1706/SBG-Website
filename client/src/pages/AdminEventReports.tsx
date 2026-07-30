@@ -9,6 +9,7 @@ import { Settings } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { Skeleton } from '../components/ui/skeleton';
 
 export default function AdminEventReports() {
   const [reports, setReports] = useState<any[]>([]);
@@ -102,7 +103,6 @@ export default function AdminEventReports() {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
 
   return (
     <div className="relative min-h-dvh">
@@ -145,7 +145,22 @@ export default function AdminEventReports() {
           </button>
         </div>
 
-        {tab === 'submitted' && (
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <GlassCard key={i} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-2 w-full max-w-sm">
+                  <Skeleton className="h-6 w-3/4 rounded-md" />
+                  <Skeleton className="h-4 w-1/2 rounded-md" />
+                  <Skeleton className="h-4 w-1/3 rounded-md" />
+                </div>
+                <Skeleton className="h-10 w-32 rounded-md shrink-0" />
+              </GlassCard>
+            ))}
+          </div>
+        ) : (
+          <>
+            {tab === 'submitted' && (
           <div className="space-y-4">
             {reports.map(r => (
               <GlassCard key={r.id} className="p-4 space-y-2">
@@ -243,7 +258,10 @@ export default function AdminEventReports() {
             </table>
           </div>
         )}
+          </>
+        )}
       </div>
+
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
         <DialogContent className="sm:max-w-[500px]">

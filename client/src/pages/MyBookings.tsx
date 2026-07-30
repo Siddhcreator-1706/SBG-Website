@@ -97,16 +97,22 @@ const MyBookings: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex gap-4 border-b border-borderSoft pb-2 mt-4">
+      <div className="flex bg-card p-1 rounded-xl border border-borderSoft w-fit mt-4">
         <button
           onClick={() => setTab('active')}
-          className={`pb-2 px-2 font-medium transition-colors ${tab === 'active' ? 'border-b-2 border-brand text-brand' : 'text-textMuted hover:text-textPrimary'}`}
+          className={cn(
+            "px-6 py-2.5 rounded-lg text-sm font-semibold transition-all",
+            tab === 'active' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary"
+          )}
         >
           Active Bookings
         </button>
         <button
           onClick={() => setTab('past')}
-          className={`pb-2 px-2 font-medium transition-colors ${tab === 'past' ? 'border-b-2 border-brand text-brand' : 'text-textMuted hover:text-textPrimary'}`}
+          className={cn(
+            "px-6 py-2.5 rounded-lg text-sm font-semibold transition-all",
+            tab === 'past' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary"
+          )}
         >
           Past Bookings
         </button>
@@ -134,7 +140,8 @@ const MyBookings: React.FC = () => {
       ) : !error && myBookings.length === 0 ? (
         <Card className="border-2 border-dashed border-borderSoft rounded-lg p-16 text-center bg-card shadow-none">
           <Calendar className="h-16 w-16 mx-auto text-textMuted/40 mb-4" />
-          <p className="text-textMuted text-lg font-semibold">No bookings found yet.</p>
+          <p className="text-textPrimary text-lg font-bold">No bookings found.</p>
+          <p className="text-textMuted mt-1 font-medium">You don't have any {tab} bookings right now.</p>
         </Card>
       ) : (
         <div className="grid gap-6 pb-12">

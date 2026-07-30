@@ -153,7 +153,7 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
             View, edit, or delete your registered events.
           </p>
         </div>
-        <Button onClick={() => setIsAddEventOpen(true)} className="rounded-xl bg-brand text-brand-foreground hover:bg-brand/90 gap-2 shrink-0">
+        <Button onClick={() => setIsAddEventOpen(true)} className="rounded-xl bg-brand text-white hover:bg-brand/90 gap-2 shrink-0">
           <Plus size={18} /> Register Event
         </Button>
       </div>

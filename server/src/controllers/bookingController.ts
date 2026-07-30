@@ -170,7 +170,7 @@ export const createBooking = async (req: Request, res: Response) => {
 
   let issueFlag: string | null = null;
   if (violatesRestrictedWeekdayHours(start, end)) {
-    issueFlag = 'Violates restricted weekday hours (8:00 AM - 6:00 PM IST)';
+    issueFlag = 'Violates restricted weekday hours (8:00 AM - 7:00 PM IST)';
   }
 
   const daysGap = (start.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
@@ -287,7 +287,7 @@ export const createBooking = async (req: Request, res: Response) => {
       if (insertRows.length === 0) {
         throw new Error(`Failed to insert booking for venue ${venue.name}`);
       }
-      
+
       createdBookings.push(insertRows[0]);
     }
 
@@ -340,17 +340,17 @@ export const createBooking = async (req: Request, res: Response) => {
       const { sendBulkBookingProcessedEmail } = await import('../services/email');
       const clubEmailRows = await db.query('SELECT email FROM clubs WHERE id = $1', [clubId]);
       const clubEmail = clubEmailRows.rows[0]?.email;
-      
+
       if (clubEmail) {
         const approvedVenues = approvedBookings.map((b) => {
           const venue = venues.find((v) => v.id === b.venue_id);
           return venue?.name || 'Venue';
         });
-        
+
         const date = new Date(approvedBookings[0].start_time).toLocaleDateString('en-IN');
         const startStr = new Date(approvedBookings[0].start_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
         const endStr = new Date(approvedBookings[0].end_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        
+
         await sendBulkBookingProcessedEmail(
           clubEmail,
           eventName,
@@ -425,7 +425,7 @@ export const getBusyVenues = async (req: Request, res: Response) => {
 
     const busyVenueIds = conflicts.map((c: any) => c.venue_id);
     console.log('[getBusyVenues] Results:', busyVenueIds);
-    
+
     return res.json(busyVenueIds);
   } catch (err) {
     console.error('[getBusyVenues] Unexpected Error:', err);

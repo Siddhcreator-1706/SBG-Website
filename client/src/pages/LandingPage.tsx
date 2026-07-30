@@ -309,7 +309,7 @@ const LandingPage: React.FC = () => {
                     Discover What's
                     <br />
                     <span className="text-gradient-heading">
-                        Happening on Campus
+                        Happening on Campus 
                     </span>
                 </motion.h1>
 

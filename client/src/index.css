@@ -25,8 +25,8 @@
   --borderSoft: rgba(15, 23, 42, 0.16);
   --hoverSoft: rgba(15, 23, 42, 0.06);
   --textPrimary: #020617;
-  --textSecondary: #334155;
-  --textMuted: #94A3B8;
+  --textSecondary: #1E293B;
+  --textMuted: #475569;
 
   --brand: #4F46E5;
   --brand-glow: rgba(79, 70, 229, 0.15);
@@ -101,6 +101,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  padding-inline: 0.05em;
 }
 
 @utility bg-gradient-button {
@@ -186,7 +187,7 @@
   }
 
   body {
-    @apply text-textPrimary min-h-dvh selection:bg-brand/20 selection:text-brand;
+    @apply text-textPrimary min-h-dvh selection:bg-brand/20 selection:text-brand select-none;
     background-color: var(--bgMain);
     overscroll-behavior-y: none;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -195,6 +196,16 @@
       radial-gradient(circle at 85% 75%, rgba(232, 78, 54, 0.04), transparent 35%),
       radial-gradient(circle at 50% 50%, rgba(253, 192, 47, 0.03), transparent 45%);
     background-attachment: fixed;
+  }
+
+  /* Prevent layout shift from Radix UI since we use scrollbar-gutter: stable */
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  input, textarea, [contenteditable="true"], .select-text {
+    @apply select-auto;
   }
 
   .dark body {

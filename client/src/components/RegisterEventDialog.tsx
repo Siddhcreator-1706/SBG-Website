@@ -205,7 +205,14 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
               <Label className="text-textSecondary">Start Date *</Label>
               <DatePicker
                 date={newEvent.startDate ? parseISO(newEvent.startDate) : undefined}
-                setDate={d => setNewEvent({ ...newEvent, startDate: d ? format(d, 'yyyy-MM-dd') : '' })}
+                setDate={d => {
+                  const newStartDate = d ? format(d, 'yyyy-MM-dd') : '';
+                  let newEndDate = newEvent.endDate;
+                  if (newStartDate && (!newEndDate || new Date(newEndDate) < new Date(newStartDate))) {
+                    newEndDate = newStartDate;
+                  }
+                  setNewEvent({ ...newEvent, startDate: newStartDate, endDate: newEndDate });
+                }}
                 minDate={new Date(todayStr)}
                 className="bg-bgMain h-10 rounded-xl"
               />
@@ -216,6 +223,7 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
                 value={newEvent.startTime}
                 onChange={v => setNewEvent({ ...newEvent, startTime: v })}
                 className="bg-bgMain h-10 rounded-xl"
+                hideIcon={true}
               />
             </div>
           </div>
@@ -235,6 +243,7 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
                 value={newEvent.endTime}
                 onChange={v => setNewEvent({ ...newEvent, endTime: v })}
                 className="bg-bgMain h-10 rounded-xl"
+                hideIcon={true}
               />
             </div>
           </div>

@@ -164,33 +164,22 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="p-3 border-t border-borderSoft"
+            className="p-2 border-t border-borderSoft"
           >
-            <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-hoverSoft transition-colors group">
+            <div className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-hoverSoft transition-colors group">
                <Avatar className={cn("h-10 w-10 border border-borderSoft shrink-0 shadow-sm transition-all group-hover:border-brand/50 ring-2 ring-brand/10 bg-white")}>
                 <AvatarImage src={user.logoUrl || ''} alt={user.name} className="object-contain p-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
                 <AvatarFallback className="bg-brand text-white font-semibold text-sm flex items-center justify-center">
                   {user.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-textPrimary truncate group-hover:text-brand transition-colors">
+              <div className="flex-1 min-w-0 pr-1">
+                <p className="text-sm font-semibold text-textPrimary line-clamp-3 leading-snug group-hover:text-brand transition-colors">
                   {user.name}
                 </p>
-                <p className="text-xs text-textMuted dark:text-white/85 truncate">
+                <p className="text-[11px] text-textMuted dark:text-white/85 truncate mt-0.5">
                   {user.role === 'club' ? `Group ${user.group}` : 'Administrator'}
                 </p>
-              </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onLogout}
-                  className="h-8 w-8 rounded-lg text-textMuted hover:text-error hover:bg-error/10 shrink-0 cursor-pointer"
-                  title="Logout"
-                >
-                  <LogOut size={16} />
-                </Button>
               </div>
             </div>
           </motion.div>
@@ -264,8 +253,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                   </nav>
                   
                   {/* User Profile Area (Mobile) */}
-                  <div className="p-4 border-t border-borderSoft mt-auto bg-card">
-                    <div className="flex items-center gap-3">
+                  <div className="p-3 border-t border-borderSoft mt-auto bg-card">
+                    <div className="flex items-center gap-3 p-1">
                        <Avatar className={cn("h-10 w-10 border border-borderSoft shrink-0 shadow-sm ring-2 ring-brand/10 bg-white")}>
                         <AvatarImage src={user.logoUrl || ''} alt={user.name} className="object-contain p-1" />
                         <AvatarFallback className="bg-brand text-white font-semibold">
@@ -273,8 +262,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-textPrimary truncate">{user.name}</p>
-                        <p className="text-xs text-textMuted truncate">{user.role === 'club' ? `Group ${user.group}` : 'Administrator'}</p>
+                        <p className="text-sm font-semibold text-textPrimary line-clamp-3 leading-snug">{user.name}</p>
+                        <p className="text-[11px] text-textMuted truncate mt-0.5">{user.role === 'club' ? `Group ${user.group}` : 'Administrator'}</p>
                       </div>
                     </div>
                   </div>
@@ -285,15 +274,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div className="rounded-lg border border-borderSoft/60 shadow-sm bg-card/80 backdrop-blur flex items-center justify-center cursor-pointer">
-              <ThemeToggle />
-            </div>
+            <ThemeToggle />
             <NotificationPanel />
             <Button
               variant="ghost"
               size="sm"
               onClick={onLogout}
-              className="flex items-center gap-2 text-textMuted hover:text-error rounded-lg h-9 px-2.5 sm:px-3 font-medium transition-all border border-borderSoft/60 bg-card/80 backdrop-blur cursor-pointer"
+              className="flex items-center gap-2 text-textMuted hover:text-error hover:bg-error/10 rounded-lg h-9 px-2.5 sm:px-3 font-medium transition-all border border-borderSoft/60 shadow-sm bg-card/80 backdrop-blur cursor-pointer"
             >
               <LogOut size={15} />
               <span className="hidden sm:inline">Logout</span>

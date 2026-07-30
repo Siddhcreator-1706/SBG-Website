@@ -22,8 +22,8 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <Button variant="outline" size="icon" aria-label="Toggle theme" className="h-10 w-10 rounded-xl cursor-pointer bg-card/80 backdrop-blur-sm border-borderSoft hover:bg-hoverSoft shadow-sm">
-        <Sun className="h-4 w-4 text-textPrimary" />
+      <Button variant="ghost" size="icon" aria-label="Toggle theme" className="h-9 w-9 rounded-lg cursor-pointer bg-card/80 backdrop-blur border border-borderSoft/60 hover:bg-hoverSoft shadow-sm transition-all text-textMuted">
+        <Sun className="h-4 w-4" />
       </Button>
     )
   }
@@ -31,7 +31,7 @@ export function ThemeToggle() {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" aria-label="Toggle theme" className="h-10 w-10 rounded-xl text-textPrimary hover:text-textPrimary cursor-pointer bg-card/80 backdrop-blur-sm border-borderSoft hover:bg-hoverSoft shadow-sm transition-all">
+        <Button variant="ghost" size="icon" aria-label="Toggle theme" className="h-9 w-9 rounded-lg text-textMuted hover:text-textMuted cursor-pointer bg-card/80 backdrop-blur border border-borderSoft/60 hover:bg-hoverSoft shadow-sm transition-all">
           {resolvedTheme === "dark" ? (
             <Moon className="h-4 w-4" />
           ) : (

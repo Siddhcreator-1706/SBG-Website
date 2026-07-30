@@ -118,7 +118,7 @@ const NotificationPanel: React.FC = () => {
             <Button
                 variant="ghost"
                 size="icon"
-                className="relative h-10 w-10 rounded-full glass hover:bg-white/60 dark:hover:bg-black/40 transition-all"
+                className="relative h-9 w-9 rounded-lg border border-borderSoft/60 shadow-sm bg-card/80 backdrop-blur hover:bg-hoverSoft transition-all flex items-center justify-center"
                 onClick={() => setOpen(!open)}
             >
                 <Bell size={20} className="text-textSecondary" />
@@ -128,7 +128,7 @@ const NotificationPanel: React.FC = () => {
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0 }}
-                            className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-error text-white text-[10px] font-bold px-1 border-2 border-white dark:border-gray-900"
+                            className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-error text-white text-[10px] font-bold px-1 border-2 border-white dark:border-gray-900"
                         >
                             {unreadCount > 99 ? '99+' : unreadCount}
                         </motion.span>

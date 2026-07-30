@@ -25,6 +25,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Separator } from '../components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { CardContent } from '../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
@@ -207,16 +208,16 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
 
     const eventDate = new Date(formData.date);
     const diffDays = (eventDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
-    
+
     let reqDays = 0;
     if (evt.event_type === 'co_curricular') reqDays = 14;
     else if (evt.event_type === 'open_all') reqDays = 20;
     else if (evt.event_type === 'closed_club') reqDays = 1;
 
     if (diffDays < reqDays) {
-      setWarnings(prev => ({ 
-        ...prev, 
-        timeline: `Short notice booking (${Math.floor(diffDays)} days). Rule: ${reqDays} days advance notice. This booking will trigger the issue flag and require Admin Approval.` 
+      setWarnings(prev => ({
+        ...prev,
+        timeline: `Short notice booking (${Math.floor(diffDays)} days). Rule: ${reqDays} days advance notice. This booking will trigger the issue flag and require Admin Approval.`
       }));
     } else {
       setWarnings(prev => ({ ...prev, timeline: '' }));
@@ -267,7 +268,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     if (hasCategoryB) {
       setWarnings(prev => ({
         ...prev,
-        venue: 'Includes Category B Venue(s): Requires SBG Convener & Faculty Approval.',
+        venue: 'Includes Category B Venue(s): Requires SBG Deputy Convener & Faculty Approval.',
         venueType: 'warning'
       }));
     } else {
@@ -304,7 +305,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         const dayOfWeek = currentDate.getDay();
         const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5; // Monday to Friday
 
-        // Only weekdays have restricted timings (8:00 AM to 6:00 PM IST)
+        // Only weekdays have restricted timings (8:00 AM to 7:00 PM IST)
         if (isWeekday) {
           const isFirstDay = currentDate.getTime() === startDate.getTime();
           const isLastDay = currentDate.getTime() === endDate.getTime();
@@ -313,10 +314,10 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
           const activeStart = isFirstDay ? formData.startTime : "00:00";
           const activeEnd = isLastDay ? formData.endTime : "24:00";
 
-          // Restricted block is 08:00 to 18:00 (8:00 AM to 6:00 PM IST)
+          // Restricted block is 08:00 to 19:00 (8:00 AM to 7:00 PM IST)
           // Overlap condition: activeStart < RestrictedEnd AND activeEnd > RestrictedStart
-          if (activeStart < "18:00" && activeEnd > "08:00") {
-            errorMsg = "On weekdays, bookings are not allowed between 8:00 AM and 6:00 PM (IST). Your selection overlaps with these restricted academic hours. (Requires Admin Approval)";
+          if (activeStart < "19:00" && activeEnd > "08:00") {
+            errorMsg = "On weekdays, bookings are not allowed between 8:00 AM and 7:00 PM (IST). Your selection overlaps with these restricted academic hours. (Requires Admin Approval)";
             break;
           }
         }
@@ -554,7 +555,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                       <div className="h-2 w-2 rounded-full bg-warning mt-2 shrink-0" />
                       <div>
                         <span className="font-semibold block text-textPrimary text-sm mb-1">Weekday Hours</span>
-                        <p className="text-xs text-textSecondary leading-relaxed">6:00 PM – 8:00 AM</p>
+                        <p className="text-xs text-textSecondary leading-relaxed">7:00 PM – 12:00 AM</p>
                       </div>
                     </div>
                   </div>
@@ -602,24 +603,6 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                   </div>
                 </div>
               </div>
-
-              {currentUser.role === 'club' && (
-                <div className="pt-6 border-t border-borderSoft/30">
-                  <h3 className="text-xs font-bold text-textMuted uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-brand" />
-                    Logged in as
-                  </h3>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-card border border-borderSoft">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-brand to-brandLink flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                      {currentUser.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-textPrimary">{currentUser.name}</p>
-                      <p className="text-xs text-textMuted capitalize">Role: {currentUser.role}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Main Form Area - Enhanced */}
@@ -633,41 +616,41 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-6">
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="event_id" className="text-textSecondary font-semibold text-sm">Link to Event (Optional)</Label>
-                        <Button 
-                          onClick={() => setIsAddEventOpen(true)} 
-                          type="button" 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-7 px-2 text-xs text-brand hover:text-brand/80 hover:bg-brand/10 gap-1 rounded-lg font-semibold"
-                        >
-                          <Plus size={13} />
-                          Register Event
-                        </Button>
-                      </div>
-                      <Select value={formData.event_id || ''} onValueChange={(v) => handleChange('event_id', v)}>
-                        <SelectTrigger id="event_id" className="h-10 border-borderSoft hover:bg-hoverSoft/50 focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl">
-                          <SelectValue placeholder={events.length > 0 ? "Select an Event..." : "No events registered yet."} />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          {events
-                            .filter(e => {
-                              const eventDate = new Date(e.dynamic_end_date || e.date);
-                              eventDate.setHours(0, 0, 0, 0);
-                              const today = new Date();
-                              today.setHours(0, 0, 0, 0);
-                              return eventDate >= today;
-                            })
-                            .map(e => (
-                              <SelectItem key={e.id} value={e.id} className="cursor-pointer">
-                                <span className="font-semibold">{e.name}</span> <span className="text-textMuted text-xs">({new Date(e.date).toLocaleDateString()})</span>
-                              </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="event_id" className="text-textSecondary font-semibold text-sm">Link to Event</Label>
+                      <Button
+                        onClick={() => setIsAddEventOpen(true)}
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-brand hover:text-brand/80 hover:bg-brand/10 gap-1 rounded-lg font-semibold"
+                      >
+                        <Plus size={13} />
+                        Register Event
+                      </Button>
                     </div>
+                    <Select value={formData.event_id || ''} onValueChange={(v) => handleChange('event_id', v)}>
+                      <SelectTrigger id="event_id" className="h-10 border-borderSoft hover:bg-hoverSoft/50 focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl">
+                        <SelectValue placeholder={events.length > 0 ? "Select an Event..." : "No events registered yet."} />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {events
+                          .filter(e => {
+                            const eventDate = new Date(e.dynamic_end_date || e.date);
+                            eventDate.setHours(0, 0, 0, 0);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return eventDate >= today;
+                          })
+                          .map(e => (
+                            <SelectItem key={e.id} value={e.id} className="cursor-pointer">
+                              <span className="font-semibold">{e.name}</span> <span className="text-textMuted text-xs">({new Date(e.date).toLocaleDateString()})</span>
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
 
                   <div className="space-y-2.5">
@@ -737,6 +720,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                             today.setHours(0, 0, 0, 0);
                             return date < today;
                           }}
+                          defaultMonth={selectedDate || new Date()}
                         />
                       </PopoverContent>
                     </Popover>
@@ -778,6 +762,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                             start.setHours(0, 0, 0, 0);
                             return date < start;
                           }}
+                          defaultMonth={selectedEndDate || selectedDate || new Date()}
                         />
                       </PopoverContent>
                     </Popover>
@@ -1074,9 +1059,9 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         </CardContent>
       </motion.div>
 
-      <RegisterEventDialog 
-        isOpen={isAddEventOpen} 
-        onOpenChange={setIsAddEventOpen} 
+      <RegisterEventDialog
+        isOpen={isAddEventOpen}
+        onOpenChange={setIsAddEventOpen}
         currentUser={currentUser}
         onEventCreated={(createdEvent) => {
           setEvents(prev => [createdEvent, ...prev]);
