@@ -47,7 +47,8 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
     const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
     const [allClubs, setAllClubs] = useState<Club[]>([]);
     const [selectedVenues, setSelectedVenues] = useState<string[]>([]);
-    const [date, setDate] = useState<Date | undefined>(undefined);
+    const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+    const [endDate, setEndDate] = useState<Date | undefined>(undefined);
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
     const [eventType, setEventType] = useState('');
@@ -101,7 +102,8 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
         if (open) {
             setEventName('');
             setSelectedVenues([]);
-            setDate(undefined);
+            setStartDate(undefined);
+            setEndDate(undefined);
             setStartTime('');
             setEndTime('');
             setEventType('');
@@ -170,8 +172,8 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
             setError('Please select at least one venue');
             return;
         }
-        if (!date || !startTime || !endTime) {
-            setError('Date, start time, and end time are required');
+        if (!startDate || !endDate || !startTime || !endTime) {
+            setError('Start Date, End Date, start time, and end time are required');
             return;
         }
 
@@ -179,13 +181,19 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
         setError(null);
 
         try {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const dateString = `${year}-${month}-${day}`;
+            const sYear = startDate.getFullYear();
+            const sMonth = String(startDate.getMonth() + 1).padStart(2, '0');
+            const sDay = String(startDate.getDate()).padStart(2, '0');
+            const sDateString = `${sYear}-${sMonth}-${sDay}`;
 
-            const startDateTime = new Date(`${dateString}T${startTime}:00`);
-            const endDateTime = new Date(`${dateString}T${endTime}:00`);
+            const activeEndDate = endDate;
+            const eYear = activeEndDate.getFullYear();
+            const eMonth = String(activeEndDate.getMonth() + 1).padStart(2, '0');
+            const eDay = String(activeEndDate.getDate()).padStart(2, '0');
+            const eDateString = `${eYear}-${eMonth}-${eDay}`;
+
+            const startDateTime = new Date(`${sDateString}T${startTime}:00`);
+            const endDateTime = new Date(`${eDateString}T${endTime}:00`);
 
             await apiRequest('/api/admin/bookings', {
                 method: 'POST',
@@ -309,14 +317,24 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                     <div className="grid gap-2">
                         <Label>Schedule</Label>
                         <div className="grid gap-3 p-3 rounded-md border border-borderSoft bg-card">
-                            <div className="space-y-1.5">
-                                <Label className="text-xs text-textSecondary">Date</Label>
-                                <DatePicker
-                                    date={date}
-                                    setDate={setDate}
-                                    className="bg-card"
-                                />
-                            </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-textSecondary">Start Date</Label>
+                                        <DatePicker
+                                            date={startDate}
+                                            setDate={setStartDate}
+                                            className="bg-card w-full"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-textSecondary">End Date</Label>
+                                        <DatePicker
+                                            date={endDate}
+                                            setDate={setEndDate}
+                                            className="bg-card w-full"
+                                        />
+                                    </div>
+                                </div>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
@@ -372,7 +390,21 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                     >
                         Cancel
                     </Button>
-                    <Button onClick={handleCreate} disabled={saving} className="gap-2 bg-brand text-bgMain">
+                    <Button 
+                        onClick={handleCreate} 
+                        disabled={
+                            saving || 
+                            !selectedClubId || 
+                            !selectedEventId || 
+                            selectedVenues.length === 0 || 
+                            !startDate || 
+                            !endDate || 
+                            !startTime || 
+                            !endTime || 
+                            (startDate?.getTime() === endDate?.getTime() && endTime <= startTime)
+                        } 
+                        className="gap-2 bg-brand text-bgMain disabled:opacity-50"
+                    >
                         {saving ? (
                             <Loader2 size={14} className="animate-spin" />
                         ) : (

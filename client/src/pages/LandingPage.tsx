@@ -607,7 +607,7 @@ const LandingPage: React.FC = () => {
                                     </div>
                                     <button
                                         onClick={() => setSelectedEvent(null)}
-                                        className="p-2 rounded-xl hover:bg-hoverSoft transition-colors text-textMuted ml-2 shrink-0"
+                                        className="p-2 rounded-xl hover:bg-hoverSoft transition-colors text-textMuted ml-2 shrink-0 cursor-pointer"
                                     >
                                         <X size={18} />
                                     </button>
@@ -689,7 +689,7 @@ const LandingPage: React.FC = () => {
                                     </h3>
                                     <button
                                         onClick={() => setSelectedDayEvents(null)}
-                                        className="p-2 rounded-xl hover:bg-hoverSoft transition-colors text-textMuted"
+                                        className="p-2 rounded-xl hover:bg-hoverSoft transition-colors text-textMuted cursor-pointer"
                                     >
                                         <X size={18} />
                                     </button>

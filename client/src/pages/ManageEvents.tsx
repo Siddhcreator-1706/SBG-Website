@@ -15,6 +15,9 @@ import RegisterEventDialog from '../components/RegisterEventDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { AppEvent, User } from '../types';
 import { cn, toLocalISOString } from '../lib/utils';
+import { DatePicker } from '../components/ui/date-picker';
+import { TimePicker } from '../components/ui/time-picker';
+import { format, parseISO } from 'date-fns';
 
 interface ManageEventsProps {
   currentUser?: User;
@@ -25,6 +28,7 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
   const [venues, setVenues] = useState<{ id: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null);
@@ -130,12 +134,15 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
     if (!window.confirm('Are you sure you want to completely delete this event? This action will archive and remove all associated bookings and reports. It cannot be undone.')) {
       return;
     }
+    setDeletingEventId(eventId);
     try {
       await apiRequest(`/api/events/${eventId}`, { method: 'DELETE', auth: true });
       toastInfo('Event deleted successfully');
       fetchData();
     } catch (err) {
       toastError(err, 'Failed to delete event');
+    } finally {
+      setDeletingEventId(null);
     }
   };
 
@@ -239,8 +246,22 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
                       <Button variant="outline" size="sm" onClick={() => handleEditClick(event)} className="gap-2">
                         <Edit size={14} /> Edit
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDelete(event.id)} className="gap-2 text-error border-error/30 hover:bg-error/10 hover:border-error">
-                        <Trash2 size={14} /> Delete
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleDelete(event.id)} 
+                        disabled={deletingEventId === event.id}
+                        className="gap-2 text-error border-error/30 hover:bg-error/10 hover:border-error disabled:opacity-50"
+                      >
+                        {deletingEventId === event.id ? (
+                          <>
+                            <RefreshCw size={14} className="animate-spin" /> Deleting...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 size={14} /> Delete
+                          </>
+                        )}
                       </Button>
                     </div>
                   </CardContent>
@@ -285,48 +306,53 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Start Date</Label>
-                <Input
-                  type="date"
-                  value={editForm.date}
-                  onChange={e => setEditForm({ ...editForm, date: e.target.value })}
-                  min={todayStr}
-                  className="rounded-xl"
+                <DatePicker
+                  date={editForm.date ? parseISO(editForm.date) : undefined}
+                  setDate={d => {
+                    const newStartDate = d ? format(d, 'yyyy-MM-dd') : '';
+                    let newEndDate = editForm.endDate;
+                    if (newStartDate && (!newEndDate || new Date(newEndDate) < new Date(newStartDate))) {
+                      newEndDate = newStartDate;
+                    }
+                    setEditForm({ ...editForm, date: newStartDate, endDate: newEndDate });
+                  }}
+                  minDate={new Date(todayStr)}
+                  className="h-10 rounded-xl"
                 />
               </div>
               <div className="grid gap-2">
                 <Label>Start Time</Label>
-                <Input
-                  type="time"
+                <TimePicker
                   value={editForm.startTime}
-                  onChange={e => setEditForm({ ...editForm, startTime: e.target.value })}
-                  className="rounded-xl"
+                  onChange={v => setEditForm({ ...editForm, startTime: v })}
+                  className="h-10 rounded-xl"
+                  hideIcon={true}
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>End Date</Label>
-                <Input
-                  type="date"
-                  value={editForm.endDate}
-                  onChange={e => setEditForm({ ...editForm, endDate: e.target.value })}
-                  min={editForm.date || todayStr}
-                  className="rounded-xl"
+                <DatePicker
+                  date={editForm.endDate ? parseISO(editForm.endDate) : undefined}
+                  setDate={d => setEditForm({ ...editForm, endDate: d ? format(d, 'yyyy-MM-dd') : '' })}
+                  minDate={editForm.date ? parseISO(editForm.date) : new Date(todayStr)}
+                  className="h-10 rounded-xl"
                 />
               </div>
               <div className="grid gap-2">
                 <Label>End Time</Label>
-                <Input
-                  type="time"
+                <TimePicker
                   value={editForm.endTime}
-                  onChange={e => setEditForm({ ...editForm, endTime: e.target.value })}
-                  className="rounded-xl"
+                  onChange={v => setEditForm({ ...editForm, endTime: v })}
+                  className="h-10 rounded-xl"
+                  hideIcon={true}
                 />
               </div>
             </div>
             <div className="grid gap-2">
               <Label className="text-textSecondary">Venues * (Select one or more)</Label>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-borderSoft rounded-xl bg-bgMain">
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-borderSoft rounded-xl bg-white/90 dark:bg-white/5 backdrop-blur-sm">
                 {[{ id: 'online', name: 'Online' }, ...venues].map(v => {
                   const isSelected = editForm.venue.includes(v.name);
                   return (
@@ -358,7 +384,20 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditOpen(false)} className="rounded-xl">Cancel</Button>
-            <Button onClick={handleSaveEdit} disabled={isSaving || !editForm.name || !editForm.date || editForm.venue.length === 0} className="rounded-xl bg-brand text-brand-foreground hover:bg-brand/90">
+            <Button 
+              onClick={handleSaveEdit} 
+              disabled={
+                isSaving || 
+                !editForm.name || 
+                !editForm.date || 
+                !editForm.startTime ||
+                !editForm.endDate ||
+                !editForm.endTime ||
+                (editForm.date === editForm.endDate && editForm.endTime <= editForm.startTime) ||
+                editForm.venue.length === 0
+              } 
+              className="rounded-xl bg-brand text-brand-foreground hover:bg-brand/90"
+            >
               {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>

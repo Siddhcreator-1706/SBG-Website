@@ -90,21 +90,32 @@ export const createEvent = async (req: Request, res: Response) => {
 
 export const getEvents = async (req: Request, res: Response) => {
   try {
-    const club = await getClubForUser(req);
-    if (!club) {
-      return res.status(404).json({ error: 'Club not found for this account' });
+    const isAdmin = req.user?.role === 'admin';
+    let clubId: string | undefined;
+
+    if (!isAdmin) {
+      const club = await getClubForUser(req);
+      if (!club) {
+        return res.status(404).json({ error: 'Club not found for this account' });
+      }
+      clubId = club.id;
     }
 
-    const { rows } = await db.query(
-      `SELECT e.*, COALESCE(MAX(b.end_time), e.end_date, e.date) as dynamic_end_date
+    let query = `SELECT e.*, c.name as club_name, COALESCE(MAX(b.end_time), e.end_date, e.date) as dynamic_end_date
        FROM events e
+       LEFT JOIN clubs c ON e.club_id = c.id
        LEFT JOIN bookings b ON e.id = b.event_id AND b.status != 'rejected'
-       WHERE e.club_id = $1 AND e.status != 'cancelled'
-       GROUP BY e.id
-       ORDER BY e.date DESC, e.created_at DESC`,
-      [club.id]
-    );
+       WHERE e.status != 'cancelled'`;
+    const params: any[] = [];
 
+    if (!isAdmin) {
+      query += ` AND e.club_id = $1`;
+      params.push(clubId);
+    }
+
+    query += ` GROUP BY e.id, c.name ORDER BY e.date DESC, e.created_at DESC`;
+
+    const { rows } = await db.query(query, params);
     return res.json(rows);
   } catch (error: any) {
     console.error('Error fetching events:', error);
@@ -117,16 +128,22 @@ export const updateEvent = async (req: Request, res: Response) => {
   const { name, date, end_date, venue, event_type } = req.body;
 
   try {
-    const club = await getClubForUser(req);
-    if (!club) {
-      return res.status(404).json({ error: 'Club not found for this account' });
+    const isAdmin = req.user?.role === 'admin';
+    let clubId: string | undefined;
+
+    if (!isAdmin) {
+      const club = await getClubForUser(req);
+      if (!club) {
+        return res.status(404).json({ error: 'Club not found for this account' });
+      }
+      clubId = club.id;
     }
 
     const checkRes = await db.query('SELECT club_id FROM events WHERE id = $1', [id]);
     if (checkRes.rows.length === 0) {
       return res.status(404).json({ error: 'Event not found' });
     }
-    if (checkRes.rows[0].club_id !== club.id) {
+    if (!isAdmin && checkRes.rows[0].club_id !== clubId) {
       return res.status(403).json({ error: 'You do not have permission to edit this event' });
     }
 
@@ -162,16 +179,22 @@ export const deleteEvent = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
-    const club = await getClubForUser(req);
-    if (!club) {
-      return res.status(404).json({ error: 'Club not found for this account' });
+    const isAdmin = req.user?.role === 'admin';
+    let clubId: string | undefined;
+
+    if (!isAdmin) {
+      const club = await getClubForUser(req);
+      if (!club) {
+        return res.status(404).json({ error: 'Club not found for this account' });
+      }
+      clubId = club.id;
     }
 
     const checkRes = await db.query('SELECT club_id FROM events WHERE id = $1', [id]);
     if (checkRes.rows.length === 0) {
       return res.status(404).json({ error: 'Event not found' });
     }
-    if (checkRes.rows[0].club_id !== club.id) {
+    if (!isAdmin && checkRes.rows[0].club_id !== clubId) {
       return res.status(403).json({ error: 'You do not have permission to delete this event' });
     }
 
@@ -187,8 +210,10 @@ export const deleteEvent = async (req: Request, res: Response) => {
     // 2. Archive bookings
     await db.query(`
       INSERT INTO archived_bookings (id, club_id, venue_id, start_time, end_time, status, user_id, event_name, event_type, expected_attendees, batch_id, event_id, created_at, updated_at)
-      SELECT id, club_id, venue_id, start_time, end_time, status, user_id, event_name, event_type, expected_attendees, batch_id, event_id, created_at, updated_at
-      FROM bookings WHERE event_id = $1
+      SELECT b.id, b.club_id, b.venue_id, b.start_time, b.end_time, b.status, b.user_id, e.name as event_name, e.event_type, b.expected_attendees, b.batch_id, b.event_id, b.created_at, b.updated_at
+      FROM bookings b
+      JOIN events e ON b.event_id = e.id
+      WHERE b.event_id = $1
     `, [id]);
 
     // 3. Archive event reports

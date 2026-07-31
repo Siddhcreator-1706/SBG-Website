@@ -237,9 +237,8 @@ const AdminVenues: React.FC = () => {
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="needs_approval">Needs Approval (Classrooms, etc)</SelectItem>
-                  <SelectItem value="auto_approval">Auto Approval (OAT, SAC)</SelectItem>
-                  <SelectItem value="sports">Sports Facility</SelectItem>
+                  <SelectItem value="needs_approval">Needs Approval (CEPs, LTs, Ground, etc)</SelectItem>
+                  <SelectItem value="auto_approval">Auto Approval (OAT, CEPs, etc.)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

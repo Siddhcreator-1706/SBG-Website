@@ -21,6 +21,7 @@ import RegisterEventDialog from '../components/RegisterEventDialog';
 import { groupBookings } from '../lib/api';
 import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 
 const AdminDashboard: React.FC = () => {
   const [pendingRequests, setPendingRequests] = React.useState<GroupedBooking[]>([]);
@@ -81,33 +82,41 @@ const AdminDashboard: React.FC = () => {
 
   const getVenueName = (id: string) => venues.find(v => v.id === id)?.name || id;
 
-  const exportAllEvents = React.useCallback(() => {
-    if (calendarEvents.length === 0) {
-      toastError('No events to export');
-      return;
+  const exportAllEvents = React.useCallback(async () => {
+    try {
+      const eventsData = await apiRequest<any[]>('/api/events', { auth: true });
+      if (eventsData.length === 0) {
+        toastError('No events to export');
+        return;
+      }
+      const headers = ['Event Name', 'Club Name', 'Start Date', 'Start Time', 'End Date', 'End Time', 'Venue', 'Status', 'Event Type'];
+      const rows = eventsData.map(e => {
+        const startDate = e.date ? new Date(e.date) : null;
+        const endDate = e.end_date ? new Date(e.end_date) : null;
+        return {
+          'Event Name': e.name || '',
+          'Club Name': e.club_name || e.club_id || '',
+          'Start Date': startDate ? startDate.toLocaleDateString() : '',
+          'Start Time': startDate ? startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '',
+          'End Date': endDate ? endDate.toLocaleDateString() : '',
+          'End Time': endDate ? endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '',
+          'Venue': e.venue || '',
+          'Status': e.status || '',
+          'Event Type': e.event_type || ''
+        };
+      });
+      
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Events');
+      
+      XLSX.writeFile(workbook, `all-events-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      
+      toastSuccess('Events exported successfully');
+    } catch (err) {
+      toastError(err, 'Failed to export events');
     }
-    const headers = ['Event Name', 'Club Name', 'Date', 'Start Time', 'End Time', 'Venue', 'Status'];
-    const rows = calendarEvents.map(e => [
-      e.eventName,
-      e.clubName,
-      new Date(e.date).toLocaleDateString(),
-      e.startTime,
-      e.endTime,
-      e.venueName || e.venueIds.map(getVenueName).join(', '),
-      e.status,
-    ]);
-    const csvContent = [headers, ...rows]
-      .map(r => r.map(v => `"${v.replace(/"/g, '""')}"`).join(','))
-      .join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `all-events-${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [calendarEvents, getVenueName]);
+  }, []);
 
   const fetchData = React.useCallback(async () => {
     setIsLoading(true);
@@ -323,8 +332,8 @@ const AdminDashboard: React.FC = () => {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Data & Settings</DropdownMenuLabel>
-                <DropdownMenuItem onClick={exportAllEvents} disabled={isLoading || calendarEvents.length === 0} className="gap-2 cursor-pointer font-medium">
-                  <Download size={16} className="text-textSecondary" /> Export CSV
+                <DropdownMenuItem onClick={exportAllEvents} disabled={isLoading} className="gap-2 cursor-pointer font-medium">
+                  <Download size={16} className="text-textSecondary" /> Export Events Excel
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setSbgSettingsOpen(true)} className="gap-2 cursor-pointer font-medium">
                   <Settings size={16} className="text-textSecondary" /> SBG Settings

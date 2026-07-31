@@ -54,7 +54,7 @@ export function TimePicker({ value, onChange, className, hideIcon = false }: Tim
     return (
         <div className={cn("flex items-center", className)}>
             <div className={cn(
-                "flex items-center w-full h-10 rounded-md border border-borderSoft bg-card hover:border-brand/50 transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20",
+                "flex items-center w-full h-10 rounded-md border border-borderSoft bg-white/90 dark:bg-white/5 backdrop-blur-sm hover:border-brand/50 transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20",
                 hideIcon ? "px-1 sm:px-2" : "px-2 sm:px-3"
             )}>
                  {!hideIcon && <Clock className="mr-1.5 sm:mr-2 h-4 w-4 text-brand shrink-0" />}
@@ -63,7 +63,7 @@ export function TimePicker({ value, onChange, className, hideIcon = false }: Tim
                          <SelectTrigger className="h-7 border-0 bg-transparent px-0 focus:ring-0 focus:ring-offset-0 text-textPrimary font-semibold flex-1 shadow-none hover:bg-hoverSoft rounded-md transition-none text-center justify-center [&>svg]:hidden">
                              <SelectValue placeholder="HH" />
                          </SelectTrigger>
-                         <SelectContent className="max-h-[200px]">
+                         <SelectContent hideScrollButtons className="max-h-[200px]">
                              {hours.map((h) => (
                                  <SelectItem key={h} value={h} className="justify-center font-medium">{h}</SelectItem>
                              ))}
@@ -76,7 +76,7 @@ export function TimePicker({ value, onChange, className, hideIcon = false }: Tim
                          <SelectTrigger className="h-7 border-0 bg-transparent px-0 focus:ring-0 focus:ring-offset-0 text-textPrimary font-semibold flex-1 shadow-none hover:bg-hoverSoft rounded-md transition-none text-center justify-center [&>svg]:hidden">
                              <SelectValue placeholder="MM" />
                          </SelectTrigger>
-                         <SelectContent className="max-h-[200px]">
+                         <SelectContent hideScrollButtons className="max-h-[200px]">
                              {minuteOptions.map((m) => (
                                  <SelectItem key={m} value={m} className="justify-center font-medium">{m}</SelectItem>
                              ))}
@@ -89,7 +89,7 @@ export function TimePicker({ value, onChange, className, hideIcon = false }: Tim
                          <SelectTrigger className="h-7 border-0 bg-transparent px-0 focus:ring-0 focus:ring-offset-0 text-brand font-bold flex-1 shadow-none hover:bg-brand/10 rounded-md transition-none text-center justify-center [&>svg]:hidden">
                              <SelectValue placeholder="AM" />
                          </SelectTrigger>
-                         <SelectContent>
+                         <SelectContent hideScrollButtons>
                              <SelectItem value="AM" className="justify-center font-bold text-brand">AM</SelectItem>
                              <SelectItem value="PM" className="justify-center font-bold text-brand">PM</SelectItem>
                          </SelectContent>

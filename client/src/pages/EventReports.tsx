@@ -12,8 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Skeleton } from '../components/ui/skeleton';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
-import { FileText, CheckCircle } from 'lucide-react';
+import { FileText, CheckCircle, ChevronDown, Download } from 'lucide-react';
 import { Card } from '../components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 export default function EventReports() {
   const [pending, setPending] = useState<any[]>([]);
   const [submitted, setSubmitted] = useState<any[]>([]);
@@ -142,33 +143,36 @@ export default function EventReports() {
             Submit reports for your past events. If reports are overdue (7 days or end of month), you will not be able to make new bookings.
           </p>
         </div>
-      </div>
-
         {(settings.event_report_format_link || settings.awards_format_link) && (
-          <div className="flex flex-wrap gap-4 p-4 bg-hoverSoft rounded-xl border border-borderSoft">
-            <span className="text-sm font-medium text-textMuted self-center">Download formats:</span>
-            {settings.event_report_format_link && (
-              <a 
-                href={settings.event_report_format_link} 
-                target="_blank" 
-                rel="noreferrer" 
-                className="text-brand hover:underline text-sm font-medium"
-              >
-                📄 Event Report Format
-              </a>
-            )}
-            {settings.awards_format_link && (
-              <a 
-                href={settings.awards_format_link} 
-                target="_blank" 
-                rel="noreferrer" 
-                className="text-brand hover:underline text-sm font-medium"
-              >
-                🏆 Awards Format
-              </a>
-            )}
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2 rounded-xl shrink-0 shadow-sm border-borderSoft bg-card hover:bg-hoverSoft">
+                <Download size={16} className="text-brand" />
+                Report Format Links
+                <ChevronDown size={14} className="text-textMuted ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[200px] rounded-xl">
+              {settings.event_report_format_link && (
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <a href={settings.event_report_format_link} target="_blank" rel="noreferrer" className="flex items-center">
+                    <FileText size={16} className="mr-2 text-brand" />
+                    Event Report Format
+                  </a>
+                </DropdownMenuItem>
+              )}
+              {settings.awards_format_link && (
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <a href={settings.awards_format_link} target="_blank" rel="noreferrer" className="flex items-center">
+                    <FileText size={16} className="mr-2 text-brand" />
+                    Awards Format
+                  </a>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
+      </div>
 
         <div className="flex bg-card p-1 rounded-xl border border-borderSoft w-fit">
           <button

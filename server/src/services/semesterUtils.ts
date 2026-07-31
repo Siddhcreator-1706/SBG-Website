@@ -64,4 +64,4 @@ export async function countCoCurricularBookings(
     }
 }
 
-export const CO_CURRICULAR_LIMIT = 2;
+export const CO_CURRICULAR_LIMIT = 4;
