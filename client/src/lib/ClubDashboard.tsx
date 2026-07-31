@@ -595,7 +595,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                                 prefill: { 
                                   event_id: event.id,
                                   eventName: event.name,
-                                  date: event.date ? event.date.split('T')[0] : '',
+                                  date: event.date ? toLocalISOString(new Date(event.date)) : '',
                                   venueName: event.venue || ''
                                 } 
                               } 

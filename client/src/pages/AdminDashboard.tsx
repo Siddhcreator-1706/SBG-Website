@@ -412,7 +412,7 @@ const AdminDashboard: React.FC = () => {
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
               {/* Calendar container - centered but spanning more width */}
-              <div className="flex-1 flex justify-center lg:justify-start overflow-hidden">
+              <div className="flex-1 flex justify-center lg:justify-start overflow-x-auto p-1 -m-1">
                 <Calendar
                   mode="single"
                   selected={selectedDate}

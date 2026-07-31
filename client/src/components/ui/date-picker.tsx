@@ -22,7 +22,7 @@ export function DatePicker({ date, setDate, minDate, className }: DatePickerProp
     const [open, setOpen] = React.useState(false);
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={setOpen} modal={true}>
             <PopoverTrigger asChild>
                 <Button
                     variant={"outline"}
@@ -36,7 +36,7 @@ export function DatePicker({ date, setDate, minDate, className }: DatePickerProp
                     {date ? format(date, "PPP") : <span>Pick a date</span>}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent portalled={false} className="w-auto p-3 bg-popover border border-borderSoft rounded-xl shadow-lg max-h-[var(--radix-popover-content-available-height)] overflow-y-auto pointer-events-auto" align="start">
+            <PopoverContent className="w-auto p-3 bg-popover border border-borderSoft rounded-xl shadow-[0_16px_64px_rgba(0,0,0,0.15)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto pointer-events-auto z-50" align="start">
                 <Calendar
                     mode="single"
                     selected={date}

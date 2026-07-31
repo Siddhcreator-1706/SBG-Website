@@ -173,8 +173,8 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
       designation: member.designation ?? 'Core',
       phone: member.phone ?? '',
       is_core_member: true,
-      tenure_start_date: member.tenure_start_date ? member.tenure_start_date.split('T')[0] : '',
-      tenure_end_date: member.tenure_end_date ? member.tenure_end_date.split('T')[0] : '',
+      tenure_start_date: member.tenure_start_date ? toLocalISOString(new Date(member.tenure_start_date)) : '',
+      tenure_end_date: member.tenure_end_date ? toLocalISOString(new Date(member.tenure_end_date)) : '',
       tenure_end_reason: member.tenure_end_reason ?? '',
     });
     setEditDialogOpen(true);
