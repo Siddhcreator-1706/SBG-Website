@@ -27,13 +27,13 @@ export function DatePicker({ date, setDate, minDate, className }: DatePickerProp
                 <Button
                     variant={"outline"}
                     className={cn(
-                        "w-full h-10 justify-start text-left font-normal border-borderSoft bg-white/90 dark:bg-white/5 backdrop-blur-sm hover:bg-hoverSoft transition-all text-textPrimary rounded-xl shadow-sm",
+                        "w-full h-10 justify-start text-left font-normal border-borderSoft bg-white/90 dark:bg-white/5 backdrop-blur-sm hover:bg-hoverSoft transition-all text-textPrimary rounded-xl shadow-sm overflow-hidden",
                         !date && "text-textMuted",
                         className
                     )}
                 >
-                    <CalendarIcon className="mr-2 h-4 w-4 text-brand opacity-70" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                    <CalendarIcon className="mr-2 h-4 w-4 shrink-0 text-brand opacity-70" />
+                    <span className="truncate">{date ? format(date, "PPP") : "Pick a date"}</span>
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-3 bg-popover border border-borderSoft rounded-xl shadow-[0_16px_64px_rgba(0,0,0,0.15)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto pointer-events-auto z-50" align="start">

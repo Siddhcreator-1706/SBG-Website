@@ -36,7 +36,7 @@ const AdminClubs: React.FC = () => {
     // Edit State
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [editingClub, setEditingClub] = useState<ApiClub | null>(null);
-    const [editFormData, setEditFormData] = useState({ name: '', groupCategory: '', organizationType: 'club', memberTag: '' });
+    const [editFormData, setEditFormData] = useState({ name: '', email: '', groupCategory: 'A', organizationType: 'club', memberTag: '' });
     const [isSaving, setIsSaving] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
 
@@ -136,6 +136,7 @@ const AdminClubs: React.FC = () => {
         setEditingClub(club);
         setEditFormData({
             name: club.name,
+            email: club.email,
             groupCategory: club.group_category || 'A',
             organizationType: club.organization_type || 'club',
             memberTag: club.member_tag || ''
@@ -152,6 +153,7 @@ const AdminClubs: React.FC = () => {
                 auth: true,
                 body: {
                     name: editFormData.name,
+                    email: editFormData.email,
                     group_category: editFormData.groupCategory,
                     organization_type: editFormData.organizationType,
                     member_tag: editFormData.memberTag,
@@ -220,11 +222,11 @@ const AdminClubs: React.FC = () => {
                     <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tighter leading-tight">Manage Clubs</h1>
                     <p className="text-textSecondary mt-2 text-base font-medium">View, edit, or remove clubs from the system.</p>
                 </div>
-                <div className="flex items-center gap-2.5 self-start md:self-end">
+                <div className="flex w-full md:w-auto items-center gap-2.5 self-start md:self-end">
 
                     <Button
                         onClick={() => setAddDialogOpen(true)}
-                        className="gap-1.5 rounded-xl h-10 font-semibold bg-brand text-white hover:bg-brandLink transition-all shadow-md shadow-brand/10 hover:shadow-brand/20"
+                        className="gap-1.5 rounded-xl h-10 font-semibold bg-brand text-white hover:bg-brandLink transition-all shadow-md shadow-brand/10 hover:shadow-brand/20 w-full sm:w-auto"
                     >
                         <Plus size={16} />
                         Add Club
@@ -232,10 +234,11 @@ const AdminClubs: React.FC = () => {
                     <Button
                         onClick={handleExportRoster}
                         disabled={isExporting}
-                        className="gap-2 rounded-xl h-10 font-semibold border-[1.5px] border-slate-300 dark:border-slate-600 bg-card text-textSecondary hover:bg-hoverSoft shadow-sm"
+                        className="gap-2 rounded-xl h-10 font-semibold border-[1.5px] border-slate-300 dark:border-slate-600 bg-card text-textSecondary hover:bg-hoverSoft shadow-sm w-full sm:w-auto"
                     >
                         <Download size={16} />
-                        {isExporting ? 'Exporting...' : 'Export Members (Excel)'}
+                        <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export Members'}</span>
+                        <span className="sm:hidden">{isExporting ? 'Exporting...' : 'Export Members'}</span>
                     </Button>
                 </div>
             </div>
@@ -452,6 +455,15 @@ const AdminClubs: React.FC = () => {
                                 id="name"
                                 value={editFormData.name}
                                 onChange={e => setEditFormData({ ...editFormData, name: e.target.value })}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-email">Login Email</Label>
+                            <Input
+                                id="edit-email"
+                                type="email"
+                                value={editFormData.email}
+                                onChange={e => setEditFormData({ ...editFormData, email: e.target.value })}
                             />
                         </div>
                         <div className="grid gap-2">

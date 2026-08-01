@@ -13,6 +13,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 import ExtraRoomDialog from '../components/ExtraRoomDialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const MyBookings: React.FC = () => {
   const [myBookings, setMyBookings] = useState<Booking[]>([]);
@@ -24,6 +25,11 @@ const MyBookings: React.FC = () => {
   // Extra Room Dialog State
   const [isExtraRoomOpen, setIsExtraRoomOpen] = useState(false);
   const [selectedBookingForExtra, setSelectedBookingForExtra] = useState<GroupedBooking | null>(null);
+
+  // Cancel Booking Dialog State
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<GroupedBooking | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const fetchBookings = React.useCallback(async () => {
     setIsLoading(true);
@@ -81,6 +87,29 @@ const MyBookings: React.FC = () => {
   const openExtraRoomDialog = (booking: GroupedBooking) => {
     setSelectedBookingForExtra(booking);
     setIsExtraRoomOpen(true);
+  };
+
+  const handleCancelClick = (booking: GroupedBooking) => {
+    setBookingToCancel(booking);
+    setCancelDialogOpen(true);
+  };
+
+  const confirmCancel = async () => {
+    if (!bookingToCancel) return;
+    setIsCancelling(true);
+    try {
+      for (const id of bookingToCancel.ids) {
+        await apiRequest(`/api/my-bookings/${id}`, { method: 'DELETE', auth: true });
+      }
+      toastInfo('Booking cancelled successfully');
+      fetchBookings();
+      setCancelDialogOpen(false);
+    } catch (err) {
+      toastError(err, 'Failed to cancel booking');
+    } finally {
+      setIsCancelling(false);
+      setBookingToCancel(null);
+    }
   };
 
   return (
@@ -249,20 +278,7 @@ const MyBookings: React.FC = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={async () => {
-                                  if (confirm('Are you sure you want to cancel this booking?')) {
-                                    try {
-                                      // Cancel the first id of the grouped booking (or maybe all? We'll just cancel the first one, or we should loop over them)
-                                      for (const id of booking.ids) {
-                                        await apiRequest(`/api/my-bookings/${id}`, { method: 'DELETE', auth: true });
-                                      }
-                                      toastInfo('Booking cancelled successfully');
-                                      fetchBookings();
-                                    } catch (err) {
-                                      toastError(err, 'Failed to cancel booking');
-                                    }
-                                  }
-                                }} 
+                                onClick={() => handleCancelClick(booking)} 
                                 className="gap-2 rounded-lg font-semibold bg-error/5 text-error border-error/20 hover:bg-error/10 shadow-sm"
                               >
                                 Cancel Booking
@@ -286,6 +302,28 @@ const MyBookings: React.FC = () => {
         onOpenChange={setIsExtraRoomOpen}
         onSuccess={fetchBookings}
       />
+      {/* Cancel Confirmation Dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-2xl bg-card border border-borderSoft text-textPrimary">
+          <DialogHeader>
+            <DialogTitle className="text-error flex items-center gap-1.5">
+              <AlertTriangle size={20} />
+              Cancel Booking
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this booking? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setCancelDialogOpen(false)} disabled={isCancelling} className="rounded-xl">
+              Keep Booking
+            </Button>
+            <Button variant="destructive" onClick={confirmCancel} disabled={isCancelling} className="rounded-xl bg-error hover:bg-error/90 text-white font-semibold">
+              {isCancelling ? 'Cancelling...' : 'Yes, Cancel Booking'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

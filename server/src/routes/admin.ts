@@ -240,39 +240,7 @@ router.patch('/bookings/:id/status', async (req, res) => {
 
     io.emit('events:updated');
 
-    if (status === 'approved' || (status === 'rejected' && oldStatus === 'approved')) {
-      const { sendBookingApprovedEmailToClub, sendBookingCancelledEmailToClub } = await import('../services/email');
-      const venueRes = await db.query('SELECT name FROM venues WHERE id = $1', [data.venue_id]);
-      const clubRes = await db.query('SELECT email FROM clubs WHERE id = $1', [data.club_id]);
-      const venueName = venueRes.rows[0]?.name || 'Venue';
-      const clubEmail = clubRes.rows[0]?.email;
-      
-      if (clubEmail) {
-        const date = new Date(data.start_time).toLocaleDateString('en-IN');
-        const startTimeStr = new Date(data.start_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        const endTimeStr = new Date(data.end_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        
-        if (status === 'approved') {
-          await sendBookingApprovedEmailToClub(
-            clubEmail,
-            venueName,
-            eventName,
-            date,
-            startTimeStr,
-            endTimeStr
-          );
-        } else if (status === 'rejected') {
-          await sendBookingCancelledEmailToClub(
-            clubEmail,
-            venueName,
-            eventName,
-            date,
-            startTimeStr,
-            endTimeStr
-          );
-        }
-      }
-    }
+
 
     return res.json(data);
   } catch (error: any) {
@@ -349,20 +317,6 @@ router.put('/bookings/:id', async (req, res) => {
       clubId: data.club_id,
     });
 
-    if (updateFields.status === 'approved' && data.clubs?.email) {
-      const { sendBookingApprovedEmailToClub } = await import('../services/email');
-      const date = new Date(data.start_time).toLocaleDateString('en-IN');
-      const startTimeStr = new Date(data.start_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-      const endTimeStr = new Date(data.end_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-      await sendBookingApprovedEmailToClub(
-        data.clubs.email,
-        data.venues?.name || 'Venue',
-        data.event_name,
-        date,
-        startTimeStr,
-        endTimeStr
-      );
-    }
 
     return res.json(data);
   } catch (error: any) {
@@ -480,25 +434,6 @@ router.post('/bookings', async (req, res) => {
       metadata: { batchId, venues: venue_ids },
     });
 
-    const { sendBookingApprovedEmailToClub } = await import('../services/email');
-    const clubEmailRes = await db.query('SELECT email FROM clubs WHERE id = $1', [club_id]);
-    const clubEmail = clubEmailRes.rows[0]?.email;
-    
-    if (clubEmail) {
-      for (const b of createdBookings) {
-        const date = new Date(b.start_time).toLocaleDateString('en-IN');
-        const startTimeStr = new Date(b.start_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        const endTimeStr = new Date(b.end_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        await sendBookingApprovedEmailToClub(
-          clubEmail,
-          b.venues?.name || 'Venue',
-          b.event_name,
-          date,
-          startTimeStr,
-          endTimeStr
-        );
-      }
-    }
 
     io.emit('events:updated');
     io.to(`club:${club_id}`).emit('booking:status_changed', {
@@ -545,17 +480,22 @@ router.get('/clubs', async (_req, res) => {
 
 router.patch('/clubs/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, group_category, organization_type, member_tag } = req.body;
-
-  const updateFields: Record<string, any> = {};
-  if (name !== undefined) updateFields.name = name;
-  if (group_category !== undefined) updateFields.group_category = group_category;
-  if (organization_type !== undefined) updateFields.organization_type = organization_type;
-  if (member_tag !== undefined) updateFields.member_tag = member_tag;
-
-  if (Object.keys(updateFields).length === 0) return res.status(400).json({ error: 'No fields to update' });
+  const { name, email, group_category, organization_type, member_tag } = req.body;
 
   try {
+    const clubRes = await db.query('SELECT email FROM clubs WHERE id = $1', [id]);
+    if (clubRes.rows.length === 0) return res.status(404).json({ error: 'Club not found' });
+    const oldEmail = clubRes.rows[0].email;
+
+    const updateFields: Record<string, any> = {};
+    if (name !== undefined) updateFields.name = name;
+    if (email !== undefined) updateFields.email = email;
+    if (group_category !== undefined) updateFields.group_category = group_category;
+    if (organization_type !== undefined) updateFields.organization_type = organization_type;
+    if (member_tag !== undefined) updateFields.member_tag = member_tag;
+
+    if (Object.keys(updateFields).length === 0) return res.status(400).json({ error: 'No fields to update' });
+
     const keys = Object.keys(updateFields);
     const setString = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
     const values = Object.values(updateFields);
@@ -563,7 +503,12 @@ router.patch('/clubs/:id', async (req, res) => {
 
     const { rows } = await db.query(`UPDATE clubs SET ${setString} WHERE id = $${values.length} RETURNING *`, values);
     
-    if (rows.length === 0) throw new Error('Club not found');
+    // Cascade email update to profiles and auth.users so login continues to work
+    if (email && email !== oldEmail) {
+       await db.query('UPDATE profiles SET email = $1 WHERE email = $2', [email, oldEmail]);
+       await db.query('UPDATE auth.users SET email = $1 WHERE email = $2', [email, oldEmail]);
+    }
+
     return res.json(rows[0]);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });

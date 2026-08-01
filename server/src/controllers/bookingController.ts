@@ -242,6 +242,9 @@ export const createBooking = async (req: Request, res: Response) => {
 
     // 4. Validate Capacity
     for (const venue of venues) {
+      if (venue.name.toLowerCase().includes('cep')) {
+        continue; // Skip capacity check for CEP venues
+      }
       if (
         typeof expectedAttendees === 'number' &&
         typeof venue.capacity === 'number' &&
@@ -305,6 +308,7 @@ export const createBooking = async (req: Request, res: Response) => {
           startTime: formatTime(b.start_time),
           endTime: formatTime(b.end_time),
           clubName: club?.name,
+          eventType,
         };
       });
 
@@ -312,6 +316,13 @@ export const createBooking = async (req: Request, res: Response) => {
 
       // Also persist as in-app notifications
       await createBookingPendingNotifications(itemsForNotification);
+
+      // Send the email to the admin
+      const adminEmail = process.env.APPROVAL_SMTP_USER;
+      if (adminEmail) {
+        const { sendPendingBookingEmailToAdmin } = await import('../services/email');
+        await sendPendingBookingEmailToAdmin(adminEmail, itemsForNotification);
+      }
     }
 
     // Emit real-time event so admin sees the new booking immediately

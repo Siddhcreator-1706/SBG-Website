@@ -34,7 +34,17 @@ app.set('trust proxy', 1);
 
 // Security Headers - Must allow cross-origin for separated frontend/backend deployments
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      fontSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https:", "wss:", "http:", "ws:"],
+    },
+  }
 }));
 app.use(compression());
 app.use(morgan('tiny'));

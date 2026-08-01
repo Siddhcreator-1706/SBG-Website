@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Skeleton } from '../components/ui/skeleton';
-import { Calendar, RefreshCw, Archive as ArchiveIcon, MapPin, Download } from 'lucide-react';
+import { Calendar, RefreshCw, Archive as ArchiveIcon, MapPin, Download, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
 interface ArchivedBooking {
   id: string;
@@ -20,6 +21,7 @@ interface ArchivedBooking {
   event_name: string;
   event_type: string;
   archived_at: string;
+  venue_name?: string;
 }
 
 interface ArchivedReport {
@@ -49,6 +51,10 @@ const Archives: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [archiveToDelete, setArchiveToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const fetchArchives = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -67,6 +73,21 @@ const Archives: React.FC = () => {
   useEffect(() => {
     fetchArchives();
   }, [fetchArchives]);
+
+  const confirmDelete = async () => {
+    if (!archiveToDelete) return;
+    setIsDeleting(true);
+    try {
+      await apiRequest(`/api/archives/events/${archiveToDelete}`, { method: 'DELETE', auth: true });
+      setArchives(prev => prev.filter(a => a.id !== archiveToDelete));
+      setDeleteDialogOpen(false);
+    } catch (err) {
+      toastError(err, 'Failed to delete archive');
+    } finally {
+      setIsDeleting(false);
+      setArchiveToDelete(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -127,16 +148,30 @@ const Archives: React.FC = () => {
           >
             <Card className="border border-borderSoft rounded-xl overflow-hidden shadow-sm">
               <CardHeader className="bg-bgMain border-b border-borderSoft p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg text-textPrimary">{event.name}</CardTitle>
-                    <div className="flex gap-4 mt-2 text-xs text-textSecondary">
-                      <span className="flex items-center gap-1"><Calendar size={12}/> {new Date(event.date).toLocaleDateString()}</span>
-                      {event.venue && <span className="flex items-center gap-1"><MapPin size={12}/> {event.venue}</span>}
-                      <span className="flex items-center gap-1">Archived: {new Date(event.archived_at).toLocaleDateString()}</span>
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <div className="min-w-0">
+                    <CardTitle className="text-lg text-textPrimary break-words">{event.name}</CardTitle>
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2 text-xs text-textSecondary">
+                      <span className="flex items-center gap-1 shrink-0"><Calendar size={12}/> {new Date(event.date).toLocaleDateString()}</span>
+                      {event.venue && <span className="flex items-center gap-1 shrink-0"><MapPin size={12}/> {event.venue}</span>}
+                      <span className="flex items-center gap-1 shrink-0">Archived: {new Date(event.archived_at).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-xs bg-bgMain border-borderSoft">Event Record</Badge>
+                  <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
+                    <Badge variant="outline" className="text-xs bg-bgMain border-borderSoft">Event Record</Badge>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setArchiveToDelete(event.id);
+                        setDeleteDialogOpen(true);
+                      }}
+                      className="text-textMuted hover:text-error hover:bg-error/10 h-8 w-8 p-0 rounded-lg shrink-0"
+                      title="Delete Archive"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
@@ -147,9 +182,12 @@ const Archives: React.FC = () => {
                     </h4>
                     <div className="space-y-2">
                       {event.bookings.map(b => (
-                        <div key={b.id} className="text-xs flex justify-between items-center p-2 rounded-lg bg-bgMain">
-                          <span>{new Date(b.start_time).toLocaleString()} - {new Date(b.end_time).toLocaleTimeString()}</span>
-                          <Badge variant="outline" className="text-[10px]">{b.status}</Badge>
+                        <div key={b.id} className="text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-3 sm:p-2 rounded-lg bg-bgMain">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-semibold text-textPrimary">{b.venue_name || 'Unknown Venue'}</span>
+                            <span className="text-textSecondary">{new Date(b.start_time).toLocaleString()} - {new Date(b.end_time).toLocaleTimeString()}</span>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] self-start sm:self-auto shrink-0">{b.status}</Badge>
                         </div>
                       ))}
                     </div>
@@ -160,11 +198,11 @@ const Archives: React.FC = () => {
                     <h4 className="text-sm font-semibold mb-2 text-textPrimary flex items-center gap-2">
                       <ArchiveIcon size={14} className="text-brand" /> Associated Event Report
                     </h4>
-                    <div className="text-xs text-textSecondary flex gap-4">
-                      <span>Level: {event.report.level}</span>
-                      <a href={event.report.report_doc_link} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand hover:underline"><Download size={12}/> Doc</a>
+                    <div className="text-xs text-textSecondary flex flex-wrap gap-x-4 gap-y-2">
+                      <span className="shrink-0">Level: {event.report.level}</span>
+                      <a href={event.report.report_doc_link} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand hover:underline shrink-0"><Download size={12}/> Doc</a>
                       {event.report.photos_drive_link && (
-                        <a href={event.report.photos_drive_link} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand hover:underline"><Download size={12}/> Photos</a>
+                        <a href={event.report.photos_drive_link} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-brand hover:underline shrink-0"><Download size={12}/> Photos</a>
                       )}
                     </div>
                   </div>
@@ -174,6 +212,28 @@ const Archives: React.FC = () => {
           </motion.div>
         ))}
       </div>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-error flex items-center gap-1.5">
+              <Trash2 size={20} />
+              Delete Archive Permanently
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to completely delete this event record and all its associated bookings and reports? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting} className="rounded-xl bg-error hover:bg-error/90 text-white font-semibold">
+              {isDeleting ? 'Deleting...' : 'Yes, Delete Permanently'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

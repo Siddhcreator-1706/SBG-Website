@@ -74,7 +74,7 @@ const ScheduleCalendarCard = ({
 
       <CardContent className="p-4 sm:p-6">
         <div className="grid gap-6 xl:grid-cols-[minmax(420px,520px)_minmax(0,1fr)] xl:items-start">
-          <div className="flex justify-center overflow-hidden xl:justify-start">
+          <div className="flex justify-center overflow-x-auto p-1 -m-1 xl:justify-start">
             <Calendar
               mode="single"
               selected={selectedDate}
@@ -320,17 +320,17 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
   );
 
   // Normalize to local midnight so DayPicker's modifier date-matching works correctly
-  const eventDates = React.useMemo(() => getEventDates(visibleGlobalEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial')), [getEventDates, visibleGlobalEvents]);
-  const myEventDates = React.useMemo(() => getEventDates(myEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial')), [getEventDates, myEvents]);
+  const eventDates = React.useMemo(() => getEventDates(visibleGlobalEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending')), [getEventDates, visibleGlobalEvents]);
+  const myEventDates = React.useMemo(() => getEventDates(myEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending')), [getEventDates, myEvents]);
 
-  // Show approved campus bookings plus this club's own approved/partial bookings in the calendar views.
-  const calendarEventsWithVenue = React.useMemo(() => toCalendarEvents(groupBookings(visibleGlobalEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial'), venues)), [toCalendarEvents, visibleGlobalEvents, venues]);
-  const myCalendarEventsWithVenue = React.useMemo(() => toCalendarEvents(groupBookings(myEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial'), venues)), [toCalendarEvents, myEvents, venues]);
+  // Show approved/pending campus bookings plus this club's own approved/partial/pending bookings in the calendar views.
+  const calendarEventsWithVenue = React.useMemo(() => toCalendarEvents(groupBookings(visibleGlobalEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending'), venues)), [toCalendarEvents, visibleGlobalEvents, venues]);
+  const myCalendarEventsWithVenue = React.useMemo(() => toCalendarEvents(groupBookings(myEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending'), venues)), [toCalendarEvents, myEvents, venues]);
   const activeCalendar = React.useMemo(() => {
     if (calendarView === 'club') {
       return {
         title: 'My Club Calendar',
-        sourceEvents: myEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial'),
+        sourceEvents: myEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending'),
         calendarEvents: myCalendarEventsWithVenue,
         eventDates: myEventDates,
         emptyMessage: 'No club events scheduled for this day.',
@@ -339,7 +339,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
 
     return {
       title: 'Global Event Schedule',
-      sourceEvents: visibleGlobalEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial'),
+      sourceEvents: visibleGlobalEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending'),
       calendarEvents: calendarEventsWithVenue,
       eventDates,
       emptyMessage: 'No events scheduled for this day.',
@@ -504,8 +504,8 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
             <CardHeader className="border-b border-borderSoft">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">My {entityType} Bookings</CardTitle>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/my-bookings" className="text-xs">View All</Link>
+                <Button variant="ghost" size="sm" className="hover:bg-brand/10" asChild>
+                  <Link to="/my-bookings" className="text-xs text-brand font-semibold hover:text-brand/80">View All</Link>
                 </Button>
               </div>
             </CardHeader>
@@ -568,7 +568,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
             <CardHeader className="border-b border-borderSoft">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Registered {entityType} Events</CardTitle>
-                <Button variant="ghost" size="sm" asChild>
+                <Button variant="ghost" size="sm" className="hover:bg-brand/10" asChild>
                   <Link to="/manage-events" className="text-xs text-brand font-semibold hover:text-brand/80">View All & Register</Link>
                 </Button>
               </div>

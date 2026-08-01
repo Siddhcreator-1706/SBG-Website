@@ -34,7 +34,7 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
         endTime: string;
         venue: string[];
         event_type: string
-    }>({ name: '', startDate: '', startTime: '', endDate: '', endTime: '', venue: ['Online'], event_type: 'open_all' });
+    }>({ name: '', startDate: '', startTime: '12:00', endDate: '', endTime: '13:00', venue: ['Online'], event_type: 'open_all' });
 
     const [isSavingEvent, setIsSavingEvent] = useState(false);
     const [eventWarnings, setEventWarnings] = useState({ timeline: '', limit: '' });
@@ -68,7 +68,7 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
     // Reset form when opened
     useEffect(() => {
         if (isOpen) {
-            setNewEvent({ name: '', startDate: '', startTime: '', endDate: '', endTime: '', venue: ['Online'], event_type: 'open_all' });
+            setNewEvent({ name: '', startDate: '', startTime: '12:00', endDate: '', endTime: '13:00', venue: ['Online'], event_type: 'open_all' });
             setEventWarnings({ timeline: '', limit: '' });
         }
     }, [isOpen]);
@@ -83,8 +83,6 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
                 timelineMsg = 'Co-curricular events require 14 days advance notice.';
             } else if (newEvent.event_type === 'open_all' && diffDays < 20) {
                 timelineMsg = 'Open-for-All events require 20 days advance notice.';
-            } else if (newEvent.event_type === 'closed_club' && diffDays < 1) {
-                timelineMsg = 'Closed club events require 1 day advance notice.';
             }
 
             if (timelineMsg && currentUser?.role === 'admin') {
@@ -154,7 +152,7 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
                     <ul className="list-disc pl-5 space-y-0.5 text-textSecondary text-xs">
                         <li><strong className="text-textPrimary">Open for All:</strong> 20 days advance notice.</li>
                         <li><strong className="text-textPrimary">Co-Curricular:</strong> 14 days advance notice. (Semester limits apply)</li>
-                        <li><strong className="text-textPrimary">Closed Club:</strong> 1 day advance notice.</li>
+                        <li><strong className="text-textPrimary">Closed Club:</strong> Can be booked anytime.</li>
                     </ul>
                 </div>
 

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { User, AppEvent } from '../types';
-
 import { apiRequest } from '../lib/api';
 import { toastError, toastSuccess } from '../lib/toast';
 import { toLocalISOString } from '../lib/utils';
@@ -12,8 +11,6 @@ import RegisterEventDialog from '../components/RegisterEventDialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
 import { Calendar as CalendarIcon, Plus, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-
 
 interface ClubCommitteeProps {
   user: User;
@@ -41,8 +38,6 @@ const ClubCommittee: React.FC<ClubCommitteeProps> = ({ user }) => {
   useEffect(() => {
     fetchData();
   }, []);
-
-
 
   return (
     <div className="space-y-6">

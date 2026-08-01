@@ -49,8 +49,8 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
     const [selectedVenues, setSelectedVenues] = useState<string[]>([]);
     const [startDate, setStartDate] = useState<Date | undefined>(undefined);
     const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-    const [startTime, setStartTime] = useState('');
-    const [endTime, setEndTime] = useState('');
+    const [startTime, setStartTime] = useState('12:00');
+    const [endTime, setEndTime] = useState('13:00');
     const [eventType, setEventType] = useState('');
     const [expectedAttendees, setExpectedAttendees] = useState('');
     
@@ -104,8 +104,8 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
             setSelectedVenues([]);
             setStartDate(undefined);
             setEndDate(undefined);
-            setStartTime('');
-            setEndTime('');
+            setStartTime('12:00');
+            setEndTime('13:00');
             setEventType('');
             setExpectedAttendees('');
             setSelectedEventId('');

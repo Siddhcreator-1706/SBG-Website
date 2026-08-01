@@ -50,8 +50,8 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     clubName: '',
     date: '',
     endDate: '',
-    startTime: '',
-    endTime: '',
+    startTime: '12:00',
+    endTime: '13:00',
     venueIds: [] as string[],
     event_id: '',
     permissionsLink: ''
@@ -212,7 +212,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     let reqDays = 0;
     if (evt.event_type === 'co_curricular') reqDays = 14;
     else if (evt.event_type === 'open_all') reqDays = 20;
-    else if (evt.event_type === 'closed_club') reqDays = 1;
+    else if (evt.event_type === 'closed_club') reqDays = 0;
 
     if (diffDays < reqDays) {
       setWarnings(prev => ({
@@ -428,11 +428,11 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
       // Clear the form
       setFormData({
         expectedAttendees: '',
-        clubName: currentUser.role === 'club' ? currentUser.name : '',
+        clubName: currentUser?.role === 'club' ? currentUser.name : '',
         date: '',
         endDate: '',
-        startTime: '',
-        endTime: '',
+        startTime: '12:00',
+        endTime: '13:00',
         venueIds: [],
         event_id: '',
         permissionsLink: ''

@@ -208,7 +208,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
   };
 
   const handleRemoveClick = (member: ClubMember) => {
-    const isMemberActive = !member.tenure_end_date || new Date(member.tenure_end_date) >= new Date(new Date().setHours(0,0,0,0));
+    const isMemberActive = !member.tenure_end_reason && (!member.tenure_end_date || new Date(member.tenure_end_date) >= new Date(new Date().setHours(0,0,0,0)));
     if (isMemberActive) {
       setMemberToResign(member);
       setResignDate(toLocalISOString(new Date()));
@@ -329,6 +329,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
   );
 
   const activeMembers = members.filter(m => {
+    if (m.tenure_end_reason) return false;
     if (!m.tenure_end_date) return true;
     const endDate = new Date(m.tenure_end_date);
     const today = new Date();
@@ -337,6 +338,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
   });
 
   const pastMembers = members.filter(m => {
+    if (m.tenure_end_reason) return true;
     if (!m.tenure_end_date) return false;
     const endDate = new Date(m.tenure_end_date);
     const today = new Date();
@@ -605,7 +607,18 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
               </Select>
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t border-borderSoft">
+          <DialogFooter className="pt-4 border-t border-borderSoft flex sm:justify-between items-center w-full">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setResignDialogOpen(false);
+                setMemberToDelete(memberToResign);
+                setDeleteDialogOpen(true);
+              }}
+              className="text-error hover:bg-error/10 hover:text-error"
+            >
+              Delete permanently
+            </Button>
             <Button
               onClick={confirmResign}
               disabled={isResigning || !resignDate}

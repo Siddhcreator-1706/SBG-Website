@@ -35,6 +35,29 @@ export type PendingBookingItem = {
   eventType?: string;
 };
 
+const ADMIN_DASHBOARD_URL = process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/admin/requests` : '#';
+
+function formatEventTypeLabel(type?: string) {
+  if (!type) return 'Event';
+  return type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatDateLabel(dateStr: string) {
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatTimeLabel(dateStr: string) {
+  try {
+    return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  } catch {
+    return dateStr;
+  }
+}
+
 /**
  * Send an email to the user with a temporary password when they trigger a forgot password request.
  */
@@ -221,6 +244,110 @@ export async function sendEventReportReminderEmail(
     await reminderTransporter.sendMail({
       from: EVENT_REMINDER_MAIL,
       to: clubEmail,
+      subject: subject,
+      html: messageHtml,
+    });
+    return { sent: true };
+  } catch (err) {
+    return { sent: false, error: (err as Error).message };
+  }
+}
+
+/**
+ * Send an email to the admin with a summary of new pending bookings.
+ */
+export async function sendPendingBookingEmailToAdmin(
+  adminEmail: string,
+  items: PendingBookingItem[]
+): Promise<{ sent: boolean; error?: string }> {
+  if (!isApprovalConfigured() || items.length === 0) return { sent: false };
+
+  const eventName = items[0].eventName;
+  const clubName = items[0].clubName || 'A club';
+  const eventType = formatEventTypeLabel(items[0].eventType);
+  const venueCount = items.length;
+  const subject = `New Pending Booking Request - ${eventName}`;
+
+  const venueRows = items
+    .map(
+      (item, index) => `
+      <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : BG_COLOR};">
+        <td style="padding: 12px 14px; border-bottom: 1px solid ${BORDER_COLOR}; font-size: 14px; color: ${TEXT_COLOR}; font-weight: 500;">
+          ${item.venueName}
+        </td>
+        <td style="padding: 12px 14px; border-bottom: 1px solid ${BORDER_COLOR}; font-size: 13px; color: ${MUTED_COLOR};">
+          ${formatDateLabel(item.startTime)}
+        </td>
+        <td style="padding: 12px 14px; border-bottom: 1px solid ${BORDER_COLOR}; font-size: 13px; color: ${MUTED_COLOR}; text-align: right; white-space: nowrap;">
+          ${formatTimeLabel(item.startTime)} &ndash; ${formatTimeLabel(item.endTime)}
+        </td>
+      </tr>`
+    )
+    .join('');
+
+  const venueTableHeader = `
+    <tr>
+      <td style="padding: 10px 14px; font-size: 11px; font-weight: 700; color: ${MUTED_COLOR}; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 2px solid ${BORDER_COLOR};">
+        Venue
+      </td>
+      <td style="padding: 10px 14px; font-size: 11px; font-weight: 700; color: ${MUTED_COLOR}; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 2px solid ${BORDER_COLOR};">
+        Date
+      </td>
+      <td style="padding: 10px 14px; font-size: 11px; font-weight: 700; color: ${MUTED_COLOR}; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 2px solid ${BORDER_COLOR}; text-align: right;">
+        Time
+      </td>
+    </tr>`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 16px 0;">
+      <strong>${clubName}</strong> has submitted a new venue booking request that requires your approval.
+    </p>
+    ${detailsCard(
+      detailRow('Event', eventName) +
+      detailRow('Club', clubName) +
+      detailRow('Event Type', eventType)
+    )}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0 8px 0;">
+      <tr>
+        <td style="font-size: 13px; font-weight: 600; color:${BRAND_COLOR}; text-transform: uppercase; letter-spacing: 0.4px;">
+          Requested Venues
+        </td>
+        <td style="text-align: right;">
+          <span style="display:inline-block; padding: 3px 10px; border-radius: 999px; background-color:${BG_COLOR}; color:${MUTED_COLOR}; font-size: 12px; font-weight: 600;">
+            ${venueCount} ${venueCount === 1 ? 'venue' : 'venues'}
+          </span>
+        </td>
+      </tr>
+    </table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid ${BORDER_COLOR}; border-radius: 8px; overflow:hidden;">
+      ${venueTableHeader}
+      ${venueRows}
+    </table>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 28px 0 8px 0;">
+      <tr>
+        <td style="border-radius: 6px; background-color: ${BRAND_COLOR};">
+          <a href="${ADMIN_DASHBOARD_URL || '#'}"
+             style="display:inline-block; padding: 12px 22px; font-size: 14px; font-weight: 600; color:#ffffff; text-decoration:none; border-radius: 6px;">
+            Review in Admin Dashboard
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:8px 0 0 0; font-size: 13px; color:${MUTED_COLOR};">
+      Please review and approve or reject each venue at your earliest convenience.
+    </p>
+  `;
+
+  const messageHtml = renderEmailLayout({
+    preheader: `New booking request from ${clubName} for ${eventName}`,
+    heading: 'New Venue Request',
+    bodyHtml,
+  });
+
+  try {
+    await approvalTransporter.sendMail({
+      from: APPROVAL_MAIL,
+      to: adminEmail,
       subject: subject,
       html: messageHtml,
     });

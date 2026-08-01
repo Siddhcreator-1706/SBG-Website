@@ -210,17 +210,22 @@ export const groupBookings = (bookings: Booking[], venues: ApiVenue[] = []): Gro
       const statuses = existing.bookings.map(book => book.status);
       const allApproved = statuses.every(s => s === 'approved');
       const allRejected = statuses.every(s => s === 'rejected');
-      const anyPending = statuses.some(s => s === 'pending');
+      const allPending = statuses.every(s => s === 'pending');
+      const anyApproved = statuses.some(s => s === 'approved');
 
       if (allApproved) {
         existing.status = 'approved';
       } else if (allRejected) {
         existing.status = 'rejected';
-      } else if (anyPending) {
-        // If there are pending items, the whole group is pending or partial
-        existing.status = statuses.every(s => s === 'pending') ? 'pending' : 'partial';
-      } else {
+      } else if (allPending) {
+        existing.status = 'pending';
+      } else if (anyApproved) {
+        // If there's at least one approved booking but it's not all approved
         existing.status = 'partial';
+      } else {
+        // A mix of pending and rejected, but NO approved venues.
+        // It should be considered pending so it doesn't show up on approved calendars.
+        existing.status = 'pending';
       }
       
       existing.issueFlag = existing.bookings.find(b => b.issueFlag)?.issueFlag || null;

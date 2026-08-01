@@ -29,6 +29,8 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null);
@@ -130,19 +132,24 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
     }
   };
 
-  const handleDelete = async (eventId: string) => {
-    if (!window.confirm('Are you sure you want to completely delete this event? This action will archive and remove all associated bookings and reports. It cannot be undone.')) {
-      return;
-    }
-    setDeletingEventId(eventId);
+  const handleDeleteClick = (eventId: string) => {
+    setEventToDelete(eventId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!eventToDelete) return;
+    setDeletingEventId(eventToDelete);
     try {
-      await apiRequest(`/api/events/${eventId}`, { method: 'DELETE', auth: true });
+      await apiRequest(`/api/events/${eventToDelete}`, { method: 'DELETE', auth: true });
       toastInfo('Event deleted successfully');
       fetchData();
+      setDeleteDialogOpen(false);
     } catch (err) {
       toastError(err, 'Failed to delete event');
     } finally {
       setDeletingEventId(null);
+      setEventToDelete(null);
     }
   };
 
@@ -249,7 +256,7 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => handleDelete(event.id)} 
+                        onClick={() => handleDeleteClick(event.id)} 
                         disabled={deletingEventId === event.id}
                         className="gap-2 text-error border-error/30 hover:bg-error/10 hover:border-error disabled:opacity-50"
                       >
@@ -410,6 +417,29 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
         currentUser={currentUser}
         onEventCreated={() => fetchData()}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-2xl bg-card border border-borderSoft text-textPrimary">
+          <DialogHeader>
+            <DialogTitle className="text-error flex items-center gap-1.5">
+              <Trash2 size={20} />
+              Delete Event Permanently
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to completely delete this event? This action will archive and remove all associated bookings and reports. It cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={!!deletingEventId} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={!!deletingEventId} className="rounded-xl bg-error hover:bg-error/90 text-white font-semibold">
+              {deletingEventId ? 'Deleting...' : 'Yes, Delete Permanently'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

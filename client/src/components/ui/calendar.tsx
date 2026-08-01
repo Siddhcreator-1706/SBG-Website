@@ -146,7 +146,7 @@ function Calendar({
               defaultClassNames.week_number
             ),
             day: cn(
-              "group/day relative select-none p-0 text-center bg-transparent border border-borderSoft/20 hover:bg-transparent first:border-l-0 last:border-r-0",
+              "flex-1 group/day relative select-none p-0 text-center bg-transparent border border-borderSoft/20 hover:bg-transparent first:border-l-0 last:border-r-0",
               defaultClassNames.day
             ),
             range_start: cn(
@@ -278,7 +278,7 @@ function CalendarDayButton({
         data-range-end={isRangeEnd}
         data-range-middle={isRangeMiddle}
         className={cn(
-          "flex aspect-square h-auto w-[90%] max-w-[--cell-size] mx-auto flex-col justify-center items-center gap-0.5 font-medium leading-none rounded-full transition-all duration-200 relative text-textPrimary",
+          "flex h-8 w-8 sm:h-10 sm:w-10 mx-auto flex-col justify-center items-center gap-0.5 font-medium leading-none rounded-full transition-all duration-200 relative text-textPrimary",
           "data-[selected-single=true]:bg-brand data-[selected-single=true]:text-white data-[selected-single=true]:font-semibold data-[selected-single=true]:shadow-sm data-[selected-single=true]:border-transparent data-[selected-single=true]:rounded-full",
           "data-[range-middle=true]:bg-brand/10 data-[range-middle=true]:text-brand data-[range-middle=true]:rounded-none",
           "data-[range-start=true]:bg-brand data-[range-start=true]:text-white data-[range-start=true]:font-semibold data-[range-start=true]:rounded-l-full data-[range-start=true]:shadow-sm data-[range-start=true]:border-transparent",

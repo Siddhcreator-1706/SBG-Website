@@ -160,7 +160,9 @@ const ExtraRoomDialog: React.FC<ExtraRoomDialogProps> = ({ booking, open, onOpen
                             <SelectTrigger className="h-12 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground focus:ring-1 focus:ring-brand/30 transition-all">
                                 <div className="flex items-center gap-2.5">
                                     <MapPin size={16} className="text-brand/60" />
-                                    <SelectValue placeholder={isLoadingVenues ? "Loading..." : "Select venue"} />
+                                    <SelectValue placeholder={isLoadingVenues ? "Loading..." : "Select venue"}>
+                                        {selectedVenueId ? venues.find(v => v.id === selectedVenueId)?.name : null}
+                                    </SelectValue>
                                 </div>
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border border-border shadow-xl p-1 max-h-[300px]">
@@ -170,7 +172,7 @@ const ExtraRoomDialog: React.FC<ExtraRoomDialogProps> = ({ booking, open, onOpen
                                         value={v.id}
                                         disabled={v.isBusy}
                                         className={cn(
-                                            "py-2 px-3 rounded-lg mb-0.5 text-sm transition-all",
+                                            "py-2 rounded-lg mb-0.5 text-sm transition-all",
                                             v.isBusy ? "opacity-50" : "focus:bg-brand/5 focus:text-brand cursor-pointer"
                                         )}
                                     >
