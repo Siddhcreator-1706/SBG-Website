@@ -124,8 +124,58 @@ SBG-Website/
 
 This project uses a distributed deployment architecture:
 1. **Frontend**: Deployed to Vercel. Connect your GitHub repository to Vercel and set the Root Directory to `client`.
-2. **Database**: Hosted on Neon.
-3. **Backend**: Deployed to a traditional Linux server via GitHub Actions. Push to the `main` branch to trigger the `.github/workflows/deploy-backend.yml` pipeline (requires repository secrets: `SERVER_HOST`, `SERVER_USER`, `SSH_PRIVATE_KEY`).
+2. **Database**: Hosted on PostgreSQL (e.g., Aiven or Neon).
+3. **Backend**: Deployed to a CentOS/Linux server using PM2.
+
+### Deploying the Backend on CentOS
+
+**1. Install Required Software**
+Ensure Node.js (v22+), npm, and PM2 are installed on your CentOS server:
+```bash
+# Install Node.js
+curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
+sudo yum install -y nodejs
+
+# Install PM2 globally
+sudo npm install -g pm2
+```
+
+**2. Deploy via Local Script (When Git Clone is blocked)**
+If your CentOS server is on a restricted intranet without GitHub access, you can deploy directly from your local Windows machine using the provided PowerShell script. This script builds the code locally, packages it, transfers it via SCP, and restarts PM2 over SSH.
+
+Open PowerShell on your local machine and run:
+```powershell
+.\deploy.ps1
+```
+*(You may be prompted for the SSH password for your server during the transfer and restart steps).*
+
+*Note: Before running the script for the first time, open `deploy.ps1` and ensure the `$ServerUser`, `$ServerIP`, and `$ServerPath` variables match your CentOS server environment.*
+
+**3. Configure Environment Variables**
+Copy the example environment file and update the required variables:
+```bash
+cp .env.example .env
+nano .env
+```
+Ensure you change the following critical variables for production in `server/.env`:
+*   `DATABASE_URL`: Your production PostgreSQL connection string (e.g., Aiven URL).
+*   `NODE_ENV`: Set this strictly to `"production"`.
+*   `CORS_ORIGIN`: Set this to your live frontend URL (e.g., `"https://sbg.dau.ac.in"`).
+*   `JWT_SECRET`: Generate a long, secure random string used to sign authentication tokens.
+*   `PORT`: The port the backend will run on (e.g., `4000`).
+
+**4. Start the Application with PM2**
+```bash
+# Start the compiled server
+pm2 start dist/server.js --name "sbg-backend"
+
+# Ensure PM2 restarts the app automatically on server reboot
+pm2 startup
+pm2 save
+```
+
+**5. Setup Reverse Proxy (Optional but Recommended)**
+Use Apache or Nginx on your CentOS server to reverse-proxy external HTTP/HTTPS traffic to the Node application running on your chosen `PORT` (e.g., 4000).
 
 ## Contributing
 

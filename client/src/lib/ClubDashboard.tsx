@@ -11,7 +11,7 @@ import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Calendar, type CalendarEvent } from '../components/ui/calendar';
 import { Skeleton } from '../components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { getSocket, SOCKET_EVENTS } from './socket';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
@@ -370,7 +370,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
     return (
       <div className="space-y-6 sm:space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-textPrimary tracking-tight">Welcome, {user.name}</h2>
+          <h1 className="text-2xl sm:text-3xl font-bold text-textPrimary tracking-tight">Welcome, {user.name}</h1>
         </div>
         <Alert variant="destructive" className="rounded-xl">
           <AlertTriangle size={16} />
@@ -389,9 +389,16 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
     return (
       <div className="space-y-6 sm:space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-64 sm:w-80" />
-            <Skeleton className="h-5 w-72 sm:w-96" />
+          <div className="flex items-center gap-4 min-w-0">
+            <Avatar className={cn("h-16 w-16 border-2 border-brand/20 ring-4 ring-brand/5 shrink-0 rounded-2xl bg-white")}>
+              <AvatarFallback className="bg-brand text-white font-bold text-xl rounded-2xl flex items-center justify-center">
+                {user.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight leading-tight">Welcome, {user.name}</h1>
+              <p className="text-muted-foreground mt-2 text-sm sm:text-base font-medium">Manage your events and venue bookings efficiently.</p>
+            </div>
           </div>
           <Skeleton className="h-11 w-full sm:w-40 rounded-xl" />
         </div>
@@ -428,7 +435,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight leading-tight">Welcome, {user.name}</h2>
+            <h1 className="text-xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight leading-tight">Welcome, {user.name}</h1>
             <p className="text-muted-foreground mt-2 text-sm sm:text-base font-medium">Manage your events and venue bookings efficiently.</p>
           </div>
         </div>
@@ -471,6 +478,8 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                   <TabsTrigger value="global">Global</TabsTrigger>
                   <TabsTrigger value="club">My Club</TabsTrigger>
                 </TabsList>
+                <TabsContent value="global" className="hidden" />
+                <TabsContent value="club" className="hidden" />
               </Tabs>
             }
             selectedDate={selectedDate}

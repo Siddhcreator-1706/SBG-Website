@@ -118,6 +118,7 @@ const NotificationPanel: React.FC = () => {
             <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Notifications"
                 className="relative h-9 w-9 rounded-lg border border-borderSoft/60 shadow-sm bg-card/80 backdrop-blur hover:bg-hoverSoft transition-all flex items-center justify-center"
                 onClick={() => setOpen(!open)}
             >

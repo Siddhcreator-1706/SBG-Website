@@ -129,7 +129,7 @@ const AdminVenues: React.FC = () => {
     <div className="space-y-6 px-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-textPrimary leading-tight">Manage Venues</h2>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-textPrimary leading-tight">Manage Venues</h1>
           <p className="text-textSecondary mt-1 text-sm font-medium">Add, edit, or remove venues available for booking.</p>
         </div>
         <Button onClick={() => handleOpenModal()} className="gap-2">
@@ -192,6 +192,7 @@ const AdminVenues: React.FC = () => {
                         <Button 
                           variant="ghost" 
                           size="icon" 
+                          aria-label="Edit venue"
                           className="h-8 w-8 text-textMuted hover:text-brand hover:bg-brand/10"
                           onClick={() => handleOpenModal(venue)}
                         >
@@ -200,6 +201,7 @@ const AdminVenues: React.FC = () => {
                         <Button 
                           variant="ghost" 
                           size="icon" 
+                          aria-label="Delete venue"
                           className="h-8 w-8 text-textMuted hover:text-error hover:bg-error/10"
                           onClick={() => handleDeleteVenue(venue.id, venue.name)}
                         >

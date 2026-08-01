@@ -25,6 +25,12 @@ import { User } from './types';
 import { PublicLayout } from './components/PublicLayout';
 import { apiRequest } from './lib/api';
 import { getSocket, reconnectSocket, SOCKET_EVENTS } from './lib/socket';
+import { useDocumentTitle } from './lib/useDocumentTitle';
+
+const PageTitleWrapper = ({ title, children }: { title: string, children: React.ReactNode }) => {
+  useDocumentTitle(title);
+  return <>{children}</>;
+};
 
 const USER_STORAGE_KEY = 'sbg_user_profile';
 
@@ -162,11 +168,11 @@ const App: React.FC = () => {
         <BrowserRouter>
           <React.Suspense fallback={<LoadingScreen />}>
             <Routes>
-              <Route path="/login" element={<Login onLogin={handleLogin} />} />
+              <Route path="/login" element={<PageTitleWrapper title="Login | SBG DAU"><Login onLogin={handleLogin} /></PageTitleWrapper>} />
               <Route element={<PublicLayout onGoToLogin={() => { window.location.href = '/login'; }} />}>
-                <Route path="/clubs-committees" element={<ClubsCommitteesPage />} />
-                <Route path="/about-sbg" element={<AboutSBG />} />
-                <Route path="*" element={<LandingPage />} />
+                <Route path="/clubs-committees" element={<PageTitleWrapper title="Clubs & Committees | SBG DAU"><ClubsCommitteesPage /></PageTitleWrapper>} />
+                <Route path="/about-sbg" element={<PageTitleWrapper title="About SBG | SBG DAU"><AboutSBG /></PageTitleWrapper>} />
+                <Route path="*" element={<PageTitleWrapper title="Home | SBG DAU"><LandingPage /></PageTitleWrapper>} />
               </Route>
             </Routes>
           </React.Suspense>
@@ -181,22 +187,22 @@ const App: React.FC = () => {
         <Layout user={user} onLogout={handleLogout}>
           <React.Suspense fallback={<LoadingScreen />}>
             <Routes>
-              <Route path="/" element={user.role === 'club' ? <ClubDashboard user={user} /> : <AdminDashboard />} />
+              <Route path="/" element={<PageTitleWrapper title="Dashboard | SBG DAU">{user.role === 'club' ? <ClubDashboard user={user} /> : <AdminDashboard />}</PageTitleWrapper>} />
 
-              <Route path="/book" element={<BookSlot currentUser={user} />} />
-              <Route path="/my-bookings" element={<MyBookings />} />
-              <Route path="/manage-events" element={<ManageEvents currentUser={user} />} />
-              <Route path="/event-reports" element={<EventReports />} />
-              <Route path="/members" element={<ClubMembers user={user} />} />
-              <Route path="/committee" element={user.role === 'club' ? <ClubCommittee user={user} /> : <Navigate to="/" replace />} />
-              <Route path="/policy" element={<PolicyPage />} />
+              <Route path="/book" element={<PageTitleWrapper title="Book Venue | SBG DAU"><BookSlot currentUser={user} /></PageTitleWrapper>} />
+              <Route path="/my-bookings" element={<PageTitleWrapper title="My Bookings | SBG DAU"><MyBookings /></PageTitleWrapper>} />
+              <Route path="/manage-events" element={<PageTitleWrapper title="Manage Events | SBG DAU"><ManageEvents currentUser={user} /></PageTitleWrapper>} />
+              <Route path="/event-reports" element={<PageTitleWrapper title="Event Reports | SBG DAU"><EventReports /></PageTitleWrapper>} />
+              <Route path="/members" element={<PageTitleWrapper title="Members | SBG DAU"><ClubMembers user={user} /></PageTitleWrapper>} />
+              <Route path="/committee" element={<PageTitleWrapper title="Committee | SBG DAU">{user.role === 'club' ? <ClubCommittee user={user} /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
+              <Route path="/policy" element={<PageTitleWrapper title="Policy | SBG DAU"><PolicyPage /></PageTitleWrapper>} />
 
-              <Route path="/admin/requests" element={<AdminRequests />} />
+              <Route path="/admin/requests" element={<PageTitleWrapper title="Requests | SBG DAU"><AdminRequests /></PageTitleWrapper>} />
 
-              <Route path="/admin/clubs" element={user.role === 'admin' ? <AdminClubs /> : <Navigate to="/" replace />} />
-              <Route path="/admin/venues" element={user.role === 'admin' ? <AdminVenues /> : <Navigate to="/" replace />} />
-              <Route path="/admin/event-reports" element={user.role === 'admin' ? <AdminEventReports /> : <Navigate to="/" replace />} />
-              <Route path="/archives" element={<Archives />} />
+              <Route path="/admin/clubs" element={<PageTitleWrapper title="Clubs | SBG DAU">{user.role === 'admin' ? <AdminClubs /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
+              <Route path="/admin/venues" element={<PageTitleWrapper title="Venues | SBG DAU">{user.role === 'admin' ? <AdminVenues /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
+              <Route path="/admin/event-reports" element={<PageTitleWrapper title="All Reports | SBG DAU">{user.role === 'admin' ? <AdminEventReports /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
+              <Route path="/archives" element={<PageTitleWrapper title="Archives | SBG DAU"><Archives /></PageTitleWrapper>} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

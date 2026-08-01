@@ -858,6 +858,10 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                           venues.filter(v => normalizeVenueCategory(v.category) === 'A').map(v => (
                             <div
                               key={v.id}
+                              role="checkbox"
+                              aria-checked={formData.venueIds.includes(v.id)}
+                              tabIndex={0}
+                              onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleVenueToggle(v.id); } }}
                               className="flex items-center space-x-3 px-3 py-2.5 hover:bg-brand/5 rounded-lg cursor-pointer transition-all group mx-1"
                               onClick={() => handleVenueToggle(v.id)}
                             >
@@ -898,6 +902,10 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                           venues.filter(v => normalizeVenueCategory(v.category) === 'B').map(v => (
                             <div
                               key={v.id}
+                              role="checkbox"
+                              aria-checked={formData.venueIds.includes(v.id)}
+                              tabIndex={0}
+                              onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleVenueToggle(v.id); } }}
                               className="flex items-center space-x-3 px-3 py-2.5 hover:bg-warning/5 rounded-lg cursor-pointer transition-all group mx-1"
                               onClick={() => handleVenueToggle(v.id)}
                             >
@@ -956,6 +964,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                               {v.name}
                               <button
                                 type="button"
+                                aria-label="Remove venue"
                                 onClick={() => handleVenueToggle(id)}
                                 className={cn(
                                   "ml-0.5 hover:bg-current/20 rounded-full p-0.5 transition-all hover:scale-110"

@@ -278,15 +278,15 @@ function CalendarDayButton({
         data-range-end={isRangeEnd}
         data-range-middle={isRangeMiddle}
         className={cn(
-          "flex aspect-square h-auto w-full min-w-[--cell-size] flex-col gap-0.5 font-medium leading-none rounded-full transition-all duration-200 relative text-textPrimary",
+          "flex aspect-square h-auto w-[90%] max-w-[--cell-size] mx-auto flex-col justify-center items-center gap-0.5 font-medium leading-none rounded-full transition-all duration-200 relative text-textPrimary",
           "data-[selected-single=true]:bg-brand data-[selected-single=true]:text-white data-[selected-single=true]:font-semibold data-[selected-single=true]:shadow-sm data-[selected-single=true]:border-transparent data-[selected-single=true]:rounded-full",
           "data-[range-middle=true]:bg-brand/10 data-[range-middle=true]:text-brand data-[range-middle=true]:rounded-none",
           "data-[range-start=true]:bg-brand data-[range-start=true]:text-white data-[range-start=true]:font-semibold data-[range-start=true]:rounded-l-full data-[range-start=true]:shadow-sm data-[range-start=true]:border-transparent",
           "data-[range-end=true]:bg-brand data-[range-end=true]:text-white data-[range-end=true]:font-semibold data-[range-end=true]:rounded-r-full data-[range-end=true]:shadow-sm data-[range-end=true]:border-transparent",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 focus-visible:z-10",
           !isSelected && !isRangeStart && !isRangeEnd && !isDisabled && "hover:bg-hoverSoft hover:rounded-full hover:text-textPrimary",
-          hasEvents && !isSelected && !isDisabled && "ring-1 ring-brand/20 hover:ring-brand/40 hover:rounded-full",
-          isToday && !isSelected && "bg-brand/10 text-brand font-bold border-2 border-brand/50 rounded-full",
+          hasEvents && !isSelected && !isDisabled && "ring-1 ring-inset ring-brand/30 hover:ring-brand/50 hover:rounded-full",
+          isToday && !isSelected && "bg-brand/10 text-brand font-bold ring-2 ring-inset ring-brand/50 rounded-full",
           isToday && isSelected && "bg-brand text-white font-bold rounded-full",
           isDisabled && "opacity-50",
           "[&>span]:text-[10px] [&>span]:opacity-80 data-[selected-single=true]:[&>span]:opacity-100 data-[selected-single=true]:[&>span]:font-semibold",

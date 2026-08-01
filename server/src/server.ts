@@ -279,7 +279,7 @@ app.use(express.static(clientBuildPath, {
   maxAge: '1d',
   setHeaders: (res, filePath) => {
     // Service worker must never be cached
-    if (filePath.endsWith('sw.js') || filePath.endsWith('workbox-*.js')) {
+    if (filePath.endsWith('sw.js') || filePath.includes('workbox-') || filePath.endsWith('registerSW.js')) {
       res.setHeader('Cache-Control', 'no-cache');
     }
   },

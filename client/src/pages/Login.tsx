@@ -546,6 +546,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
                       onPaste={handleOtpPaste}
+                      aria-label={`Digit ${index + 1} of OTP`}
                       className="flex-1 min-w-0 max-w-[3rem] sm:max-w-[3.5rem] h-12 sm:h-14 md:h-16 text-center text-lg sm:text-xl md:text-2xl font-bold rounded-xl focus:scale-105 transition-all px-0"
                     />
                   ))}
@@ -606,6 +607,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     />
                     <button
                       type="button"
+                      aria-label="Toggle password visibility"
                       onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted hover:text-textPrimary cursor-pointer focus:outline-none"
                     >
@@ -629,6 +631,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     />
                     <button
                       type="button"
+                      aria-label="Toggle password visibility"
                       onClick={() => setShowForgotConfirmPassword(!showForgotConfirmPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted hover:text-textPrimary cursor-pointer focus:outline-none"
                     >

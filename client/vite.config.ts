@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
         tailwindcss(),
         VitePWA({
           registerType: 'autoUpdate',
-          injectRegister: 'auto',
+          injectRegister: 'inline',
           includeAssets: [
             'favicon.ico',
             'favicon-16x16.png',

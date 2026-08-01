@@ -212,7 +212,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                   <div className="p-5 border-b border-borderSoft">
                     <Logo size="md" />
                   </div>
-                  <nav className="flex-1 flex flex-col gap-1 p-3 overflow-y-auto overscroll-contain scrollbar-hide">
+                  <nav aria-label="Sidebar navigation" className="flex-1 flex flex-col gap-1 p-3 overflow-y-auto overscroll-contain scrollbar-hide">
                     <div className="px-3 py-2 text-[10px] font-bold text-textMuted/50 uppercase tracking-[0.15em] mt-1 mb-1">
                       {user.role === 'club' ? 'Club Menu' : 'Admin Controls'}
                     </div>
@@ -281,6 +281,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
               variant="ghost"
               size="sm"
               onClick={onLogout}
+              aria-label="Logout"
               className="flex items-center gap-2 text-textMuted hover:text-error hover:bg-error/10 rounded-lg h-9 px-2.5 sm:px-3 font-medium transition-all border border-borderSoft/60 shadow-sm bg-card/80 backdrop-blur cursor-pointer"
             >
               <LogOut size={15} />

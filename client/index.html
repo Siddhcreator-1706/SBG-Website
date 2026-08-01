@@ -62,8 +62,7 @@
   <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <meta name="bingbot" content="index, follow" />
 
-  <!-- Canonical URL -->
-  <link rel="canonical" href="https://sbg.dau.ac.in/" />
+  <!-- Canonical URL managed dynamically by React -->
 
   <!-- ========== Open Graph (Facebook, LinkedIn, Discord, Slack) ========== -->
   <meta property="og:type" content="website" />
@@ -96,6 +95,13 @@
   <!-- ========== Performance Hints & Fonts ========== -->
   <link rel="dns-prefetch" href="//sbg.dau.ac.in" />
   <link rel="preconnect" href="https://sbg.dau.ac.in" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
+  </noscript>
   <link rel="preload" as="image" href="/sbg_logo.webp" fetchpriority="high" />
 
   <!-- ========== JSON-LD Structured Data ========== -->

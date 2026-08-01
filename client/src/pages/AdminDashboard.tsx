@@ -312,7 +312,7 @@ const AdminDashboard: React.FC = () => {
           className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
           <div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tighter leading-tight">Admin Dashboard</h2>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tighter leading-tight">Admin Dashboard</h1>
             <p className="text-textSecondary mt-2 sm:mt-3 text-sm sm:text-base font-medium max-w-2xl">Monitor venue bookings, manage approvals, and track system performance.</p>
           </div>
           <div className="flex gap-2 items-center w-full sm:w-auto mt-2 sm:mt-0">

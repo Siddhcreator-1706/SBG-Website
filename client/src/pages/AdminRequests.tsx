@@ -134,7 +134,7 @@ const AdminRequests: React.FC = () => {
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-textPrimary tracking-tight leading-tight">Request Management</h2>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-textPrimary tracking-tight leading-tight">Request Management</h1>
           <p className="text-textMuted mt-2 text-sm sm:text-base font-medium">Review and take action on venue booking requests.</p>
         </div>
 
@@ -344,6 +344,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Reject venue"
                     onClick={(e) => { e.stopPropagation(); handleAction([req.bookings[0].id], 'rejected'); }}
                     className="text-textMuted hover:text-error"
                     title="Reject this venue"
@@ -356,6 +357,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Approve venue"
                     onClick={(e) => { e.stopPropagation(); handleAction([req.bookings[0].id], 'approved'); }}
                     className="text-primary hover:text-primary/80"
                     title="Approve this venue"

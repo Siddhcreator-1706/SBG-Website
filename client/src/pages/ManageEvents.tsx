@@ -155,7 +155,7 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
-          <motion.h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-textPrimary tracking-tighter">Manage Events</motion.h2>
+          <motion.h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-textPrimary tracking-tighter">Manage Events</motion.h1>
           <p className="text-textSecondary mt-2 sm:mt-3 text-sm sm:text-base font-medium leading-relaxed max-w-xl">
             View, edit, or delete your registered events.
           </p>

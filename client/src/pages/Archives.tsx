@@ -89,7 +89,7 @@ const Archives: React.FC = () => {
         <div className="min-w-0 flex items-center gap-3">
           <ArchiveIcon className="text-textSecondary" size={32} />
           <div>
-            <motion.h2 className="text-3xl sm:text-4xl font-extrabold text-textPrimary tracking-tighter">Database Archives</motion.h2>
+            <motion.h1 className="text-3xl sm:text-4xl font-extrabold text-textPrimary tracking-tighter">Database Archives</motion.h1>
             <p className="text-textSecondary mt-1 text-sm font-medium leading-relaxed max-w-xl">
               Historical records of deleted events, their bookings, and reports.
             </p>

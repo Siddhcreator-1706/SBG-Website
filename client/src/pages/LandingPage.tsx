@@ -303,7 +303,7 @@ const LandingPage: React.FC = () => {
                 <motion.h1
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.1 }}
+                    transition={{ duration: 0.6, delay: 0 }}
                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter text-textPrimary leading-[1.08] pb-2"
                 >
                     Discover What's

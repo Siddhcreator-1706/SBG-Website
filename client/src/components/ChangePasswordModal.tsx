@@ -148,7 +148,7 @@ export function ChangePasswordModal({ open, onOpenChange, userEmail }: ChangePas
               </button>
             </div>
           </div>
-          <DialogFooter className="pt-4">
+          <DialogFooter className="pt-4 gap-2 sm:space-x-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

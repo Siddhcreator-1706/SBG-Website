@@ -63,7 +63,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ onGoToLogin }) => {
                         </div>
                         
                         {/* Desktop Nav Links */}
-                        <div className="hidden md:flex items-center gap-1 sm:gap-2">
+                        <nav aria-label="Main navigation" className="hidden md:flex items-center gap-1 sm:gap-2">
                             <Button variant="ghost" onClick={() => navigate('/')} className={navItemClass('/')}>
                                 Home
                             </Button>
@@ -74,7 +74,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ onGoToLogin }) => {
                                 <span className="hidden sm:inline">Clubs & Committees</span>
                                 <span className="sm:hidden">Clubs</span>
                             </Button>
-                        </div>
+                        </nav>
                     </div>
 
                     {/* Right: Utilities */}
@@ -114,7 +114,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ onGoToLogin }) => {
                             transition={{ duration: 0.2 }}
                             className="md:hidden border-t border-borderSoft/40 bg-bgMain/95 backdrop-blur-xl overflow-hidden"
                         >
-                            <div className="flex flex-col gap-2 p-4">
+                            <nav aria-label="Mobile navigation" className="flex flex-col gap-2 p-4">
                                 <Button
                                     variant="ghost"
                                     onClick={() => { navigate('/'); setIsMobileMenuOpen(false); }}
@@ -143,7 +143,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ onGoToLogin }) => {
                                     <span>Sign In</span>
                                     <ArrowRight size={16} />
                                 </Button>
-                            </div>
+                            </nav>
                         </motion.div>
                     )}
                 </AnimatePresence>

@@ -220,7 +220,7 @@ const AboutSBG: React.FC = () => {
                     className="flex flex-row items-center gap-4 mb-8"
                 >
                     <div className="h-14 w-14 rounded-2xl bg-card border border-borderSoft/60 shadow-sm flex items-center justify-center shrink-0">
-                        <img src="/sbg_logo.webp" alt="SBG Logo" className="w-9 h-9 object-contain" />
+                        <img src="/sbg_logo.webp" alt="SBG Logo" width="36" height="36" className="w-9 h-9 object-contain" />
                     </div>
                     <div className="min-w-0">
                         <div className="flex items-center gap-2 text-brand text-xs font-semibold uppercase tracking-wider mb-1">
@@ -303,7 +303,7 @@ const AboutSBG: React.FC = () => {
                                         </div>
                                         <div className="flex items-center gap-3 rounded-xl border border-borderSoft/60 bg-card hover:bg-hoverSoft/20 transition-all px-4 py-3 shadow-sm relative z-10">
                                             <span className="h-9 w-9 rounded-lg bg-card border border-brand/20 flex items-center justify-center shrink-0 p-1.5">
-                                                <img src={sbgClub?.logo_url || "/sbg_logo.webp"} alt="SBG" className="w-full h-full object-contain" loading="lazy" />
+                                                <img src={sbgClub?.logo_url || "/sbg_logo.webp"} alt="SBG" width="36" height="36" className="w-full h-full object-contain" loading="lazy" />
                                             </span>
                                             <div className="min-w-0">
                                                 <p className="font-semibold text-textPrimary text-sm">Student Body Government (SBG)</p>
@@ -327,7 +327,7 @@ const AboutSBG: React.FC = () => {
                                         >
                                             {ecClub?.logo_url ? (
                                                 <span className="h-9 w-9 rounded-lg bg-card border border-brand/20 flex items-center justify-center shrink-0 p-1.5">
-                                                    <img src={ecClub.logo_url} alt="EC" className="w-full h-full object-contain" />
+                                                    <img src={ecClub.logo_url} alt="EC" width="36" height="36" className="w-full h-full object-contain" loading="lazy" />
                                                 </span>
                                             ) : (
                                                 <span className="h-9 w-9 rounded-lg bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
