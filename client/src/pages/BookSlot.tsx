@@ -34,7 +34,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popove
 import { Calendar } from '../components/ui/calendar';
 import RegisterEventDialog from '../components/RegisterEventDialog';
 import { TimePicker } from '../components/ui/time-picker';
-import { cn } from '@/lib/utils';
+import { cn, toLocalISOString } from '@/lib/utils';
 
 interface BookSlotProps {
   currentUser: User;

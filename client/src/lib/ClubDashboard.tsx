@@ -19,7 +19,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 
-import { cn } from '@/lib/utils';
+import { cn, toLocalISOString } from '@/lib/utils';
 
 interface ClubDashboardProps {
   user: User;
