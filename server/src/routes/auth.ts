@@ -16,6 +16,7 @@ const loginLimiter = rateLimit({
     message: { error: 'Too many login attempts, please try again after 15 minutes' },
     standardHeaders: true,
     legacyHeaders: false,
+    skipSuccessfulRequests: true, // Only count failed login attempts
 });
 
 const registerLimiter = rateLimit({
