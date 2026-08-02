@@ -173,8 +173,8 @@ export const groupBookings = (bookings: Booking[], venues: ApiVenue[] = []): Gro
 
   for (const b of bookings) {
     // Group by event_id + startTime (since all bookings now belong to an event), fallback to batchId or composite string.
-    const key = (b.event_id && b.startTime) 
-      ? `${b.event_id}-${b.startTime}` 
+    const key = (b.event_id && b.startTime && b.date) 
+      ? `${b.event_id}-${b.date}-${b.startTime}` 
       : (b.batchId || `${b.eventName}-${b.clubName}-${b.date}-${b.startTime}-${b.eventType}`);
 
     if (grouped.has(key)) {

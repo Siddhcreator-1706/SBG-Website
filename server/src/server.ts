@@ -39,6 +39,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https:"],
       imgSrc: ["'self'", "data:", "https:", "blob:"],
       fontSrc: ["'self'", "data:", "https:"],
@@ -62,7 +63,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 type SocketUser = {
   id: string;
@@ -202,7 +203,6 @@ io.on('connection', (socket) => {
   });
 });
 
-app.use(express.json({ limit: '5mb' }));
 
 function isBodyParserError(err: unknown): err is { type: string; message?: string } {
   return typeof err === 'object' && err !== null && 'type' in err;

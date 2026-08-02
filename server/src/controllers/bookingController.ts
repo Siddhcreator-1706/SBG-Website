@@ -23,7 +23,7 @@ type BookingRequestBody = {
 const MIN_DAYS_BY_EVENT: Record<EventType, number> = {
   co_curricular: 14,
   open_all: 20,
-  closed_club: 1,
+  closed_club: 0,
 };
 
 const isValidDate = (value: string) => {
@@ -320,7 +320,7 @@ export const createBooking = async (req: Request, res: Response) => {
       // Send the email to the admin
       const adminEmail = process.env.APPROVAL_SMTP_USER;
       if (adminEmail) {
-        const { sendPendingBookingEmailToAdmin } = await import('../services/email');
+        const { sendPendingBookingEmailToAdmin } = await import('../services/email/index');
         await sendPendingBookingEmailToAdmin(adminEmail, itemsForNotification);
       }
     }

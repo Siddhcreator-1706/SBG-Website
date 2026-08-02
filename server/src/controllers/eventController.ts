@@ -25,7 +25,7 @@ export const createEvent = async (req: Request, res: Response) => {
     const MIN_DAYS_BY_EVENT: Record<EventType, number> = {
       co_curricular: 14,
       open_all: 20,
-      closed_club: 1,
+      closed_club: 0,
     };
 
     const eventStartDate = new Date(date);
