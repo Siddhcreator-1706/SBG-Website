@@ -13,6 +13,7 @@ const AdminVenues = React.lazy(() => import('./pages/AdminVenues'));
 const BookSlot = React.lazy(() => import('./pages/BookSlot'));
 const AdminClubs = React.lazy(() => import('./pages/AdminClubs'));
 const AdminRequests = React.lazy(() => import('./pages/AdminRequests'));
+const AdminEventRequests = React.lazy(() => import('./pages/AdminEventRequests'));
 const PolicyPage = React.lazy(() => import('./pages/PolicyPage'));
 const MyBookings = React.lazy(() => import('./pages/MyBookings'));
 const ClubMembers = React.lazy(() => import('./pages/ClubMembers'));
@@ -198,7 +199,8 @@ const App: React.FC = () => {
               <Route path="/committee" element={<PageTitleWrapper title="Committee | SBG DAU">{user.role === 'club' ? <ClubCommittee user={user} /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/policy" element={<PageTitleWrapper title="Policy | SBG DAU"><PolicyPage /></PageTitleWrapper>} />
 
-              <Route path="/admin/requests" element={<PageTitleWrapper title="Requests | SBG DAU"><AdminRequests /></PageTitleWrapper>} />
+              <Route path="/admin/requests" element={<PageTitleWrapper title="Slot Requests | SBG DAU"><AdminRequests /></PageTitleWrapper>} />
+              <Route path="/admin/event-requests" element={<PageTitleWrapper title="Event Registrations | SBG DAU"><AdminEventRequests /></PageTitleWrapper>} />
 
               <Route path="/admin/clubs" element={<PageTitleWrapper title="Clubs | SBG DAU">{user.role === 'admin' ? <AdminClubs /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/admin/venues" element={<PageTitleWrapper title="Venues | SBG DAU">{user.role === 'admin' ? <AdminVenues /> : <Navigate to="/" replace />}</PageTitleWrapper>} />

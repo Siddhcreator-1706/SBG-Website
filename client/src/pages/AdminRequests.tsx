@@ -1,21 +1,19 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, Search, Filter, Clock, Calendar, Check, X, AlertTriangle, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { RefreshCw, Filter, Calendar, AlertTriangle, CheckCircle, XCircle, ChevronDown, ChevronRight, Clock, X, Check, Search } from 'lucide-react';
 import { apiRequest, mapBooking, groupBookings, type ApiBooking, type ApiVenue } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { toastError, toastSuccess } from '../lib/toast';
 import { GroupedBooking } from '../types';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Skeleton } from '../components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getSocket } from '../lib/socket';
-import { toast } from 'sonner';
 
 const AdminRequests: React.FC = () => {
   const [requests, setRequests] = useState<GroupedBooking[]>([]);
@@ -45,20 +43,16 @@ const AdminRequests: React.FC = () => {
     }
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
 
-  // Socket.io: join admin room for real-time new booking alerts
-  React.useEffect(() => {
+  // Socket.io updates
+  useEffect(() => {
     const socket = getSocket();
-    socket.emit('join:admin');
+    if (!socket) return;
 
-    const handleBookingNew = (payload: { eventName: string; clubName: string; venueNames: string }) => {
-      toast.message('📋 New Booking Request', {
-        description: `${payload.clubName} → "${payload.eventName}" at ${payload.venueNames}`,
-        action: { label: 'Refresh', onClick: fetchRequests },
-      });
+    const handleBookingNew = () => {
       fetchRequests();
     };
 
@@ -87,8 +81,7 @@ const AdminRequests: React.FC = () => {
         body: { ids, status: action },
       });
       toastSuccess(`Request(s) ${action === 'approved' ? 'approved' : 'rejected'} successfully`);
-      const bookingsData = await apiRequest<ApiBooking[]>('/api/admin/bookings', { auth: true });
-      setRequests(groupBookings(bookingsData.map(mapBooking)));
+      fetchRequests();
     } catch (err) {
       console.error('Failed to update request(s):', err);
       toastError(err, `Failed to ${action} request(s). Please try again.`);
@@ -107,11 +100,11 @@ const AdminRequests: React.FC = () => {
       toastSuccess('Status email sent to the club successfully!');
     } catch (err) {
       console.error('Failed to send email:', err);
-      toastError(err, 'Failed to send email. Please try again.');
+      toastError(err, 'Failed to send email.');
     }
   };
 
-  const getVenueName = (id: string) => venues.find(v => v.id === id)?.name || id;
+  const getVenueName = React.useCallback((id: string) => venues.find(v => v.id === id)?.name || id, [venues]);
 
   const filteredRequests = requests.filter(req => {
     const matchesTab = activeTab === 'pending'
@@ -135,10 +128,9 @@ const AdminRequests: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-textPrimary tracking-tight leading-tight">Request Management</h1>
-          <p className="text-textMuted mt-2 text-sm sm:text-base font-medium">Review and take action on venue booking requests.</p>
+          <p className="text-textMuted mt-2 text-sm sm:text-base font-medium">Review and take action on venue bookings.</p>
         </div>
 
-        {/* Search */}
         <div className="relative w-full sm:w-64 shrink-0">
           <Search className="absolute left-3 top-2.5 text-textMuted pointer-events-none" size={18} />
           <Input

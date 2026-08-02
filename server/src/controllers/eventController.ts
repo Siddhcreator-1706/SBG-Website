@@ -20,6 +20,8 @@ export const createEvent = async (req: Request, res: Response) => {
 
   const isAdmin = req.user?.role === 'admin';
 
+  let initialStatus = 'active';
+
   if (!isAdmin) {
     type EventType = 'co_curricular' | 'open_all' | 'closed_club';
     const MIN_DAYS_BY_EVENT: Record<EventType, number> = {
@@ -32,9 +34,7 @@ export const createEvent = async (req: Request, res: Response) => {
     const daysGap = (eventStartDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
     
     if (daysGap < MIN_DAYS_BY_EVENT[finalEventType as EventType]) {
-      return res.status(400).json({
-        error: `Event registration must be made at least ${MIN_DAYS_BY_EVENT[finalEventType as EventType]} days in advance.`,
-      });
+      initialStatus = 'pending';
     }
   }
 
@@ -61,11 +61,6 @@ export const createEvent = async (req: Request, res: Response) => {
     if (!isAdmin && finalEventType === 'co_curricular') {
       const start = new Date(date);
       const { start: semStart, end: semEnd } = getSemesterRange(start);
-      // We check existing events for this club that are co-curricular in the same semester.
-      // Alternatively, the limit could be on events, not bookings. The user said "cocurricular event registration limit must be check".
-      // Let's use the existing countCoCurricularBookings, which counts bookings, or just query events directly.
-      // `countCoCurricularBookings` in `semesterUtils` actually counts events or bookings?
-      // Wait, let's just use the existing function:
       const count = await countCoCurricularBookings(clubId, semStart, semEnd);
       if (count >= CO_CURRICULAR_LIMIT) {
         return res.status(400).json({
@@ -75,10 +70,10 @@ export const createEvent = async (req: Request, res: Response) => {
     }
 
     const { rows } = await db.query(
-      `INSERT INTO events (club_id, name, date, venue, end_date, event_type)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO events (club_id, name, date, venue, end_date, event_type, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [clubId, name, date, venue || null, end_date || null, finalEventType]
+      [clubId, name, date, venue || null, end_date || null, finalEventType, initialStatus]
     );
 
     return res.status(201).json(rows[0]);
@@ -247,6 +242,7 @@ export const getPublicEvents = async (_req: Request, res: Response) => {
       LEFT JOIN clubs c ON e.club_id = c.id
       WHERE e.event_type IN ('open_all', 'co_curricular')
         AND e.end_date >= NOW()
+        AND e.status = 'active'
       ORDER BY e.date ASC
     `);
 

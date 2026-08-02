@@ -41,8 +41,8 @@ interface LayoutProps {
 
 const adminLinks = [
   { to: '/', label: 'Dashboard', icon: ShieldCheck, end: true },
-  { to: '/admin/requests', label: 'Requests', icon: ClipboardList },
-
+  { to: '/admin/requests', label: 'Slot Requests', icon: ClipboardList },
+  { to: '/admin/event-requests', label: 'Event Registrations', icon: CalendarDays },
   { to: '/admin/clubs', label: 'Clubs', icon: Users },
   { to: '/admin/venues', label: 'Venues', icon: MapPin },
   { to: '/manage-events', label: 'Manage Events', icon: Calendar },

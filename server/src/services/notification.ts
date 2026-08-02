@@ -1,6 +1,6 @@
 import { db } from '../db';
 
-export type NotificationType = 'booking_pending' | 'booking_approved' | 'booking_rejected' | 'booking_deleted' | 'general';
+export type NotificationType = 'booking_pending' | 'booking_approved' | 'booking_rejected' | 'booking_deleted' | 'event_approved' | 'event_rejected' | 'general';
 
 export interface CreateNotificationParams {
     type: NotificationType;

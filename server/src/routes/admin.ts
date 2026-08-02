@@ -54,6 +54,103 @@ router.get('/bookings', async (_req, res) => {
   }
 });
 
+// Event endpoints
+router.get('/events/pending', async (_req, res) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT e.*, 
+             json_build_object('name', c.name) AS clubs
+      FROM events e
+      LEFT JOIN clubs c ON e.club_id = c.id
+      WHERE e.status = 'pending'
+      ORDER BY e.created_at ASC
+    `);
+    return res.json(rows);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/events', async (_req, res) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT e.*, 
+             json_build_object('name', c.name) AS clubs
+      FROM events e
+      LEFT JOIN clubs c ON e.club_id = c.id
+      ORDER BY e.created_at DESC
+    `);
+    return res.json(rows);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+router.patch('/events/bulk-status', async (req, res) => {
+  const { ids, status } = req.body as {
+    ids: string[];
+    status: 'active' | 'rejected';
+  };
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'No event IDs provided' });
+  }
+
+  if (status !== 'active' && status !== 'rejected') {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
+
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Fetch the events to ensure they exist and to get metadata
+    const { rows: events } = await client.query(
+      `SELECT e.*, c.email as club_email 
+       FROM events e
+       LEFT JOIN clubs c ON e.club_id = c.id
+       WHERE e.id = ANY($1)`,
+      [ids]
+    );
+
+    if (events.length === 0) {
+      throw new Error('No valid events found');
+    }
+
+    // Update statuses
+    await client.query(
+      `UPDATE events SET status = $1 WHERE id = ANY($2)`,
+      [status, ids]
+    );
+
+    await client.query('COMMIT');
+
+    // Create notifications
+    for (const data of events) {
+      // NOTE: We could send an email here if we had an event approval email template.
+      // But for now, we'll just send in-app notifications.
+      await createNotification({
+        type: status === 'active' ? 'event_approved' : 'event_rejected',
+        title: `Event ${status === 'active' ? 'Approved' : 'Rejected'}`,
+        message: `"${data.name || 'Event'}" has been ${status === 'active' ? 'approved' : 'rejected'}.`,
+        userId: null, // Broadcast to club
+        metadata: { eventId: data.id, status, clubId: data.club_id },
+      });
+      // Optionally notify via socket if there is an active connection
+      io.to(`club:${data.club_id}`).emit('events:updated');
+    }
+
+    io.emit('events:updated');
+
+    return res.json({ success: true, count: events.length });
+  } catch (error: any) {
+    await client.query('ROLLBACK');
+    return res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
 router.patch('/bookings/bulk-status', async (req, res) => {
   const { ids, status } = req.body as {
     ids: string[];
