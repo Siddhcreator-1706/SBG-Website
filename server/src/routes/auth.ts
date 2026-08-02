@@ -11,26 +11,26 @@ import rateLimit from 'express-rate-limit';
 const router = express.Router();
 
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 10 * 60 * 1000, // 10 minutes
     max: 5,
-    message: { error: 'Too many login attempts, please try again after 15 minutes' },
+    message: { error: 'Too many login attempts, please try again after 10 minutes' },
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: true, // Only count failed login attempts
 });
 
 const registerLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 10 * 60 * 1000, // 10 minutes
     max: 5,
-    message: { error: 'Too many registration attempts, please try again after 15 minutes' },
+    message: { error: 'Too many registration attempts, please try again after 10 minutes' },
     standardHeaders: true,
     legacyHeaders: false,
 });
 
 const passwordResetLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
+    windowMs: 30 * 60 * 1000, // 30 minutes
     max: 3,
-    message: { error: 'Too many password reset requests, please try again after 1 hour' },
+    message: { error: 'Too many password reset requests, please try again after 30 minutes' },
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -79,7 +79,7 @@ router.post('/register', registerLimiter, async (req, res) => {
 
         // 3. Create Club Entry if it doesn't exist
         const clubRes = await db.query('SELECT id FROM clubs WHERE email = $1', [email]);
-        
+
         if (clubRes.rows.length === 0) {
             await db.query(`
                 INSERT INTO clubs (name, email, group_category, organization_type)
@@ -160,7 +160,7 @@ router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
 
         await db.query(
-            'UPDATE auth.users SET reset_otp = $1, reset_otp_expires_at = $2 WHERE email = $3', 
+            'UPDATE auth.users SET reset_otp = $1, reset_otp_expires_at = $2 WHERE email = $3',
             [hashedOtp, expiresAt, email]
         );
 
@@ -175,8 +175,8 @@ router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
             console.log(`======================================================\n`);
         }
 
-        return res.json({ 
-            message: 'A 6-digit OTP has been sent to your email address.' 
+        return res.json({
+            message: 'A 6-digit OTP has been sent to your email address.'
         });
 
     } catch (err: any) {
@@ -245,9 +245,9 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
-        
+
         await db.query(
-            'UPDATE auth.users SET encrypted_password = $1, reset_otp = NULL, reset_otp_expires_at = NULL WHERE email = $2', 
+            'UPDATE auth.users SET encrypted_password = $1, reset_otp = NULL, reset_otp_expires_at = NULL WHERE email = $2',
             [hashedPassword, email]
         );
 
@@ -307,7 +307,7 @@ router.get('/profile', async (req, res) => {
             // Get user details directly from auth.users table (removed raw_user_meta_data)
             const authUserRes = await db.query('SELECT email FROM auth.users WHERE id = $1', [userId]);
             const authUser = authUserRes.rows[0];
-            
+
             if (!authUser) {
                 return res.status(404).json({ error: 'User not found in auth' });
             }
@@ -326,7 +326,7 @@ router.get('/profile', async (req, res) => {
 
             // Auto-create club entry if not already there
             const existingClub = await db.query('SELECT id FROM clubs WHERE email = $1', [email]);
-            
+
             if (existingClub.rows.length === 0) {
                 await db.query(`
                     INSERT INTO clubs (name, email, group_category)

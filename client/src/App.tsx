@@ -170,10 +170,11 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/login" element={<PageTitleWrapper title="Login | SBG DAU"><Login onLogin={handleLogin} /></PageTitleWrapper>} />
               <Route element={<PublicLayout onGoToLogin={() => { window.location.href = '/login'; }} />}>
+                <Route path="/" element={<PageTitleWrapper title="Home | SBG DAU"><LandingPage /></PageTitleWrapper>} />
                 <Route path="/clubs-committees" element={<PageTitleWrapper title="Clubs & Committees | SBG DAU"><ClubsCommitteesPage /></PageTitleWrapper>} />
                 <Route path="/about-sbg" element={<PageTitleWrapper title="About SBG | SBG DAU"><AboutSBG /></PageTitleWrapper>} />
-                <Route path="*" element={<PageTitleWrapper title="Home | SBG DAU"><LandingPage /></PageTitleWrapper>} />
               </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </React.Suspense>
         </BrowserRouter>
