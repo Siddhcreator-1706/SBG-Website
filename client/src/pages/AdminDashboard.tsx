@@ -515,7 +515,7 @@ const AdminDashboard: React.FC = () => {
                 <p className="text-textMuted">No events available.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+              <div className="overflow-x-auto w-full">
                 <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
                   <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
                     <tr>

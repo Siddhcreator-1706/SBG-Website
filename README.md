@@ -186,6 +186,12 @@ Contributions are welcome! If you'd like to help improve SBG-Website:
 4. Push to your branch (`git push origin feature/my-feature`)
 5. Open a Pull Request
 
+## Contributors
+
+A huge thank you to everyone who has contributed to this project:
+
+[![Contributors](https://contrib.rocks/image?repo=sbg-siddh-coder/SBG-Website)](https://github.com/sbg-siddh-coder/SBG-Website/graphs/contributors)
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
