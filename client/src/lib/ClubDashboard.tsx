@@ -130,6 +130,11 @@ const ScheduleCalendarCard = ({
                                 <Badge variant="warning" className="text-[10px]">PARTIAL APPROVAL</Badge>
                               </div>
                             )}
+                            {event.status === 'pending' && (
+                              <div className="mt-2">
+                                <Badge variant="pending" className="text-[10px]">PENDING</Badge>
+                              </div>
+                            )}
                           </CardContent>
                         </Card>
                       </motion.div>
@@ -338,7 +343,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
     }
 
     return {
-      title: 'Global Event Schedule',
+      title: 'Global Booking Schedule',
       sourceEvents: visibleGlobalEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending'),
       calendarEvents: calendarEventsWithVenue,
       eventDates,

@@ -477,9 +477,16 @@ router.delete('/bookings/:id', async (req, res) => {
 });
 
 router.post('/bookings', async (req, res) => {
-  const { club_id, venue_ids, start_time, end_time, expected_attendees, event_id } = req.body;
+  const { club_id, venue_ids, start_time: singleStartTime, end_time: singleEndTime, timeSlots: reqTimeSlots, expected_attendees, event_id } = req.body;
 
-  if (!club_id || !start_time || !end_time || !venue_ids || !Array.isArray(venue_ids) || venue_ids.length === 0 || !event_id) {
+  let timeSlots = reqTimeSlots;
+  if (!timeSlots) {
+    if (singleStartTime && singleEndTime) {
+      timeSlots = [{ startTime: singleStartTime, endTime: singleEndTime }];
+    }
+  }
+
+  if (!club_id || !venue_ids || !Array.isArray(venue_ids) || venue_ids.length === 0 || !timeSlots || timeSlots.length === 0 || !event_id) {
     return res.status(400).json({ error: 'Missing required fields. Event selection is mandatory.' });
   }
 
@@ -502,25 +509,27 @@ router.post('/bookings', async (req, res) => {
     const batchId = randomUUID();
     const createdBookings = [];
 
-    for (const venueId of venue_ids) {
-      const { rows } = await db.query(`
-        WITH inserted AS (
-          INSERT INTO bookings (club_id, venue_id, start_time, end_time, expected_attendees, status, batch_id, event_id)
-          VALUES ($1, $2, $3, $4, $5, 'approved', $6, $7)
-          RETURNING *
-        )
-        SELECT i.*,
-               e.name AS event_name,
-               e.event_type,
-               json_build_object('name', c.name) AS clubs,
-               json_build_object('name', v.name) AS venues
-        FROM inserted i
-        LEFT JOIN clubs c ON i.club_id = c.id
-        LEFT JOIN venues v ON i.venue_id = v.id
-        LEFT JOIN events e ON i.event_id = e.id
-      `, [club_id, venueId, start_time, end_time, expected_attendees || 0, batchId, event_id]);
-      
-      createdBookings.push(rows[0]);
+    for (const slot of timeSlots) {
+      for (const venueId of venue_ids) {
+        const { rows } = await db.query(`
+          WITH inserted AS (
+            INSERT INTO bookings (club_id, venue_id, start_time, end_time, expected_attendees, status, batch_id, event_id)
+            VALUES ($1, $2, $3, $4, $5, 'approved', $6, $7)
+            RETURNING *
+          )
+          SELECT i.*,
+                 e.name AS event_name,
+                 e.event_type,
+                 json_build_object('name', c.name) AS clubs,
+                 json_build_object('name', v.name) AS venues
+          FROM inserted i
+          LEFT JOIN clubs c ON i.club_id = c.id
+          LEFT JOIN venues v ON i.venue_id = v.id
+          LEFT JOIN events e ON i.event_id = e.id
+        `, [club_id, venueId, slot.startTime, slot.endTime, expected_attendees || 0, batchId, event_id]);
+        
+        createdBookings.push(rows[0]);
+      }
     }
 
     await createNotification({

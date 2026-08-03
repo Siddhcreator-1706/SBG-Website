@@ -53,6 +53,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
     const [endTime, setEndTime] = useState('13:00');
     const [eventType, setEventType] = useState('');
     const [expectedAttendees, setExpectedAttendees] = useState('');
+    const [bookingType, setBookingType] = useState<'recurring' | 'continuous'>('recurring');
     
     const [clubEvents, setClubEvents] = useState<any[]>([]);
     const [selectedEventId, setSelectedEventId] = useState('');
@@ -111,6 +112,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
             setSelectedEventId('');
             setError(null);
             setCoCurricularWarning('');
+            setBookingType('recurring');
         }
     }, [open]);
 
@@ -181,19 +183,45 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
         setError(null);
 
         try {
-            const sYear = startDate.getFullYear();
-            const sMonth = String(startDate.getMonth() + 1).padStart(2, '0');
-            const sDay = String(startDate.getDate()).padStart(2, '0');
-            const sDateString = `${sYear}-${sMonth}-${sDay}`;
+            const generateTimeSlots = () => {
+                if (bookingType === 'continuous') {
+                    const sYear = startDate.getFullYear();
+                    const sMonth = String(startDate.getMonth() + 1).padStart(2, '0');
+                    const sDay = String(startDate.getDate()).padStart(2, '0');
+                    const sDateString = `${sYear}-${sMonth}-${sDay}`;
+        
+                    const activeEndDate = endDate;
+                    const eYear = activeEndDate.getFullYear();
+                    const eMonth = String(activeEndDate.getMonth() + 1).padStart(2, '0');
+                    const eDay = String(activeEndDate.getDate()).padStart(2, '0');
+                    const eDateString = `${eYear}-${eMonth}-${eDay}`;
 
-            const activeEndDate = endDate;
-            const eYear = activeEndDate.getFullYear();
-            const eMonth = String(activeEndDate.getMonth() + 1).padStart(2, '0');
-            const eDay = String(activeEndDate.getDate()).padStart(2, '0');
-            const eDateString = `${eYear}-${eMonth}-${eDay}`;
+                    return [{
+                        startTime: new Date(`${sDateString}T${startTime}:00`).toISOString(),
+                        endTime: new Date(`${eDateString}T${endTime}:00`).toISOString()
+                    }];
+                }
+                
+                const slots = [];
+                const curr = new Date(startDate);
+                curr.setHours(0,0,0,0);
+                const end = new Date(endDate);
+                end.setHours(0,0,0,0);
+                while (curr <= end) {
+                    const yyyy = curr.getFullYear();
+                    const mm = String(curr.getMonth() + 1).padStart(2, '0');
+                    const dd = String(curr.getDate()).padStart(2, '0');
+                    const dateStr = `${yyyy}-${mm}-${dd}`;
+                    slots.push({
+                        startTime: new Date(`${dateStr}T${startTime}:00`).toISOString(),
+                        endTime: new Date(`${dateStr}T${endTime}:00`).toISOString()
+                    });
+                    curr.setDate(curr.getDate() + 1);
+                }
+                return slots;
+            };
 
-            const startDateTime = new Date(`${sDateString}T${startTime}:00`);
-            const endDateTime = new Date(`${eDateString}T${endTime}:00`);
+            const timeSlots = generateTimeSlots();
 
             await apiRequest('/api/admin/bookings', {
                 method: 'POST',
@@ -202,8 +230,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                     club_id: selectedClubId,
                     venue_ids: selectedVenues,
                     event_id: selectedEventId,
-                    start_time: startDateTime.toISOString(),
-                    end_time: endDateTime.toISOString(),
+                    timeSlots,
                     expected_attendees: expectedAttendees
                         ? parseInt(expectedAttendees)
                         : undefined,
@@ -354,6 +381,36 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                                     />
                                 </div>
                             </div>
+                            
+                            {startDate && endDate && startDate.getTime() !== endDate.getTime() && (
+                                <div className="pt-3 border-t border-borderSoft mt-2">
+                                    <Label className="text-textPrimary font-bold text-sm md:text-base mb-3 block">Multi-Day Booking Type</Label>
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <Button
+                                            type="button"
+                                            variant={bookingType === 'recurring' ? 'default' : 'outline'}
+                                            className={cn("flex-1 justify-start h-auto py-3 px-4", bookingType === 'recurring' ? "bg-brand text-white border-transparent" : "border-borderSoft")}
+                                            onClick={() => setBookingType('recurring')}
+                                        >
+                                            <div className="text-left whitespace-normal">
+                                                <div className="font-bold text-sm md:text-base">Recurring Daily</div>
+                                                <div className="text-xs font-normal opacity-80 mt-1">Book specific hours each day</div>
+                                            </div>
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={bookingType === 'continuous' ? 'default' : 'outline'}
+                                            className={cn("flex-1 justify-start h-auto py-3 px-4", bookingType === 'continuous' ? "bg-brand text-white border-transparent" : "border-borderSoft")}
+                                            onClick={() => setBookingType('continuous')}
+                                        >
+                                            <div className="text-left whitespace-normal">
+                                                <div className="font-bold text-sm md:text-base">Continuous</div>
+                                                <div className="text-xs font-normal opacity-80 mt-1">Book continuously from start to end</div>
+                                            </div>
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

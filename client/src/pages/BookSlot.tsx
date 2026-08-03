@@ -64,6 +64,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
   const [selectedEndDate, setSelectedEndDate] = useState<Date | undefined>(undefined);
   const [busyVenueIds, setBusyVenueIds] = useState<string[]>([]);
   const [metaError, setMetaError] = useState<string | null>(null);
+  const [bookingType, setBookingType] = useState<'recurring' | 'continuous'>('recurring');
 
   const [warnings, setWarnings] = useState({
     conflict: '',
@@ -311,8 +312,13 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
           const isLastDay = currentDate.getTime() === endDate.getTime();
 
           // Determine the active time block for THIS specific day
-          const activeStart = isFirstDay ? formData.startTime : "00:00";
-          const activeEnd = isLastDay ? formData.endTime : "24:00";
+          let activeStart = formData.startTime;
+          let activeEnd = formData.endTime;
+
+          if (bookingType === 'continuous') {
+            activeStart = isFirstDay ? formData.startTime : "00:00";
+            activeEnd = isLastDay ? formData.endTime : "24:00";
+          }
 
           // Restricted block is 08:00 to 19:00 (8:00 AM to 7:00 PM IST)
           // Overlap condition: activeStart < RestrictedEnd AND activeEnd > RestrictedStart
@@ -328,7 +334,34 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     }
 
     setWarnings(prev => ({ ...prev, hours: errorMsg }));
-  }, [formData.date, formData.endDate, formData.startTime, formData.endTime]);
+  }, [formData.date, formData.endDate, formData.startTime, formData.endTime, bookingType]);
+
+  const generateTimeSlots = () => {
+    const endDates = formData.endDate || formData.date;
+    if (bookingType === 'continuous') {
+      return [{
+        startTime: new Date(`${formData.date}T${formData.startTime}:00`).toISOString(),
+        endTime: new Date(`${endDates}T${formData.endTime}:00`).toISOString()
+      }];
+    }
+
+    // recurring
+    const slots = [];
+    const curr = new Date(formData.date);
+    const end = new Date(endDates);
+    while (curr <= end) {
+      const yyyy = curr.getFullYear();
+      const mm = String(curr.getMonth() + 1).padStart(2, '0');
+      const dd = String(curr.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      slots.push({
+        startTime: new Date(`${dateStr}T${formData.startTime}:00`).toISOString(),
+        endTime: new Date(`${dateStr}T${formData.endTime}:00`).toISOString()
+      });
+      curr.setDate(curr.getDate() + 1);
+    }
+    return slots;
+  };
 
   // Conflict Logic
   useEffect(() => {
@@ -341,19 +374,20 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
       try {
         if (venues.length === 0) return;
 
-        const startDateTime = new Date(`${formData.date}T${formData.startTime}:00`);
-        const endDateTime = new Date(`${endDates}T${formData.endTime}:00`);
+        const timeSlots = generateTimeSlots();
 
         const query = new URLSearchParams({
-          startTime: startDateTime.toISOString(),
-          endTime: endDateTime.toISOString(),
           clubId: clubs.find(c => c.name === formData.clubName)?.id || '',
           venueIds: venues.map(v => v.id).join(','),
         });
 
         const { hasConflict, message } = await apiRequest<{ hasConflict: boolean; message: string }>(
           `/api/bookings/check-conflict?${query.toString()}`,
-          { auth: true }
+          { 
+            method: 'POST',
+            auth: true,
+            body: { timeSlots }
+          }
         );
 
         if (hasConflict) {
@@ -369,7 +403,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     };
 
     checkConflicts();
-  }, [formData.date, formData.endDate, formData.startTime, formData.endTime, formData.clubName, venues]);
+  }, [formData.date, formData.endDate, formData.startTime, formData.endTime, formData.clubName, venues, bookingType]);
 
   const handleChange = (name: string, value: any) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -402,14 +436,12 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
       const selectedClub = clubs.find(c => c.name === formData.clubName);
       if (!selectedClub) throw new Error("Invalid club selected");
 
-      const endDates = formData.endDate || formData.date;
-      const startDateTime = new Date(`${formData.date}T${formData.startTime}:00`);
-      const endDateTime = new Date(`${endDates}T${formData.endTime}:00`);
-
       if (formData.venueIds.length === 0) {
         toastError('Please select at least one venue.');
         return;
       }
+
+      const timeSlots = generateTimeSlots();
 
       await apiRequest('/api/bookings', {
         method: 'POST',
@@ -417,8 +449,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         body: {
           ...formData,
           clubId: selectedClub.id,
-          startTime: startDateTime.toISOString(),
-          endTime: endDateTime.toISOString(),
+          timeSlots,
           expectedAttendees: parseInt(formData.expectedAttendees, 10) || 0
         }
       });
@@ -767,6 +798,36 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                       </PopoverContent>
                     </Popover>
                   </div>
+
+                  {formData.date && formData.endDate && formData.date !== formData.endDate && (
+                    <div className="sm:col-span-2 p-4 bg-card rounded-xl border border-borderSoft shadow-sm space-y-3 mt-2">
+                      <Label className="text-textPrimary font-bold text-sm md:text-base">Multi-Day Booking Type</Label>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <Button
+                          type="button"
+                          variant={bookingType === 'recurring' ? 'default' : 'outline'}
+                          className={cn("flex-1 justify-start h-auto py-3 px-4", bookingType === 'recurring' ? "bg-brand text-white border-transparent" : "border-borderSoft")}
+                          onClick={() => setBookingType('recurring')}
+                        >
+                          <div className="text-left whitespace-normal">
+                            <div className="font-bold text-sm md:text-base">Recurring Daily</div>
+                            <div className="text-xs font-normal opacity-80 mt-1">Book specific hours each day</div>
+                          </div>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={bookingType === 'continuous' ? 'default' : 'outline'}
+                          className={cn("flex-1 justify-start h-auto py-3 px-4", bookingType === 'continuous' ? "bg-brand text-white border-transparent" : "border-borderSoft")}
+                          onClick={() => setBookingType('continuous')}
+                        >
+                          <div className="text-left whitespace-normal">
+                            <div className="font-bold text-sm md:text-base">Continuous</div>
+                            <div className="text-xs font-normal opacity-80 mt-1">Book continuously from start to end</div>
+                          </div>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   {(warnings.timeline) && (
                     <div className="sm:col-span-2">

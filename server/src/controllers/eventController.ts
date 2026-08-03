@@ -134,11 +134,12 @@ export const updateEvent = async (req: Request, res: Response) => {
       clubId = club.id;
     }
 
-    const checkRes = await db.query('SELECT club_id FROM events WHERE id = $1', [id]);
+    const checkRes = await db.query('SELECT club_id, date, event_type, status FROM events WHERE id = $1', [id]);
     if (checkRes.rows.length === 0) {
       return res.status(404).json({ error: 'Event not found' });
     }
-    if (!isAdmin && checkRes.rows[0].club_id !== clubId) {
+    const existingEvent = checkRes.rows[0];
+    if (!isAdmin && existingEvent.club_id !== clubId) {
       return res.status(403).json({ error: 'You do not have permission to edit this event' });
     }
 
@@ -153,6 +154,31 @@ export const updateEvent = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'No fields provided to update' });
     }
 
+    if (!isAdmin) {
+      const finalDate = updateFields.date || existingEvent.date;
+      const finalEventType = updateFields.event_type || existingEvent.event_type;
+      
+      type EventType = 'co_curricular' | 'open_all' | 'closed_club';
+      const MIN_DAYS_BY_EVENT: Record<EventType, number> = {
+        co_curricular: 14,
+        open_all: 20,
+        closed_club: 0,
+      };
+
+      const eventStartDate = new Date(finalDate);
+      const daysGap = (eventStartDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+
+      if (daysGap < MIN_DAYS_BY_EVENT[finalEventType as EventType]) {
+        updateFields.status = 'pending';
+      } else if (existingEvent.status === 'pending') {
+        // Automatically activate if it was pending and now satisfies the date gap?
+        // Let's only downgrade to pending if it violates, and upgrade to active if it was pending
+        // solely due to the gap. But we can't be 100% sure why it was pending, maybe Admin set it.
+        // However, standard flow is: if you edit it and it meets criteria, it becomes active.
+        updateFields.status = 'active';
+      }
+    }
+
     const keys = Object.keys(updateFields);
     const setString = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
     const values = Object.values(updateFields);
@@ -162,6 +188,11 @@ export const updateEvent = async (req: Request, res: Response) => {
       `UPDATE events SET ${setString} WHERE id = $${values.length} RETURNING *`,
       values
     );
+
+    // If the event was downgraded to pending, downgrade all its bookings too.
+    if (updateFields.status === 'pending' && existingEvent.status !== 'pending') {
+      await db.query(`UPDATE bookings SET status = 'pending' WHERE event_id = $1`, [id]);
+    }
 
     return res.json(rows[0]);
   } catch (error: any) {

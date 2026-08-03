@@ -111,14 +111,22 @@ export const createBooking = async (req: Request, res: Response) => {
   const {
     clubId,
     venueIds,
-    startTime,
-    endTime,
+    startTime: singleStartTime,
+    endTime: singleEndTime,
+    timeSlots: reqTimeSlots,
     expectedAttendees,
     event_id,
     permissionsLink,
-  } = req.body as Partial<BookingRequestBody & { venueIds: string[] }>;
+  } = req.body as Partial<BookingRequestBody & { venueIds: string[]; timeSlots?: {startTime: string, endTime: string}[] }>;
 
-  if (!clubId || !venueIds || !Array.isArray(venueIds) || venueIds.length === 0 || !startTime || !endTime || !event_id) {
+  let timeSlots = reqTimeSlots;
+  if (!timeSlots) {
+    if (singleStartTime && singleEndTime) {
+      timeSlots = [{ startTime: singleStartTime, endTime: singleEndTime }];
+    }
+  }
+
+  if (!clubId || !venueIds || !Array.isArray(venueIds) || venueIds.length === 0 || !timeSlots || timeSlots.length === 0 || !event_id) {
     return res.status(400).json({ error: 'Missing required fields. Event selection is mandatory.' });
   }
 
@@ -139,15 +147,15 @@ export const createBooking = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Invalid eventType' });
   }
 
-  if (!isValidDate(startTime) || !isValidDate(endTime)) {
-    return res.status(400).json({ error: 'Invalid startTime or endTime' });
-  }
-
-  const start = new Date(startTime);
-  const end = new Date(endTime);
-
-  if (end <= start) {
-    return res.status(400).json({ error: 'endTime must be after startTime' });
+  for (const slot of timeSlots) {
+    if (!isValidDate(slot.startTime) || !isValidDate(slot.endTime)) {
+      return res.status(400).json({ error: 'Invalid startTime or endTime in time slots' });
+    }
+    const start = new Date(slot.startTime);
+    const end = new Date(slot.endTime);
+    if (end <= start) {
+      return res.status(400).json({ error: 'endTime must be after startTime' });
+    }
   }
 
   if (event_id) {
@@ -168,12 +176,15 @@ export const createBooking = async (req: Request, res: Response) => {
     }
   }
 
+  const earliestStart = new Date(Math.min(...timeSlots.map(s => new Date(s.startTime).getTime())));
   let issueFlag: string | null = null;
-  if (violatesRestrictedWeekdayHours(start, end)) {
+  
+  const violatesRestricted = timeSlots.some(slot => violatesRestrictedWeekdayHours(new Date(slot.startTime), new Date(slot.endTime)));
+  if (violatesRestricted) {
     issueFlag = 'Violates restricted weekday hours (8:00 AM - 7:00 PM IST)';
   }
 
-  const daysGap = (start.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+  const daysGap = (earliestStart.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
   const requiredDays = MIN_DAYS_BY_EVENT[eventType];
   if (daysGap < requiredDays) {
     const gapMsg = `Short notice booking (${Math.floor(daysGap)} days advance). Requires ${requiredDays} days advance notice.`;
@@ -185,7 +196,6 @@ export const createBooking = async (req: Request, res: Response) => {
   }
 
   try {
-    // 1. Validate all venues exist
     const { rows: venues } = await db.query(
       'SELECT id, category, capacity, name FROM venues WHERE id = ANY($1::uuid[])',
       [venueIds]
@@ -205,7 +215,6 @@ export const createBooking = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Club not found' });
     }
 
-    // 1.5 Check if the club is blocked due to pending event reports
     const { blocked, message: blockMessage } = await checkPendingEventReports(clubId);
     if (blocked) {
       return res.status(403).json({ error: blockMessage });
@@ -215,7 +224,6 @@ export const createBooking = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Clubs can only create bookings for themselves. Admins are allowed to create for any club.
     if (req.user.role !== 'admin') {
       const { rows: requesterRows } = await db.query(
         'SELECT id FROM clubs WHERE email = $1',
@@ -232,19 +240,15 @@ export const createBooking = async (req: Request, res: Response) => {
       }
     }
 
-    // 2. Co-curricular limit: checked during event registration now
-
-    // 3. Check Venue Conflicts (Explicit)
-    const { conflict: venueConflict, message: venueMessage } = await performVenueConflictCheck(venueIds, startTime, endTime);
-    if (venueConflict) {
-      return res.status(409).json({ error: venueMessage });
+    for (const slot of timeSlots) {
+      const { conflict: venueConflict, message: venueMessage } = await performVenueConflictCheck(venueIds, slot.startTime, slot.endTime);
+      if (venueConflict) {
+        return res.status(409).json({ error: venueMessage });
+      }
     }
 
-    // 4. Validate Capacity
     for (const venue of venues) {
-      if (venue.name.toLowerCase().includes('cep')) {
-        continue; // Skip capacity check for CEP venues
-      }
+      if (venue.name.toLowerCase().includes('cep')) continue;
       if (
         typeof expectedAttendees === 'number' &&
         typeof venue.capacity === 'number' &&
@@ -259,42 +263,43 @@ export const createBooking = async (req: Request, res: Response) => {
     const createdBookings = [];
     const batchId = (req.body as any).batchId || randomUUID();
 
-    for (const venue of venues) {
-      let status: 'approved' | 'pending' = 'pending';
-      if (issueFlag) {
-        status = 'pending';
-      } else if (venue.category === 'auto_approval') {
-        status = 'approved';
-      } else if (venue.category === 'needs_approval') {
-        status = 'pending';
+    for (const slot of timeSlots) {
+      for (const venue of venues) {
+        let status: 'approved' | 'pending' = 'pending';
+        if (issueFlag) {
+          status = 'pending';
+        } else if (venue.category === 'auto_approval') {
+          status = 'approved';
+        } else if (venue.category === 'needs_approval') {
+          status = 'pending';
+        }
+
+        const { rows: insertRows } = await db.query(`
+          INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          RETURNING *
+        `, [
+          clubId,
+          venue.id,
+          slot.startTime,
+          slot.endTime,
+          status,
+          req.user?.id || null,
+          expectedAttendees || null,
+          batchId,
+          event_id,
+          issueFlag,
+          permissionsLink || null
+        ]);
+
+        if (insertRows.length === 0) {
+          throw new Error(`Failed to insert booking for venue ${venue.name}`);
+        }
+
+        createdBookings.push(insertRows[0]);
       }
-
-      const { rows: insertRows } = await db.query(`
-        INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-        RETURNING *
-      `, [
-        clubId,
-        venue.id,
-        startTime,
-        endTime,
-        status,
-        req.user?.id || null,
-        expectedAttendees || null,
-        batchId,
-        event_id,
-        issueFlag,
-        permissionsLink || null
-      ]);
-
-      if (insertRows.length === 0) {
-        throw new Error(`Failed to insert booking for venue ${venue.name}`);
-      }
-
-      createdBookings.push(insertRows[0]);
     }
 
-    // Send approval notification email when any booking is pending (venue needs approval)
     const pendingForEmail = createdBookings.filter((b) => b.status === 'pending');
     if (pendingForEmail.length > 0) {
       const formatTime = (iso: string) => new Date(iso).toLocaleString();
@@ -383,11 +388,24 @@ export const createBooking = async (req: Request, res: Response) => {
 
 export const checkConflict = async (req: Request, res: Response) => {
   const clubId = (req.body.clubId || req.query.clubId) as string;
-  const startTime = (req.body.startTime || req.query.startTime) as string;
-  const endTime = (req.body.endTime || req.query.endTime) as string;
+  let timeSlots = req.body.timeSlots;
+
+  if (!timeSlots) {
+    const startTime = (req.body.startTime || req.query.startTime) as string;
+    const endTime = (req.body.endTime || req.query.endTime) as string;
+    if (startTime && endTime) {
+      timeSlots = [{ startTime, endTime }];
+    }
+  }
+
+  if (typeof timeSlots === 'string') {
+    try {
+      timeSlots = JSON.parse(timeSlots);
+    } catch (e) {}
+  }
+
   const venueIdsInput = req.body.venueIds || req.query.venueIds;
 
-  // Support venueIds from query string if comma separated
   let finalVenueIds: string[] = [];
   if (venueIdsInput) {
     if (Array.isArray(venueIdsInput)) {
@@ -397,15 +415,17 @@ export const checkConflict = async (req: Request, res: Response) => {
     }
   }
 
-  if (!clubId || !startTime || !endTime) {
+  if (!clubId || !timeSlots || !Array.isArray(timeSlots) || timeSlots.length === 0) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
     if (finalVenueIds.length > 0) {
-      const { conflict: venueConflict, message: venueMessage } = await performVenueConflictCheck(finalVenueIds, startTime, endTime);
-      if (venueConflict) {
-        return res.json({ hasConflict: true, message: venueMessage });
+      for (const slot of timeSlots) {
+        const { conflict: venueConflict, message: venueMessage } = await performVenueConflictCheck(finalVenueIds, slot.startTime, slot.endTime);
+        if (venueConflict) {
+          return res.json({ hasConflict: true, message: venueMessage });
+        }
       }
     }
 

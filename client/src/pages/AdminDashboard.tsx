@@ -406,7 +406,7 @@ const AdminDashboard: React.FC = () => {
       >
         <Card className="border border-borderSoft rounded-xl">
           <CardHeader className="border-b border-borderSoft">
-            <CardTitle className="text-lg sm:text-xl">Master Event Calendar</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Master Booking Calendar</CardTitle>
           </CardHeader>
 
           <CardContent className="p-4 sm:p-6">
