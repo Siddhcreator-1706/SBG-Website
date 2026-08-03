@@ -7,28 +7,28 @@
    ================================================================ */
 :root {
   /* Logo Text Gradient (Sleek Dark Slate to Zinc) */
-  --logo-grad-start: #09090B;
-  --logo-grad-mid: #27272A;
-  --logo-grad-end: #52525B;
+  --logo-grad-start: #0F172A;
+  --logo-grad-mid: #334155;
+  --logo-grad-end: #64748B;
 
-  /* Heading Text Gradient (Royal Blue to Electric Purple - highest contrast and vibrancy) */
-  --heading-grad-start: #1D4ED8;
-  --heading-grad-end: #7E22CE;
+  /* Heading Text Gradient (Royal Blue to Electric Purple) */
+  --heading-grad-start: #2563EB;
+  --heading-grad-end: #7C3AED;
 
-  /* Button Background Gradient (Deep Blue to Indigo) */
-  --btn-grad-start: #2563EB;
+  /* Button Background Gradient */
+  --btn-grad-start: #3B82F6;
   --btn-grad-end: #4F46E5;
 
-  --bgMain: #F8FAFC;
+  --bgMain: #F1F5F9;
   --card: #FFFFFF;
-  --borderSoft: rgba(15, 23, 42, 0.16);
-  --hoverSoft: rgba(15, 23, 42, 0.06);
-  --textPrimary: #020617;
-  --textSecondary: #1E293B;
-  --textMuted: #475569;
+  --borderSoft: rgba(15, 23, 42, 0.1);
+  --hoverSoft: rgba(15, 23, 42, 0.04);
+  --textPrimary: #0F172A;
+  --textSecondary: #334155;
+  --textMuted: #64748B;
 
   --brand: #4F46E5;
-  --brand-glow: rgba(79, 70, 229, 0.15);
+  --brand-glow: rgba(79, 70, 229, 0.1);
   --brandLink: #6D28D9;
 
   --success: #10B981;
@@ -40,9 +40,9 @@
   --accent: rgba(15, 23, 42, 0.04);
   --accent-foreground: #0F172A;
 
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.2);
-  --glass-blur: 16px;
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-blur: 12px;
 
   --sidebar-width: 272px;
   --bottom-nav-height: 72px;

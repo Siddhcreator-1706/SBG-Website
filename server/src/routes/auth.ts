@@ -360,6 +360,7 @@ router.get('/profile', async (req, res) => {
             group: clubData ? clubData.group_category : undefined,
             clubId: clubData ? clubData.id : undefined,
             logoUrl: clubData ? clubData.logo_url : null,
+            logoBg: clubData ? clubData.logo_bg : null,
         };
 
         return res.json(responseData);

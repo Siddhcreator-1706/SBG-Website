@@ -18,7 +18,7 @@ const MEMBER_EDITABLE_FIELDS = ['full_name', 'roll_number', 'email', 'designatio
 router.get('/public', async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT cm.id, cm.club_id, cm.full_name, cm.designation, cm.phone, cm.email,
+      `SELECT cm.id, cm.club_id, cm.full_name, cm.roll_number, cm.designation, cm.phone, cm.email,
               cm.tenure_start_date, cm.tenure_end_date, c.name as club_name,
               c.organization_type
        FROM club_members cm
@@ -31,7 +31,7 @@ router.get('/public', async (req, res) => {
                   WHEN cm.designation = 'Core' THEN 3
                   ELSE 4
                 END ASC,
-                cm.full_name ASC`
+                cm.roll_number ASC`
     );
     return res.json(rows);
   } catch (err: unknown) {
@@ -71,7 +71,7 @@ router.get('/', authMiddleware, async (req, res) => {
                   WHEN designation = 'Core' THEN 3
                   ELSE 4
                 END ASC,
-                full_name ASC`,
+                roll_number ASC`,
       [clubId]
     );
 
@@ -104,6 +104,16 @@ router.post('/', authMiddleware, clubOnly, async (req, res) => {
     const club = await getClubForUser(req);
     if (!club) {
       return res.status(404).json({ error: 'Club not found for this account' });
+    }
+
+    if (roll_number && roll_number.trim()) {
+      const existing = await db.query(
+        'SELECT id FROM club_members WHERE club_id = $1 AND roll_number = $2',
+        [club.id, roll_number.trim()]
+      );
+      if (existing.rows.length > 0) {
+        return res.status(400).json({ error: 'A member with this ID/Roll Number already exists in this club/committee.' });
+      }
     }
 
     const { rows } = await db.query(
@@ -152,6 +162,16 @@ router.patch('/:id', authMiddleware, clubOnly, async (req, res) => {
 
     if (!member) {
       return res.status(404).json({ error: 'Member not found' });
+    }
+
+    if (req.body.roll_number && typeof req.body.roll_number === 'string' && req.body.roll_number.trim()) {
+      const existing = await db.query(
+        'SELECT id FROM club_members WHERE club_id = $1 AND roll_number = $2 AND id != $3',
+        [club.id, req.body.roll_number.trim(), id]
+      );
+      if (existing.rows.length > 0) {
+        return res.status(400).json({ error: 'A member with this ID/Roll Number already exists in this club/committee.' });
+      }
     }
 
     if ('designation' in req.body) {

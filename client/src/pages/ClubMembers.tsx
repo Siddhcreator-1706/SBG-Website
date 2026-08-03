@@ -460,7 +460,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="roll_number" className="text-sm font-medium">Roll Number</Label>
+              <Label htmlFor="roll_number" className="text-sm font-medium">Roll Number *</Label>
               <Input
                 id="roll_number"
                 value={formData.roll_number}
@@ -470,7 +470,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Email *</Label>
               <Input
                 id="email"
                 type="email"
@@ -539,7 +539,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
           <DialogFooter className="pt-4 border-t border-borderSoft">
             <Button
               onClick={saveMember}
-              disabled={isSaving || !formData.full_name.trim() || !formData.phone.trim() || !formData.tenure_start_date.trim() || !formData.designation.trim()}
+              disabled={isSaving || !formData.full_name.trim() || !formData.roll_number.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.tenure_start_date.trim() || !formData.designation.trim()}
               className="rounded-xl w-full sm:w-auto"
             >
               {isSaving ? 'Saving...' : editingMember ? 'Save Changes' : 'Add Member'}

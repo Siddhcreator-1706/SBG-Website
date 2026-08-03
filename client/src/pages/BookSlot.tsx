@@ -269,7 +269,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     if (hasCategoryB) {
       setWarnings(prev => ({
         ...prev,
-        venue: 'Includes Category B Venue(s): Requires SBG Deputy Convener & Faculty Approval.',
+        venue: 'Includes Category B Venue(s): Requires SBG Deputy Convener Approval.',
         venueType: 'warning'
       }));
     } else {

@@ -24,6 +24,7 @@ export interface User {
   group?: ClubGroupType; // Optional, for clubs
   clubId?: string;
   logoUrl?: string | null;
+  logoBg?: string | null;
 }
 
 export interface ClubMember {

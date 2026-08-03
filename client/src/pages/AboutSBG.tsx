@@ -57,6 +57,7 @@ interface Member {
     club_id: string;
     club_name: string;
     full_name: string;
+    roll_number: string | null;
     designation: string;
     phone: string | null;
     email: string | null;
@@ -362,9 +363,16 @@ const AboutSBG: React.FC = () => {
                                             <MemberAvatar member={member} />
                                             <div className="min-w-0 flex-1">
                                                 <p className="font-semibold text-textPrimary text-sm truncate">{member.full_name}</p>
-                                                <span className={`inline-flex items-center px-2 py-0.5 mt-1 rounded-full text-[10px] font-semibold border ${DESIGNATION_COLORS[member.designation] || 'bg-slate-500/10 text-slate-500 border-slate-500/20'}`}>
-                                                    {member.designation}
-                                                </span>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${DESIGNATION_COLORS[member.designation] || 'bg-slate-500/10 text-slate-500 border-slate-500/20'}`}>
+                                                        {member.designation}
+                                                    </span>
+                                                    {member.roll_number && (
+                                                        <span className="text-[10px] text-textMuted font-medium">
+                                                            ID: {member.roll_number}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="flex items-center gap-1 shrink-0">
                                                 {member.email && (
@@ -510,9 +518,16 @@ const AboutSBG: React.FC = () => {
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <p className="font-semibold text-textPrimary text-sm truncate">{member.full_name}</p>
-                                                    <span className={`inline-flex items-center px-2 py-0.5 mt-0.5 rounded-full text-[10px] font-semibold border ${DESIGNATION_COLORS[member.designation] || 'bg-slate-500/10 text-slate-500 border-slate-500/20'}`}>
-                                                        {member.designation}
-                                                    </span>
+                                                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${DESIGNATION_COLORS[member.designation] || 'bg-slate-500/10 text-slate-500 border-slate-500/20'}`}>
+                                                            {member.designation}
+                                                        </span>
+                                                        {member.roll_number && (
+                                                            <span className="text-[10px] text-textMuted font-medium">
+                                                                ID: {member.roll_number}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 {member.email && (
                                                     <a href={`mailto:${member.email}`} className="p-1.5 rounded-lg text-textMuted hover:text-brand hover:bg-brand/10 transition-colors shrink-0" aria-label={`Email ${member.full_name}`}>

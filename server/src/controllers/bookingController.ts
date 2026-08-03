@@ -247,18 +247,7 @@ export const createBooking = async (req: Request, res: Response) => {
       }
     }
 
-    for (const venue of venues) {
-      if (venue.name.toLowerCase().includes('cep')) continue;
-      if (
-        typeof expectedAttendees === 'number' &&
-        typeof venue.capacity === 'number' &&
-        expectedAttendees > venue.capacity
-      ) {
-        return res.status(400).json({
-          error: `Expected attendees (${expectedAttendees}) exceed capacity of ${venue.name} (${venue.capacity})`,
-        });
-      }
-    }
+
 
     const createdBookings = [];
     const batchId = (req.body as any).batchId || randomUUID();
@@ -309,7 +298,7 @@ export const createBooking = async (req: Request, res: Response) => {
         const venue = venues.find((v) => v.id === b.venue_id);
         return {
           venueName: venue?.name ?? b.venue_id,
-          eventName: b.event_name,
+          eventName: eventName,
           startTime: formatTime(b.start_time),
           endTime: formatTime(b.end_time),
           clubName: club?.name,

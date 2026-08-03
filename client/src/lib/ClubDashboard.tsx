@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 import { cn, toLocalISOString } from '@/lib/utils';
 
@@ -172,6 +173,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
     youtube_url: string;
     website_url: string;
     logo_url?: string;
+    logo_bg?: string;
     member_tag?: string;
   } | null>(null);
   const [isEditAboutOpen, setIsEditAboutOpen] = React.useState(false);
@@ -184,6 +186,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
     youtube_url: '',
     website_url: '',
     logo_url: '',
+    logo_bg: 'transparent',
     member_tag: '',
   });
 
@@ -218,6 +221,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
         youtube_url: myClubData?.youtube_url || '',
         website_url: myClubData?.website_url || '',
         logo_url: myClubData?.logo_url || '',
+        logo_bg: myClubData?.logo_bg || 'transparent',
         member_tag: myClubData?.member_tag || '',
       });
     } catch (err) {
@@ -433,8 +437,8 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div className="flex items-center gap-4 min-w-0">
-          <Avatar className={cn("h-16 w-16 border-2 border-brand/20 ring-4 ring-brand/5 shrink-0 rounded-2xl bg-white")}>
-            <AvatarImage src={clubDetails?.logo_url || ''} alt={user.name} className="object-contain p-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
+          <Avatar className={cn("h-16 w-16 border border-borderSoft shrink-0 rounded-2xl", clubDetails?.logo_bg === 'white' ? 'bg-white' : clubDetails?.logo_bg === 'dark' ? 'bg-slate-900' : 'bg-transparent')}>
+            <AvatarImage src={clubDetails?.logo_url || ''} alt={user.name} className="object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
             <AvatarFallback className="bg-brand text-white font-bold text-xl rounded-2xl flex items-center justify-center">
               {user.name.charAt(0).toUpperCase()}
             </AvatarFallback>
@@ -719,8 +723,8 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
             <div className="grid gap-2">
               <Label className="text-textSecondary font-semibold">Club/Committee Logo</Label>
               <div className="flex items-center gap-4 p-3 rounded-xl bg-bgMain border border-borderSoft">
-                <Avatar className={cn("h-14 w-14 border border-borderSoft rounded-xl shrink-0 bg-white")}>
-                  <AvatarImage src={editForm.logo_url || ''} alt={user.name} className="object-contain p-1" />
+                <Avatar className={cn("h-14 w-14 border border-borderSoft rounded-xl shrink-0", editForm.logo_bg === 'white' ? 'bg-white' : editForm.logo_bg === 'dark' ? 'bg-slate-900' : 'bg-transparent')}>
+                  <AvatarImage src={editForm.logo_url || ''} alt={user.name} className="object-contain" />
                   <AvatarFallback className="bg-brand text-white font-semibold text-lg flex items-center justify-center">
                     {user.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
@@ -802,6 +806,20 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                   <span className="text-[10px] text-textMuted">PNG, JPG (Max 2MB)</span>
                 </div>
               </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label className="text-textSecondary font-semibold">Logo Background</Label>
+              <Select value={editForm.logo_bg} onValueChange={(v) => setEditForm({ ...editForm, logo_bg: v })}>
+                <SelectTrigger className="w-full bg-bgMain border-borderSoft h-10 rounded-xl">
+                  <SelectValue placeholder="Select a background for your logo" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-borderSoft rounded-xl shadow-lg">
+                  <SelectItem value="transparent">Transparent (Adapts to theme)</SelectItem>
+                  <SelectItem value="white">White (Best for dark logos)</SelectItem>
+                  <SelectItem value="dark">Dark (Best for light/white logos)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid gap-2">

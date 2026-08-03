@@ -51,6 +51,7 @@ interface Club {
     youtube_url?: string;
     website_url?: string;
     logo_url?: string;
+    logo_bg?: string;
     organization_type: string;
     member_tag?: string;
 }
@@ -60,6 +61,7 @@ interface CommitteeMember {
     club_id: string;
     club_name: string;
     full_name: string;
+    roll_number: string | null;
     designation: 'Convener' | 'Dy. Convener' | 'Core' | 'Others';
     phone: string | null;
     tenure_start_date: string | null;
@@ -97,7 +99,8 @@ const ClubsCommitteesPage: React.FC = () => {
             const q = searchQuery.toLowerCase();
             clubMems = clubMems.filter(m =>
                 m.full_name.toLowerCase().includes(q) ||
-                (m.designation && m.designation.toLowerCase().includes(q))
+                (m.designation && m.designation.toLowerCase().includes(q)) ||
+                (m.roll_number && String(m.roll_number).toLowerCase().includes(q))
             );
             // If the query matched the club name/tag, don't filter out members. 
             // Only filter members if the query didn't match the club.
@@ -150,7 +153,7 @@ const ClubsCommitteesPage: React.FC = () => {
             const matchesTab = c.organization_type === activeTab;
 
             return matchesSearch && matchesTab;
-        });
+        }).sort((a, b) => a.name.localeCompare(b.name));
     }, [clubs, members, searchQuery, activeTab]);
 
     const groupedCommittees = useMemo(() => {
@@ -250,8 +253,8 @@ const ClubsCommitteesPage: React.FC = () => {
             <Dialog open={!!selectedClubForModal} onOpenChange={(open) => !open && setSelectedClubForModal(null)}>
                 <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-xl p-4 sm:p-6 rounded-2xl max-h-[85dvh] overflow-y-auto bg-card">
                     <DialogHeader className="border-b border-borderSoft/40 pb-4 flex flex-row items-center gap-3 sm:gap-4 space-y-0">
-                        <Avatar className={cn("h-14 w-14 border border-borderSoft rounded-2xl shrink-0 bg-white")}>
-                            <AvatarImage src={selectedClubForModal?.logo_url || ''} alt={selectedClubForModal?.name} className="object-contain p-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
+                        <Avatar className={cn("h-14 w-14 border border-borderSoft rounded-2xl shrink-0", selectedClubForModal?.logo_bg === 'white' ? 'bg-white' : selectedClubForModal?.logo_bg === 'dark' ? 'bg-slate-900' : 'bg-transparent')}>
+                            <AvatarImage src={selectedClubForModal?.logo_url || ''} alt={selectedClubForModal?.name} className="object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
                             <AvatarFallback className="bg-brand text-white font-bold text-lg rounded-2xl flex items-center justify-center">
                                 {selectedClubForModal?.name.charAt(0).toUpperCase()}
                             </AvatarFallback>
@@ -296,6 +299,11 @@ const ClubsCommitteesPage: React.FC = () => {
                                                         {member.designation}
                                                     </span>
                                                 </div>
+                                                {member.roll_number && (
+                                                    <div className="text-xs text-textMuted font-medium">
+                                                        ID: {member.roll_number}
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {member.phone && (
@@ -316,17 +324,19 @@ const ClubsCommitteesPage: React.FC = () => {
                         <TabsContent value="about" className="min-h-[250px] max-h-[50dvh] flex flex-col focus-visible:outline-none focus-visible:ring-0 mt-0">
                             <div className="space-y-4 flex-1 overflow-y-auto pr-1">
                                 <div className="space-y-2">
-                                    <span className="text-xs font-bold text-textMuted uppercase tracking-wider block">Description</span>
+                                    <span className="text-xs font-bold text-textMuted uppercase tracking-wider block">About</span>
                                     <p className="text-sm text-textSecondary leading-relaxed bg-hoverSoft/15 border border-borderSoft/60 rounded-xl p-3.5 whitespace-pre-wrap">
                                         {selectedClubForModal?.description || "Description not available."}
                                     </p>
                                 </div>
-                                <div className="space-y-2">
-                                    <span className="text-xs font-bold text-textMuted uppercase tracking-wider block">Key Activities & Events</span>
-                                    <p className="text-sm text-textSecondary leading-relaxed bg-hoverSoft/15 border border-borderSoft/60 rounded-xl p-3.5 whitespace-pre-wrap">
-                                        {selectedClubForModal?.key_activities || "Key activities not available."}
-                                    </p>
-                                </div>
+                                {selectedClubForModal?.key_activities && (
+                                    <div className="space-y-2">
+                                        <span className="text-xs font-bold text-textMuted uppercase tracking-wider block">Key Activities & Events</span>
+                                        <p className="text-sm text-textSecondary leading-relaxed bg-hoverSoft/15 border border-borderSoft/60 rounded-xl p-3.5 whitespace-pre-wrap">
+                                            {selectedClubForModal.key_activities}
+                                        </p>
+                                    </div>
+                                )}
                                 {(selectedClubForModal?.website_url ||
                                     selectedClubForModal?.linkedin_url ||
                                     selectedClubForModal?.instagram_url ||
@@ -356,17 +366,22 @@ const ClubsCommitteesPage: React.FC = () => {
                                                         LinkedIn
                                                     </a>
                                                 )}
-                                                {selectedClubForModal?.instagram_url && (
-                                                    <a
-                                                        href={selectedClubForModal.instagram_url.startsWith('http') ? selectedClubForModal.instagram_url : `https://${selectedClubForModal.instagram_url}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-borderSoft/60 bg-background hover:bg-hoverSoft hover:text-brand text-xs font-semibold text-textSecondary transition-all shadow-sm"
-                                                    >
-                                                        <Instagram size={13} className="text-textMuted" />
-                                                        Instagram
-                                                    </a>
-                                                )}
+                                                {selectedClubForModal?.instagram_url && selectedClubForModal.instagram_url.split(',').map((url, i, arr) => {
+                                                    const cleanUrl = url.trim();
+                                                    if (!cleanUrl) return null;
+                                                    return (
+                                                        <a
+                                                            key={i}
+                                                            href={cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-borderSoft/60 bg-background hover:bg-hoverSoft hover:text-brand text-xs font-semibold text-textSecondary transition-all shadow-sm"
+                                                        >
+                                                            <Instagram size={13} className="text-textMuted" />
+                                                            Instagram {arr.length > 1 ? i + 1 : ''}
+                                                        </a>
+                                                    );
+                                                })}
                                                 {selectedClubForModal?.youtube_url && (
                                                     <a
                                                         href={selectedClubForModal.youtube_url.startsWith('http') ? selectedClubForModal.youtube_url : `https://${selectedClubForModal.youtube_url}`}
@@ -388,13 +403,13 @@ const ClubsCommitteesPage: React.FC = () => {
                             <div className="pt-4 border-t border-borderSoft/40 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 text-center sm:text-left">
                                 <span className="text-xs text-textMuted">Have questions or want to join?</span>
                                 <Button
-                                    onClick={() => {
-                                        window.location.href = `mailto:${selectedClubForModal.email}`;
-                                    }}
+                                    asChild
                                     className="rounded-xl h-9 px-4 text-xs font-semibold bg-brand text-white hover:bg-brandLink w-full sm:w-auto cursor-pointer"
                                 >
-                                    <Mail size={13} className="mr-1.5" />
-                                    Email Contact
+                                    <a href={`mailto:${selectedClubForModal.email}`}>
+                                        <Mail size={13} className="mr-1.5" />
+                                        Email Contact
+                                    </a>
                                 </Button>
                             </div>
                         )}
@@ -439,8 +454,8 @@ const ClubsCommitteesPage: React.FC = () => {
                                     >
                                         <div className="space-y-3">
                                             <div className="flex items-center gap-3">
-                                                <Avatar className={cn("h-10 w-10 border border-borderSoft rounded-xl shrink-0 bg-white")}>
-                                                    <AvatarImage src={club.logo_url || ''} alt={club.name} className="object-contain p-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
+                                                <Avatar className={cn("h-10 w-10 border border-borderSoft rounded-xl shrink-0", club.logo_bg === 'white' ? 'bg-white' : club.logo_bg === 'dark' ? 'bg-slate-900' : 'bg-transparent')}>
+                                                    <AvatarImage src={club.logo_url || ''} alt={club.name} className="object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
                                                     <AvatarFallback className="bg-brand/10 text-brand font-bold text-sm rounded-xl flex items-center justify-center">
                                                         {club.name.charAt(0).toUpperCase()}
                                                     </AvatarFallback>
@@ -454,16 +469,14 @@ const ClubsCommitteesPage: React.FC = () => {
                                         </div>
 
                                         <div className="mt-5 pt-3 border-t border-borderSoft/30 flex items-center justify-between">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    window.location.href = `mailto:${club.email}`;
-                                                }}
+                                            <a
+                                                href={`mailto:${club.email}`}
+                                                onClick={(e) => e.stopPropagation()}
                                                 className="text-xs font-semibold text-textSecondary hover:text-brand flex items-center gap-1.5 transition-colors cursor-pointer"
                                             >
                                                 <Mail size={13} />
                                                 Contact {club.name.toLowerCase().includes('committee') ? 'Committee' : 'Club'}
-                                            </button>
+                                            </a>
                                             <button
                                                 onClick={() => setSelectedClubForModal(club)}
                                                 className="text-[11px] font-semibold text-brand flex items-center gap-0.5 hover:underline cursor-pointer"

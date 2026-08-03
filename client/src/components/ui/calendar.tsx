@@ -470,6 +470,16 @@ function EventHoverCard({
                         <span className="text-[11px] text-primary font-medium">
                           {event.clubName}
                         </span>
+                        {event.status === 'pending' && (
+                          <span className="rounded-md border border-orange-500/20 bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-400">
+                            PENDING
+                          </span>
+                        )}
+                        {event.status === 'partial' && (
+                          <span className="rounded-md border border-yellow-500/20 bg-yellow-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-600 dark:text-yellow-400">
+                            PARTIAL
+                          </span>
+                        )}
                       </div>
                     </div>
                   </motion.div>

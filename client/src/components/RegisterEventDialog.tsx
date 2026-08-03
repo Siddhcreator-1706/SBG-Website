@@ -80,9 +80,9 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
             const diffDays = Math.ceil((eventDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
             if (newEvent.event_type === 'co_curricular' && diffDays < 14) {
-                timelineMsg = 'Co-curricular events require 14 days advance notice.';
+                timelineMsg = 'Co-curricular events require 14 days advance notice. This event will require Admin approval.';
             } else if (newEvent.event_type === 'open_all' && diffDays < 20) {
-                timelineMsg = 'Open-for-All events require 20 days advance notice.';
+                timelineMsg = 'Open-for-All events require 20 days advance notice. This event will require Admin approval.';
             }
 
             if (timelineMsg && currentUser?.role === 'admin') {
@@ -306,7 +306,6 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
                             !newEvent.endDate ||
                             !newEvent.endTime ||
                             (newEvent.startDate === newEvent.endDate && newEvent.endTime <= newEvent.startTime) ||
-                            (!!eventWarnings.timeline && currentUser?.role !== 'admin') ||
                             (!!eventWarnings.limit && !eventWarnings.limit.startsWith('Warning:')) ||
                             (currentUser?.role === 'admin' && !selectedClubId)
                         }

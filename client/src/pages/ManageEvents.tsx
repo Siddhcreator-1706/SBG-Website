@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
+import { Badge } from '../components/ui/badge';
 import { Skeleton } from '../components/ui/skeleton';
 import { Calendar, Clock, MapPin, Edit, Trash2, Plus, AlertTriangle, RefreshCw, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
@@ -233,7 +234,15 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
                 <Card className="border border-borderSoft rounded-lg hover:border-brand/50 transition-colors shadow-sm bg-card">
                   <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-bold text-textPrimary mb-1">{event.name}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-lg font-bold text-textPrimary">{event.name}</h3>
+                        {event.status === 'pending' && (
+                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs px-2 py-0">Pending Approval</Badge>
+                        )}
+                        {event.status === 'rejected' && (
+                          <Badge variant="outline" className="bg-error/10 text-error border-error/30 text-xs px-2 py-0">Rejected</Badge>
+                        )}
+                      </div>
                       <div className="flex flex-wrap gap-4 text-sm text-textMuted">
                         <div className="flex items-center gap-1.5">
                           <Clock size={14} className="text-brand/70" />

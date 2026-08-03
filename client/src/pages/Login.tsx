@@ -193,7 +193,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         name: string;
         role: Role;
         group?: ClubGroupType;
+        clubId?: string;
         logoUrl: string | null;
+        logoBg: string | null;
       }>('/api/auth/profile');
 
       toastSuccess(response.message || 'Password reset successfully. You are now logged in.');
@@ -258,7 +260,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         name: string;
         role: Role;
         group?: ClubGroupType;
+        clubId?: string;
         logoUrl: string | null;
+        logoBg: string | null;
       }>('/api/auth/profile');
 
       toastSuccess(`Welcome back, ${userProfile.name}!`);

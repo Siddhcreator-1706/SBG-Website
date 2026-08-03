@@ -43,7 +43,7 @@ const PolicyPage: React.FC = () => {
                 <li><strong>Co-curricular Events:</strong> Must be booked at least <span className="text-error font-bold">14 days</span> in advance.</li>
                 <li><strong>Open-for-All Events:</strong> Must be booked at least <span className="text-error font-bold">20 days</span> in advance.</li>
                 <li><strong>Closed Club Events:</strong> Can be booked up to <span className="text-error font-bold">1 day</span> before the event date.</li>
-                <li>Requests made outside these windows will be automatically flagged for rejection unless a special waiver is granted by the Faculty Convener.</li>
+                <li>Requests made outside these windows will be automatically flagged for rejection unless a special waiver is granted by the SBG.</li>
               </ul>
             </AccordionContent>
           </AccordionItem>
@@ -101,7 +101,7 @@ const PolicyPage: React.FC = () => {
                     <CardDescription className="text-xs">Lecture Theatres (LT), CEP 110, CEP 102, SAC Ground</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">Always requires manual approval from the SBG Deputy Convener and Faculty Mentor. Pending status applies until approved.</p>
+                    <p className="text-sm text-muted-foreground">Always requires manual approval from the SBG Deputy Convener. Pending status applies until approved.</p>
                   </CardContent>
                 </Card>
               </div>
