@@ -163,6 +163,16 @@ const App: React.FC = () => {
     return <LoadingScreen />;
   }
 
+  const ProtectedRouteRedirect = () => {
+    const location = import('react-router-dom').then(m => m.useLocation);
+    // Actually we can just use window.location
+    const path = window.location.pathname;
+    if (path.startsWith('/admin') || path.startsWith('/book') || path.startsWith('/my-bookings') || path.startsWith('/manage-events') || path.startsWith('/event-reports') || path.startsWith('/members') || path.startsWith('/committee')) {
+      return <Navigate to={`/login?redirect=${encodeURIComponent(path + window.location.search)}`} replace />;
+    }
+    return <Navigate to="/" replace />;
+  };
+
   if (!user) {
     return (
       <ErrorBoundary>
@@ -175,13 +185,19 @@ const App: React.FC = () => {
                 <Route path="/clubs-committees" element={<PageTitleWrapper title="Clubs & Committees | SBG DAU"><ClubsCommitteesPage /></PageTitleWrapper>} />
                 <Route path="/about-sbg" element={<PageTitleWrapper title="About SBG | SBG DAU"><AboutSBG /></PageTitleWrapper>} />
               </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<ProtectedRouteRedirect />} />
             </Routes>
           </React.Suspense>
         </BrowserRouter>
       </ErrorBoundary>
     );
   }
+
+  const AuthLoginRedirect = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirect = searchParams.get('redirect') || '/';
+    return <Navigate to={redirect} replace />;
+  };
 
   return (
     <ErrorBoundary>
@@ -207,6 +223,7 @@ const App: React.FC = () => {
               <Route path="/admin/event-reports" element={<PageTitleWrapper title="All Reports | SBG DAU">{user.role === 'admin' ? <AdminEventReports /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/archives" element={<PageTitleWrapper title="Archives | SBG DAU"><Archives /></PageTitleWrapper>} />
 
+              <Route path="/login" element={<AuthLoginRedirect />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </React.Suspense>

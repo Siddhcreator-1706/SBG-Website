@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Skeleton } from '../components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 
 export default function AdminEventReports() {
   const [reports, setReports] = useState<any[]>([]);
@@ -108,48 +109,39 @@ export default function AdminEventReports() {
     <div className="relative min-h-dvh">
       <GradientBackground />
       <div className="relative z-10 space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-textPrimary leading-tight">All Event Reports</h1>
-            <p className="text-textMuted max-w-3xl">Manage and export all club event reports.</p>
+            <p className="text-textMuted max-w-3xl mt-1">Manage and export all club event reports.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setIsSettingsOpen(true)}>
               <Settings className="w-4 h-4 mr-2" />
               Formats
             </Button>
-            {tab === 'submitted' && (
               <Button 
                 onClick={handleExport}
                 className="gap-2 rounded-xl h-10 font-semibold border-[1.5px] border-slate-300 dark:border-slate-600 bg-card text-textSecondary hover:bg-hoverSoft shadow-sm"
               >
                 <Download size={16} />
-                Export to Excel
+                Export Reports
               </Button>
-            )}
           </div>
         </div>
 
-        <div className="flex gap-4 border-b border-borderSoft pb-2">
-          <button
-            onClick={() => setTab('submitted')}
-            className={`pb-2 px-2 font-medium transition-colors ${tab === 'submitted' ? 'border-b-2 border-brand text-brand' : 'text-textMuted hover:text-textPrimary'}`}
-          >
-            Submitted Reports ({reports.length})
-          </button>
-          <button
-            onClick={() => setTab('tracking')}
-            className={`pb-2 px-2 font-medium transition-colors ${tab === 'tracking' ? 'border-b-2 border-brand text-brand' : 'text-textMuted hover:text-textPrimary'}`}
-          >
-            Tracking ({pastEvents.filter(e => !e.has_report && !e.report_exempt).length} past events)
-          </button>
-          <button
-            onClick={() => setTab('exempt')}
-            className={`pb-2 px-2 font-medium transition-colors ${tab === 'exempt' ? 'border-b-2 border-brand text-brand' : 'text-textMuted hover:text-textPrimary'}`}
-          >
-            Exempt ({pastEvents.filter(e => e.report_exempt).length})
-          </button>
-        </div>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as 'submitted' | 'tracking' | 'exempt')} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-hoverSoft border-borderSoft rounded-xl p-1">
+            <TabsTrigger value="submitted" className="data-[state=active]:bg-background">
+              Submitted ({reports.length})
+            </TabsTrigger>
+            <TabsTrigger value="tracking" className="data-[state=active]:bg-background">
+              Tracking ({pastEvents.filter(e => !e.has_report && !e.report_exempt).length})
+            </TabsTrigger>
+            <TabsTrigger value="exempt" className="data-[state=active]:bg-background">
+              Exempt ({pastEvents.filter(e => e.report_exempt).length})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {loading ? (
           <div className="space-y-4">
@@ -190,7 +182,7 @@ export default function AdminEventReports() {
         )}
 
         {tab === 'tracking' && (
-          <div className="space-y-4 overflow-x-auto">
+          <div className="overflow-x-auto w-full">
             <table className="w-full min-w-[600px] sm:min-w-0 text-sm text-left">
               <thead className="text-xs uppercase bg-card/50 text-textMuted">
                 <tr>
@@ -228,7 +220,7 @@ export default function AdminEventReports() {
         )}
 
         {tab === 'exempt' && (
-          <div className="space-y-4 overflow-x-auto">
+          <div className="overflow-x-auto w-full">
             <table className="w-full min-w-[600px] sm:min-w-0 text-sm text-left">
               <thead className="text-xs uppercase bg-card/50 text-textMuted">
                 <tr>

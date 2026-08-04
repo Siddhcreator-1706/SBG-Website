@@ -589,7 +589,7 @@ const LandingPage: React.FC = () => {
                             exit={{ y: '20%', opacity: 0 }}
                             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                             onClick={e => e.stopPropagation()}
-                            className="w-full max-w-md bg-card rounded-2xl shadow-2xl border border-borderSoft/80 overflow-hidden"
+                            className="w-full max-w-md bg-card rounded-2xl shadow-lg border border-borderSoft/80 overflow-hidden"
                         >
 
                             <div className="p-5 sm:p-6 space-y-4">
@@ -676,7 +676,7 @@ const LandingPage: React.FC = () => {
                             exit={{ y: '20%', opacity: 0 }}
                             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                             onClick={e => e.stopPropagation()}
-                            className="w-full max-w-md bg-card rounded-2xl shadow-2xl border border-borderSoft/80 overflow-hidden"
+                            className="w-full max-w-md bg-card rounded-2xl shadow-lg border border-borderSoft/80 overflow-hidden"
                         >
                             <div className="p-5 sm:p-6">
                                 <div className="flex items-center justify-between mb-4">

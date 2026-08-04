@@ -61,7 +61,8 @@ router.get('/clubs/stats', async (_req, res) => {
     const { rows: activityRows } = await db.query(`
       SELECT COUNT(*)::int as count 
       FROM events
-      WHERE event_type = 'co_curricular' OR event_type = 'open_all'
+      WHERE (event_type = 'co_curricular' OR event_type = 'open_all')
+        AND date >= CURRENT_DATE - INTERVAL '1 year'
     `);
     if (activityRows.length > 0) {
       stats.total_activities = activityRows[0].count;

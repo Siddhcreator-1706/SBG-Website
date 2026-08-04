@@ -35,7 +35,7 @@ export type PendingBookingItem = {
   eventType?: string;
 };
 
-const ADMIN_DASHBOARD_URL = process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/admin/requests` : '#';
+const ADMIN_DASHBOARD_URL = 'https://sbg.dau.ac.in/admin/requests';
 
 function formatEventTypeLabel(type?: string) {
   if (!type) return 'Event';
