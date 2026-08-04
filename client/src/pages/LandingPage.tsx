@@ -486,7 +486,6 @@ const LandingPage: React.FC = () => {
                                                     <span className="truncate block">
                                                         {(we.isStart || we.startCol === 1) && (
                                                             <>
-                                                                <span className="hidden md:inline opacity-80 font-bold mr-1">{formatTime(we.event.startTime)}</span>
                                                                 {we.event.eventName}
                                                             </>
                                                         )}
@@ -592,7 +591,6 @@ const LandingPage: React.FC = () => {
                             onClick={e => e.stopPropagation()}
                             className="w-full max-w-md bg-card rounded-2xl shadow-2xl border border-borderSoft/80 overflow-hidden"
                         >
-                            <div className={`h-1.5 ${getColor(selectedEvent.eventType).dot}`} />
 
                             <div className="p-5 sm:p-6 space-y-4">
                                 <div className="flex items-start justify-between">

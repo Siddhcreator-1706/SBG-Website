@@ -361,6 +361,7 @@ router.get('/profile', async (req, res) => {
             clubId: clubData ? clubData.id : undefined,
             logoUrl: clubData ? clubData.logo_url : null,
             logoBg: clubData ? clubData.logo_bg : null,
+            organization_type: clubData ? clubData.organization_type : undefined,
         };
 
         return res.json(responseData);

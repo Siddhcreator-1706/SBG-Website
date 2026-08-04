@@ -475,13 +475,13 @@ const ClubsCommitteesPage: React.FC = () => {
                                                 className="text-xs font-semibold text-textSecondary hover:text-brand flex items-center gap-1.5 transition-colors cursor-pointer"
                                             >
                                                 <Mail size={13} />
-                                                Contact {club.name.toLowerCase().includes('committee') ? 'Committee' : 'Club'}
+                                                Contact {club.organization_type === 'other' ? 'Club' : (club.organization_type.charAt(0).toUpperCase() + club.organization_type.slice(1))}
                                             </a>
                                             <button
                                                 onClick={() => setSelectedClubForModal(club)}
                                                 className="text-[11px] font-semibold text-brand flex items-center gap-0.5 hover:underline cursor-pointer"
                                             >
-                                                About {club.name.toLowerCase().includes('committee') ? 'Committee' : 'Club'}
+                                                About {club.organization_type === 'other' ? 'Club' : (club.organization_type.charAt(0).toUpperCase() + club.organization_type.slice(1))}
                                                 <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                                             </button>
                                         </div>

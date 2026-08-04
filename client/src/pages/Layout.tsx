@@ -55,12 +55,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = React.useState(false);
   const location = useLocation();
-  const isCommittee = user.name.toLowerCase().includes('committee');
-  const clubLabel = isCommittee ? 'Committee' : 'Club';
+  const clubLabel = user.organization_type 
+    ? (user.organization_type === 'other' ? 'Club' : user.organization_type.charAt(0).toUpperCase() + user.organization_type.slice(1)) 
+    : (user.name.toLowerCase().includes('committee') ? 'Committee' : 'Club');
 
   const links = user.role === 'club' 
     ? [
-        { to: '/', label: 'Club Portal', icon: Home, end: true },
+        { to: '/', label: `${clubLabel} Portal`, icon: Home, end: true },
         { to: '/book', label: 'Book Venue', icon: CalendarPlus },
         { to: '/my-bookings', label: 'My Bookings', icon: ListTodo },
         { to: '/manage-events', label: 'Manage Events', icon: Calendar },

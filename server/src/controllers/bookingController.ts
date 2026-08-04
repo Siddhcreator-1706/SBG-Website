@@ -130,14 +130,18 @@ export const createBooking = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Missing required fields. Event selection is mandatory.' });
   }
 
-  // Fetch event name and type
+  // Fetch event name, type, and status
   const { rows: fetchedEventRows } = await db.query(
-    'SELECT name, event_type FROM events WHERE id = $1',
+    'SELECT name, event_type, status FROM events WHERE id = $1',
     [event_id]
   );
 
   if (fetchedEventRows.length === 0) {
     return res.status(404).json({ error: 'Selected event not found.' });
+  }
+
+  if (fetchedEventRows[0].status !== 'active') {
+    return res.status(400).json({ error: 'Cannot link a booking to an unapproved event.' });
   }
 
   const eventName = fetchedEventRows[0].name;

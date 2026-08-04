@@ -190,8 +190,9 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
     member_tag: '',
   });
 
-  const isCommittee = user.name.toLowerCase().includes('committee');
-  const entityType = isCommittee ? 'Committee' : 'Club';
+  const entityType = user.organization_type 
+    ? (user.organization_type === 'other' ? 'Club' : user.organization_type.charAt(0).toUpperCase() + user.organization_type.slice(1))
+    : (user.name.toLowerCase().includes('committee') ? 'Committee' : 'Club');
 
   const fetchEvents = React.useCallback(async () => {
     setIsLoading(true);

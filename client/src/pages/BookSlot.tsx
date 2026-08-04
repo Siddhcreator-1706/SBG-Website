@@ -672,7 +672,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                             eventDate.setHours(0, 0, 0, 0);
                             const today = new Date();
                             today.setHours(0, 0, 0, 0);
-                            return eventDate >= today;
+                            return eventDate >= today && e.status === 'active';
                           })
                           .map(e => (
                             <SelectItem key={e.id} value={e.id} className="cursor-pointer">
