@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { db } from '../db'; 
+import { db } from '../db';
 
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {

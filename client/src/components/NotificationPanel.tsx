@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Check, CheckCheck, Clock, CalendarPlus, ShieldCheck, ShieldX, Trash2, X } from 'lucide-react';
-import { Button } from './ui/button';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Bell, CalendarPlus, Check, CheckCheck, Clock, ShieldCheck, ShieldX, Trash2, X } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { apiRequest } from '../lib/api';
+import { Button } from './ui/button';
 
 type Notification = {
     id: string;
@@ -33,7 +33,7 @@ function timeAgo(dateStr: string): string {
     if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
     if (days < 7) return `${days}d ago`;
-    return new Date(dateStr).toLocaleDateString();
+    return new Date(dateStr).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' });
 }
 
 const NotificationPanel: React.FC = () => {

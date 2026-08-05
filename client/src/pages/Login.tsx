@@ -1,38 +1,38 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { motion } from 'framer-motion';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
-import { User, Role, ClubGroupType } from '../types';
-import { apiRequest } from '../lib/api';
-import { toastSuccess } from '../lib/toast';
-import { getErrorMessage } from '../lib/errors';
-import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { ThemeToggle } from '../components/theme-toggle';
 import { GradientBackground } from '../components/gradient-background';
 import { Logo } from '../components/Logo';
-import { Input } from '../components/ui/input';
+import { ThemeToggle } from '../components/theme-toggle';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { Button } from '../components/ui/button';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '../components/ui/form';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from '../components/ui/dialog';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '../components/ui/form';
+import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { apiRequest } from '../lib/api';
+import { getErrorMessage } from '../lib/errors';
+import { toastSuccess } from '../lib/toast';
+import { ClubGroupType, Role, User } from '../types';
 
 interface LoginProps {
   onLogin: (user: User) => void;

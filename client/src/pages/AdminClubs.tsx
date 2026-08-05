@@ -1,21 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { apiRequest } from '../lib/api';
-import { toastError, toastSuccess } from '../lib/toast';
-import { getErrorMessage } from '../lib/errors';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { CalendarDays, Download, Edit2, Plus, Search, Trash2, Users } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Skeleton } from '../components/ui/skeleton';
-import { Edit2, Trash2, CalendarDays, ExternalLink, X, Search, Users, Download, Plus, Settings } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet';
+import { Skeleton } from '../components/ui/skeleton';
+import { apiRequest } from '../lib/api';
+import { ExportClubMember, exportRosterToExcel } from '../lib/excelExport';
+import { toastError, toastSuccess } from '../lib/toast';
 import { AppEvent } from '../types';
-import { exportRosterToExcel, ExportClubMember } from '../lib/excelExport';
 
 interface ApiClub {
     id: string;
@@ -591,7 +590,7 @@ const AdminClubs: React.FC = () => {
                                             <div className="grid grid-cols-2 gap-2 text-sm mt-3">
                                                 <div>
                                                     <span className="text-textMuted text-xs block uppercase tracking-wider mb-0.5">Date</span>
-                                                    <div className="font-medium text-textSecondary">{new Date(event.date).toLocaleDateString()}</div>
+                                                    <div className="font-medium text-textSecondary">{new Date(event.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</div>
                                                 </div>
                                                 <div>
                                                     <span className="text-textMuted text-xs block uppercase tracking-wider mb-0.5">Venue</span>

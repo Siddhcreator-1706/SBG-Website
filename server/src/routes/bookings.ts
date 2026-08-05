@@ -1,10 +1,10 @@
 import express from 'express';
 // 1. Swap Supabase for your new database pool
-import { db } from '../db'; 
-import authMiddleware from '../middleware/auth';
-import { createBooking, checkConflict } from '../controllers/bookingController';
-import { getSemesterRange, countCoCurricularBookings, CO_CURRICULAR_LIMIT } from '../services/semesterUtils';
 import NodeCache from 'node-cache';
+import { checkConflict, createBooking } from '../controllers/bookingController';
+import { db } from '../db';
+import authMiddleware from '../middleware/auth';
+import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
 
 const router = express.Router();
 const cache = new NodeCache({ stdTTL: 60 });

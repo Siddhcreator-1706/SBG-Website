@@ -1,29 +1,29 @@
 import {
-  passwordTransporter,
-  approvalTransporter,
-  reminderTransporter,
-  isPasswordConfigured,
-  isApprovalConfigured,
-  isReminderConfigured,
-  PASSWORD_MAIL,
-  APPROVAL_MAIL,
-  EVENT_REMINDER_MAIL,
+    APPROVAL_MAIL,
+    approvalTransporter,
+    EVENT_REMINDER_MAIL,
+    isApprovalConfigured,
+    isPasswordConfigured,
+    isReminderConfigured,
+    PASSWORD_MAIL,
+    passwordTransporter,
+    reminderTransporter,
 } from './config';
 
 import {
-  renderEmailLayout,
-  detailRow,
-  detailsCard,
-  statusBadge,
-  BG_COLOR,
-  BRAND_COLOR,
-  TEXT_COLOR,
-  MUTED_COLOR,
-  SUCCESS_COLOR,
-  SUCCESS_BG,
-  DANGER_COLOR,
-  DANGER_BG,
-  BORDER_COLOR,
+    BG_COLOR,
+    BORDER_COLOR,
+    BRAND_COLOR,
+    DANGER_BG,
+    DANGER_COLOR,
+    detailRow,
+    detailsCard,
+    MUTED_COLOR,
+    renderEmailLayout,
+    statusBadge,
+    SUCCESS_BG,
+    SUCCESS_COLOR,
+    TEXT_COLOR,
 } from './templates';
 
 export type PendingBookingItem = {
@@ -44,7 +44,9 @@ function formatEventTypeLabel(type?: string) {
 
 function formatDateLabel(dateStr: string) {
   try {
-    return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('en-US', {
+        timeZone: 'Asia/Kolkata',
+        weekday: 'short', month: 'short', day: 'numeric' });
   } catch {
     return dateStr;
   }
@@ -52,7 +54,9 @@ function formatDateLabel(dateStr: string) {
 
 function formatTimeLabel(dateStr: string) {
   try {
-    return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return new Date(dateStr).toLocaleTimeString('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric', minute: '2-digit', hour12: true });
   } catch {
     return dateStr;
   }

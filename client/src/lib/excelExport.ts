@@ -45,8 +45,12 @@ export function exportRosterToExcel(members: ExportClubMember[]) {
     const sheetData = clubMembers.map(m => {
       const isPast = m.tenure_end_date && new Date(m.tenure_end_date) < new Date(new Date().setHours(0, 0, 0, 0));
       const statusText = isPast ? 'Past / Resigned' : 'Active';
-      const sDate = m.tenure_start_date ? new Date(m.tenure_start_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
-      const eDate = m.tenure_end_date ? new Date(m.tenure_end_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Present';
+      const sDate = m.tenure_start_date ? new Date(m.tenure_start_date).toLocaleDateString(undefined, {
+          timeZone: 'Asia/Kolkata',
+        year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
+      const eDate = m.tenure_end_date ? new Date(m.tenure_end_date).toLocaleDateString(undefined, {
+          timeZone: 'Asia/Kolkata',
+        year: 'numeric', month: 'short', day: 'numeric' }) : 'Present';
       const historyText = m.promotion_history ? m.promotion_history.replace(/\n/g, ' | ') : 'No history';
 
       return {

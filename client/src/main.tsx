@@ -1,10 +1,10 @@
 import React from 'react';
+import 'react-day-picker/style.css';
 import ReactDOM from 'react-dom/client';
 import { Toaster } from 'sonner';
 import App from './App';
 import { ThemeProvider } from './components/theme-provider';
 import './index.css';
-import 'react-day-picker/style.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ErrorBoundary } from './components/error-boundary';
 import { LoadingScreen } from './components/LoadingScreen';
+import { PublicLayout } from './components/PublicLayout';
+import { apiRequest } from './lib/api';
+import { getSocket, reconnectSocket, SOCKET_EVENTS } from './lib/socket';
+import { useDocumentTitle } from './lib/useDocumentTitle';
+import { User } from './types';
 const Layout = React.lazy(() => import('./pages/Layout'));
 const Login = React.lazy(() => import('./pages/Login'));
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
@@ -22,11 +27,6 @@ const ManageEvents = React.lazy(() => import('./pages/ManageEvents'));
 const EventReports = React.lazy(() => import('./pages/EventReports'));
 const AdminEventReports = React.lazy(() => import('./pages/AdminEventReports'));
 const Archives = React.lazy(() => import('./pages/Archives'));
-import { User } from './types';
-import { PublicLayout } from './components/PublicLayout';
-import { apiRequest } from './lib/api';
-import { getSocket, reconnectSocket, SOCKET_EVENTS } from './lib/socket';
-import { useDocumentTitle } from './lib/useDocumentTitle';
 
 const PageTitleWrapper = ({ title, children }: { title: string, children: React.ReactNode }) => {
   useDocumentTitle(title);

@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Filter, Calendar, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { apiRequest } from '../lib/api';
-import { getErrorMessage } from '../lib/errors';
-import { toastError, toastSuccess } from '../lib/toast';
-import { AppEvent } from '../types';
+import { motion } from 'framer-motion';
+import { AlertTriangle, Calendar, CheckCircle, Clock, Filter, RefreshCw, Search, XCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
+import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
-import { Badge } from '../components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Skeleton } from '../components/ui/skeleton';
-import { Search } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { apiRequest } from '../lib/api';
+import { getErrorMessage } from '../lib/errors';
 import { getSocket } from '../lib/socket';
+import { toastError, toastSuccess } from '../lib/toast';
+import { AppEvent } from '../types';
 
 const AdminEventRequests: React.FC = () => {
   const [events, setEvents] = useState<(AppEvent & { clubName: string })[]>([]);
@@ -231,8 +230,12 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
               Type: {ev.event_type ? ev.event_type.replace('_', ' ') : 'N/A'}
             </div>
             <div className="text-xs text-textMuted mt-1 sm:hidden flex flex-col gap-1">
-               <div className="flex items-center gap-1"><Calendar size={12} /> {new Date(ev.date).toLocaleDateString()}</div>
-               <div className="flex items-center gap-1"><Clock size={12} /> {new Date(ev.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '?'}</div>
+               <div className="flex items-center gap-1"><Calendar size={12} /> {new Date(ev.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</div>
+               <div className="flex items-center gap-1"><Clock size={12} /> {new Date(ev.date).toLocaleTimeString([], {
+                   timeZone: 'Asia/Kolkata',
+                hour: '2-digit', minute: '2-digit' })} - {ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], {
+                    timeZone: 'Asia/Kolkata',
+                    hour: '2-digit', minute: '2-digit' }) : '?'}</div>
             </div>
           </div>
         </div>
@@ -241,11 +244,15 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1.5">
             <Calendar size={14} className="text-textMuted shrink-0" />
-            <span>{new Date(ev.date).toLocaleDateString()}</span>
+            <span>{new Date(ev.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-textMuted">
             <Clock size={14} className="shrink-0" />
-            <span>{new Date(ev.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '?'}</span>
+            <span>{new Date(ev.date).toLocaleTimeString([], {
+                timeZone: 'Asia/Kolkata',
+                hour: '2-digit', minute: '2-digit' })} - {ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], {
+                    timeZone: 'Asia/Kolkata',
+                    hour: '2-digit', minute: '2-digit' }) : '?'}</span>
           </div>
         </div>
       </td>

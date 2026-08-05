@@ -206,7 +206,9 @@ router.patch('/:id', authMiddleware, clubOnly, async (req, res) => {
           action = 'Demoted';
         }
         
-        const todayStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        const todayStr = new Date().toLocaleDateString('en-US', {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric', month: 'short', day: 'numeric' });
         const entry = `${todayStr}: ${action} from "${oldDesignation}" to "${newDesignation}"`;
         req.body.promotion_history = member.promotion_history 
           ? `${member.promotion_history}\n${entry}` 

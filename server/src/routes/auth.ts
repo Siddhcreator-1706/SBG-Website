@@ -1,12 +1,12 @@
-import express from 'express';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
+import express from 'express';
+import rateLimit from 'express-rate-limit';
 import jwt from 'jsonwebtoken';
+import { isOfficialCommitteeEmail, OFFICIAL_EMAIL_DOMAIN } from '../constants/officialEmails';
 import { db } from '../db';
 import authMiddleware from '../middleware/auth';
-import { isOfficialCommitteeEmail, OFFICIAL_EMAIL_DOMAIN } from '../constants/officialEmails';
 import { sendPasswordResetEmail } from '../services/email';
-import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 

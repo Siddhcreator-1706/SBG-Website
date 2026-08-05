@@ -1,4 +1,4 @@
-import { Venue, Club, Booking } from './types';
+import { Booking, Club, Venue } from './types';
 
 // --- Venues ---
 export const VENUES: Venue[] = [

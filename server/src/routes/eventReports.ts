@@ -1,8 +1,8 @@
 import express from 'express';
+import * as xlsx from 'xlsx';
 import { db } from '../db';
 import authMiddleware from '../middleware/auth';
 import { getClubForUser } from '../utils/clubAuth';
-import * as xlsx from 'xlsx';
 
 const router = express.Router();
 

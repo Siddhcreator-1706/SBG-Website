@@ -1,37 +1,34 @@
+import { cn } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+    Archive,
+    Calendar,
+    CalendarDays,
+    CalendarPlus,
+    ClipboardList,
+    FileText,
+    Home,
+    Key,
+    ListTodo,
+    LogOut,
+    MapPin,
+    Menu,
+    ShieldCheck,
+    Users
+} from 'lucide-react';
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  LayoutDashboard,
-  CalendarPlus,
-  CalendarDays,
-  FileText,
-  ShieldCheck,
-  Bell,
-  LogOut,
-  ClipboardList,
-  Layers,
-  Users,
-  Home,
-  ListTodo,
-  Calendar,
-  Archive,
-  MapPin,
-  Menu,
-  Key,
-} from 'lucide-react';
-import { User } from '../types';
-import { Button } from '../components/ui/button';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '../components/ui/sheet';
-import { ThemeToggle } from '../components/theme-toggle';
-import NotificationPanel from '../components/NotificationPanel';
-import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
-import { Logo } from '../components/Logo';
+import { toast } from 'sonner';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
 import { GdgFooterCredit } from '../components/GdgFooterCredit';
-import { cn } from '@/lib/utils';
+import { Logo } from '../components/Logo';
+import NotificationPanel from '../components/NotificationPanel';
+import { ThemeToggle } from '../components/theme-toggle';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { Button } from '../components/ui/button';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../components/ui/sheet';
 import { getSocket } from '../lib/socket';
-import { toast } from 'sonner';
+import { User } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;

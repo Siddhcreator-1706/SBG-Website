@@ -1,25 +1,25 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import path from 'path';
-import express from 'express';
-import cors from 'cors';
-import { createServer } from 'http';
-import { Server as SocketIOServer, Socket } from 'socket.io';
-import jwt from 'jsonwebtoken'; // Added standard JWT verification
-import helmet from 'helmet';
 import compression from 'compression';
-import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import express from 'express';
+import helmet from 'helmet';
+import { createServer } from 'http';
+import jwt from 'jsonwebtoken'; // Added standard JWT verification
+import morgan from 'morgan';
+import path from 'path';
+import { Socket, Server as SocketIOServer } from 'socket.io';
 
-import bookingsRoutes from './routes/bookings';
 import adminRoutes from './routes/admin';
-import notificationRoutes from './routes/notifications';
 import authRoutes from './routes/auth';
+import bookingsRoutes from './routes/bookings';
 import clubMembersRoutes from './routes/clubMembers';
+import notificationRoutes from './routes/notifications';
 
 // 1. Swap Supabase for your new Neon DB Pool
-import { db } from './db'; 
+import { db } from './db';
 
 const app = express();
 const httpServer = createServer(app);
@@ -256,9 +256,9 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-import eventsRoutes from './routes/events';
-import eventReportsRoutes from './routes/eventReports';
 import archivesRoutes from './routes/archives';
+import eventReportsRoutes from './routes/eventReports';
+import eventsRoutes from './routes/events';
 import settingsRoutes from './routes/settings';
 import { startCronJobs } from './services/emailReminders';
 

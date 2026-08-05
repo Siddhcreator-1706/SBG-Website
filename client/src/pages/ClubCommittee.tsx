@@ -1,16 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { User, AppEvent } from '../types';
-import { apiRequest } from '../lib/api';
-import { toastError, toastSuccess } from '../lib/toast';
-import { toLocalISOString } from '../lib/utils';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
-import RegisterEventDialog from '../components/RegisterEventDialog';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
-import { Calendar as CalendarIcon, Plus, Info } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import RegisterEventDialog from '../components/RegisterEventDialog';
+import { Button } from '../components/ui/button';
+import { apiRequest } from '../lib/api';
+import { toastError } from '../lib/toast';
+import { toLocalISOString } from '../lib/utils';
+import { AppEvent, User } from '../types';
 
 interface ClubCommitteeProps {
   user: User;
@@ -75,7 +71,9 @@ const ClubCommittee: React.FC<ClubCommitteeProps> = ({ user }) => {
                 <div>
                   <h4 className="font-semibold text-base text-textPrimary">{event.name}</h4>
                   <p className="text-xs text-textMuted mt-1">
-                    Date: {new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    Date: {new Date(event.date).toLocaleDateString(undefined, {
+                        timeZone: 'Asia/Kolkata',
+                        year: 'numeric', month: 'short', day: 'numeric' })}
                   </p>
                   {event.venue && (
                     <p className="text-xs text-textMuted mt-0.5">

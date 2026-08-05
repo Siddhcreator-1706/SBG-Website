@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, MapPin, Users, Hash } from 'lucide-react';
-import { apiRequest, type ApiVenue } from '../lib/api';
-import { toastError, toastSuccess } from '../lib/toast';
+import { Edit2, MapPin, Plus, Trash2, Users } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '../components/ui/dialog';
 import { Skeleton } from '../components/ui/skeleton';
+import { apiRequest, type ApiVenue } from '../lib/api';
+import { toastError, toastSuccess } from '../lib/toast';
 
 const AdminVenues: React.FC = () => {
   const [venues, setVenues] = useState<ApiVenue[]>([]);

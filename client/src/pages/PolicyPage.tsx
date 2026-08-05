@@ -1,9 +1,9 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { Clock, ShieldAlert, FileText, Users } from 'lucide-react';
-import { CLUBS } from '../constants';
+import { Clock, FileText, ShieldAlert, Users } from 'lucide-react';
+import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { CLUBS } from '../constants';
 
 const PolicyPage: React.FC = () => {
   const getClubsByGroup = (group: 'A' | 'B' | 'C') => CLUBS.filter(c => c.group === group);

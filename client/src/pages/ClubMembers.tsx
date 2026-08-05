@@ -1,33 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { apiRequest } from '../lib/api';
-import { toastError, toastSuccess } from '../lib/toast';
-import { toLocalISOString, isValidPhoneNumber } from '../lib/utils';
-import { ClubMember, User } from '../types';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Edit2, Lock, Plus, Trash2, Users } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { DatePicker } from '../components/ui/date-picker';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Skeleton } from '../components/ui/skeleton';
-import { Edit2, Users, Shield, Lock, Plus, Trash2 } from 'lucide-react';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from '../components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '../components/ui/select';
-import { DatePicker } from '../components/ui/date-picker';
+import { Skeleton } from '../components/ui/skeleton';
+import { apiRequest } from '../lib/api';
+import { toastError, toastSuccess } from '../lib/toast';
+import { isValidPhoneNumber, toLocalISOString } from '../lib/utils';
+import { ClubMember, User } from '../types';
 
 interface ApiClub {
   id: string;
@@ -297,8 +297,12 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
           {member.phone && <span>{member.phone}</span>}
           {(member.tenure_start_date || member.tenure_end_date) && (
             <span>
-              Tenure: {member.tenure_start_date ? new Date(member.tenure_start_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'} –{' '}
-              {member.tenure_end_date ? new Date(member.tenure_end_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Present'}
+              Tenure: {member.tenure_start_date ? new Date(member.tenure_start_date).toLocaleDateString(undefined, {
+                  timeZone: 'Asia/Kolkata',
+                year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'} –{' '}
+              {member.tenure_end_date ? new Date(member.tenure_end_date).toLocaleDateString(undefined, {
+                  timeZone: 'Asia/Kolkata',
+                year: 'numeric', month: 'short', day: 'numeric' }) : 'Present'}
             </span>
           )}
           {member.tenure_end_reason && (

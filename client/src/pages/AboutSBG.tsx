@@ -1,16 +1,19 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
-    ArrowRight, Menu, X, Mail, Phone,
-    Linkedin, Globe,
-    FileText, Users, Building2,
-    ExternalLink, Shield, Network, ListChecks,
+    Building2,
+    ExternalLink,
+    FileText,
+    Globe,
+    Linkedin,
+    ListChecks,
+    Mail,
+    Network,
+    Phone,
+    Shield,
+    Users
 } from 'lucide-react';
-import { apiRequest } from '../lib/api';
-import { ThemeToggle } from '../components/theme-toggle';
-import { Button } from '../components/ui/button';
-import { Logo } from '../components/Logo';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { GdgFooterCredit } from '../components/GdgFooterCredit';
 import {
     Dialog,
@@ -18,6 +21,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '../components/ui/dialog';
+import { apiRequest } from '../lib/api';
 
 let preloadedAboutData: { clubs: Club[], members: Member[], stats: Record<string, number>, settings: Record<string, string> } | null = null;
 let preloadAboutPromise: Promise<any> | null = null;

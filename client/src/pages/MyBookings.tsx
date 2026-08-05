@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, Upload, FileText, AlertTriangle, RefreshCw, Plus } from 'lucide-react';
-import { apiRequest, mapBooking, groupBookings, type ApiBooking, type ApiVenue } from '../lib/api';
-import { toastInfo, toastError } from '../lib/toast';
-import { getErrorMessage } from '../lib/errors';
-import { Booking, GroupedBooking } from '../types';
-import { Card, CardContent } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
-import { Skeleton } from '../components/ui/skeleton';
-import { cn } from '@/lib/utils';
-import { getSocket, SOCKET_EVENTS } from '../lib/socket';
-import ExtraRoomDialog from '../components/ExtraRoomDialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
+import { AlertTriangle, Calendar, Clock, MapPin, Plus, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import ExtraRoomDialog from '../components/ExtraRoomDialog';
+import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Skeleton } from '../components/ui/skeleton';
+import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue } from '../lib/api';
+import { getErrorMessage } from '../lib/errors';
+import { getSocket, SOCKET_EVENTS } from '../lib/socket';
+import { toastError, toastInfo } from '../lib/toast';
+import { Booking, GroupedBooking } from '../types';
 
 const MyBookings: React.FC = () => {
   const [myBookings, setMyBookings] = useState<Booking[]>([]);
@@ -191,7 +191,9 @@ const MyBookings: React.FC = () => {
                   <CardContent className="p-6 sm:p-8">
                     <div className="flex flex-col md:flex-row gap-6 md:gap-8">
                       <div className={cn("w-full md:w-28 h-28 rounded-lg flex flex-col items-center justify-center shrink-0 border border-borderSoft", isPast ? 'bg-hoverSoft/40 text-textMuted' : 'bg-card text-brand')}>
-                        <span className="text-xs font-bold uppercase tracking-wider">{new Date(booking.date).toLocaleDateString('en-US', { month: 'short' })}</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">{new Date(booking.date).toLocaleDateString('en-US', {
+                            timeZone: 'Asia/Kolkata',
+                            month: 'short' })}</span>
                         <span className="text-3xl font-extrabold leading-none">{new Date(booking.date).getDate()}</span>
                         <span className="text-xs mt-1 opacity-80">{new Date(booking.date).getFullYear()}</span>
                       </div>
@@ -210,8 +212,12 @@ const MyBookings: React.FC = () => {
                               <span>
                                 {booking.endDate && new Date(booking.date).toDateString() !== new Date(booking.endDate).toDateString() ? (
                                   <>
-                                    {new Date(booking.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, {booking.startTime} –{' '}
-                                    {new Date(booking.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, {booking.endTime}
+                                    {new Date(booking.date).toLocaleDateString('en-US', {
+                                        timeZone: 'Asia/Kolkata',
+                                        month: 'short', day: 'numeric' })}, {booking.startTime} –{' '}
+                                    {new Date(booking.endDate).toLocaleDateString('en-US', {
+                                        timeZone: 'Asia/Kolkata',
+                                        month: 'short', day: 'numeric' })}, {booking.endTime}
                                   </>
                                 ) : (
                                   `${booking.startTime} – ${booking.endTime}`

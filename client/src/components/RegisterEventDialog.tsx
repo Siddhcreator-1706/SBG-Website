@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { format, parseISO } from 'date-fns';
+import { AlertTriangle, Info } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { apiRequest } from '../lib/api';
 import { toastError, toastSuccess } from '../lib/toast';
+import { cn, toLocalISOString } from '../lib/utils';
+import { AppEvent, User } from '../types';
 import { Button } from './ui/button';
+import { DatePicker } from './ui/date-picker';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from './ui/dialog';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select';
-import { Info, AlertTriangle } from 'lucide-react';
-import { User, AppEvent } from '../types';
-import { cn, toLocalISOString } from '../lib/utils';
-import { DatePicker } from './ui/date-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { TimePicker } from './ui/time-picker';
-import { format, parseISO } from 'date-fns';
 
 interface RegisterEventDialogProps {
     isOpen: boolean;

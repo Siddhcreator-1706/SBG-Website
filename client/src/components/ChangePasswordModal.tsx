@@ -1,18 +1,18 @@
+import { Eye, EyeOff, Key } from 'lucide-react';
 import React, { useState } from 'react';
-import { Key, Eye, EyeOff } from 'lucide-react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
 import { toast } from 'sonner';
 import { apiRequest } from '../lib/api';
+import { Button } from './ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 interface ChangePasswordModalProps {
   open: boolean;

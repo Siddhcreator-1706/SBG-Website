@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { db } from '../db';
-import { getClubForUser } from '../utils/clubAuth';
 import { checkPendingEventReports } from '../services/eventReportService';
-import { getSemesterRange, countCoCurricularBookings, CO_CURRICULAR_LIMIT } from '../services/semesterUtils';
+import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
+import { getClubForUser } from '../utils/clubAuth';
 
 export const createEvent = async (req: Request, res: Response) => {
   const { name, date, venue, end_date, event_type } = req.body;

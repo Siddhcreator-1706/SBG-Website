@@ -1,6 +1,6 @@
 import express from 'express';
+import { deleteArchivedEvent, getArchivedEvents } from '../controllers/archiveController';
 import authMiddleware from '../middleware/auth';
-import { getArchivedEvents, deleteArchivedEvent } from '../controllers/archiveController';
 
 const router = express.Router();
 

@@ -1,27 +1,26 @@
+import { motion } from 'framer-motion';
+import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, ChevronRight, Download, Plus, RefreshCw, Settings, X, XCircle } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, ChevronRight, AlertCircle, Calendar as CalendarIcon, Users, AlertTriangle, RefreshCw, Plus, Check, X, Settings, ChevronDown, Download } from 'lucide-react';
-import { apiRequest, mapBooking, type ApiBooking, type ApiVenue } from '../lib/api';
-import { getErrorMessage } from '../lib/errors';
-import { toastError, toastSuccess } from '../lib/toast';
-import { Booking, GroupedBooking } from '../types';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
-import { Skeleton } from '../components/ui/skeleton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '../components/ui/dropdown-menu';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Calendar, type CalendarEvent } from '../components/ui/calendar';
-import AddBookingDialog from '../components/AddBookingDialog';
-import RegisterEventDialog from '../components/RegisterEventDialog';
-import { groupBookings } from '../lib/api';
-import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
+import AddBookingDialog from '../components/AddBookingDialog';
+import RegisterEventDialog from '../components/RegisterEventDialog';
+import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Calendar, type CalendarEvent } from '../components/ui/calendar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Skeleton } from '../components/ui/skeleton';
+import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue } from '../lib/api';
+import { getErrorMessage } from '../lib/errors';
+import { getSocket, SOCKET_EVENTS } from '../lib/socket';
+import { toastError, toastSuccess } from '../lib/toast';
+import { GroupedBooking } from '../types';
 
 const AdminDashboard: React.FC = () => {
   const [pendingRequests, setPendingRequests] = React.useState<GroupedBooking[]>([]);
@@ -96,10 +95,14 @@ const AdminDashboard: React.FC = () => {
         return {
           'Event Name': e.name || '',
           'Club Name': e.club_name || e.club_id || '',
-          'Start Date': startDate ? startDate.toLocaleDateString() : '',
-          'Start Time': startDate ? startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '',
-          'End Date': endDate ? endDate.toLocaleDateString() : '',
-          'End Time': endDate ? endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '',
+          'Start Date': startDate ? startDate.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' }) : '',
+          'Start Time': startDate ? startDate.toLocaleTimeString([], {
+              timeZone: 'Asia/Kolkata',
+            hour: '2-digit', minute:'2-digit'}) : '',
+          'End Date': endDate ? endDate.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' }) : '',
+          'End Time': endDate ? endDate.toLocaleTimeString([], {
+              timeZone: 'Asia/Kolkata',
+            hour: '2-digit', minute:'2-digit'}) : '',
           'Venue': e.venue || '',
           'Status': e.status || '',
           'Event Type': e.event_type || ''
@@ -429,7 +432,9 @@ const AdminDashboard: React.FC = () => {
               {/* Selected Date Details - filling the remaining space */}
               <div className="flex-1 border-t lg:border-t-0 lg:border-l border-borderSoft lg:pl-6 pt-4 lg:pt-0 flex flex-col min-w-0">
                 <h4 className="text-sm font-semibold text-textMuted uppercase tracking-wider mb-4">
-                  {selectedDate ? selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : 'Select a date'}
+                  {selectedDate ? selectedDate.toLocaleDateString('en-US', {
+                      timeZone: 'Asia/Kolkata',
+                    weekday: 'long', month: 'short', day: 'numeric' }) : 'Select a date'}
                 </h4>
 
                 <div className="flex-1 overflow-y-auto space-y-3 max-h-[300px]">
@@ -560,7 +565,7 @@ const AdminDashboard: React.FC = () => {
                         <td className="px-4 sm:px-6 py-4">
                           <div className="flex items-center gap-1.5">
                             <CalendarIcon size={14} className="text-textMuted" />
-                            {new Date(evt.date).toLocaleDateString()}
+                            {new Date(evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}
                           </div>
                         </td>
                         <td className="px-4 sm:px-6 py-4">
@@ -636,7 +641,7 @@ const AdminDashboard: React.FC = () => {
                             {req.clubName}
                           </Badge>
                           <span className="text-xs text-textMuted">•</span>
-                          <span className="text-sm text-textMuted">{new Date(req.date).toLocaleDateString()}</span>
+                          <span className="text-sm text-textMuted">{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</span>
                         </div>
                         <h4 className="text-base sm:text-lg font-medium text-foreground">{req.eventName}</h4>
                         <div className="mt-2 text-sm text-textMuted">

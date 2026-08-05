@@ -1,9 +1,9 @@
 import express from 'express';
 import { db } from '../db';
 import authMiddleware from '../middleware/auth';
-import { createNotification } from '../services/notification';
-import { getSemesterRange, countCoCurricularBookings, CO_CURRICULAR_LIMIT } from '../services/semesterUtils';
 import { io } from '../server';
+import { createNotification } from '../services/notification';
+import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
 
 const router = express.Router();
 
@@ -248,9 +248,13 @@ router.post('/bookings/send-email', async (req, res) => {
 
     const clubEmail = allGroupBookings[0].club_email;
     const eventName = allGroupBookings[0].actual_event_name || allGroupBookings[0].event_name || 'Event';
-    const date = new Date(allGroupBookings[0].start_time).toLocaleDateString('en-IN');
-    const startTimeStr = new Date(allGroupBookings[0].start_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    const endTimeStr = new Date(allGroupBookings[0].end_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const date = new Date(allGroupBookings[0].start_time).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+    const startTimeStr = new Date(allGroupBookings[0].start_time).toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit', minute: '2-digit' });
+    const endTimeStr = new Date(allGroupBookings[0].end_time).toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit', minute: '2-digit' });
 
     const approvedVenues: string[] = [];
     const rejectedVenues: string[] = [];
@@ -455,9 +459,13 @@ router.delete('/bookings/:id', async (req, res) => {
 
       if (booking.status === 'approved' && booking.club_email) {
         const { sendBookingCancelledEmailToClub } = await import('../services/email');
-        const date = new Date(booking.start_time).toLocaleDateString('en-IN');
-        const startTimeStr = new Date(booking.start_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        const endTimeStr = new Date(booking.end_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        const date = new Date(booking.start_time).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+        const startTimeStr = new Date(booking.start_time).toLocaleTimeString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit', minute: '2-digit' });
+        const endTimeStr = new Date(booking.end_time).toLocaleTimeString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit', minute: '2-digit' });
 
         await sendBookingCancelledEmailToClub(
           booking.club_email,

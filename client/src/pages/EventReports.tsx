@@ -1,20 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../lib/api';
-import { Button } from '../components/ui/button';
-import { GlassCard } from '../components/glass-card';
-import { GradientBackground } from '../components/gradient-background';
-import { toastError } from '../lib/toast';
+import { motion } from 'framer-motion';
+import { CheckCircle, ChevronDown, Download, FileText } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { GlassCard } from '../components/glass-card';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Skeleton } from '../components/ui/skeleton';
-import { motion } from 'framer-motion';
+import { apiRequest } from '../lib/api';
+import { toastError } from '../lib/toast';
 import { cn } from '../lib/utils';
-import { FileText, CheckCircle, ChevronDown, Download } from 'lucide-react';
-import { Card } from '../components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 export default function EventReports() {
   const [pending, setPending] = useState<any[]>([]);
   const [submitted, setSubmitted] = useState<any[]>([]);
@@ -123,7 +122,7 @@ export default function EventReports() {
     const isPast = now > deadline;
     return (
       <span className={isPast ? "text-error font-semibold" : "text-brand"}>
-        Due by: {deadline.toLocaleDateString()} {isPast && "(Overdue!)"}
+        Due by: {deadline.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} {isPast && "(Overdue!)"}
       </span>
     );
   };
@@ -222,7 +221,7 @@ export default function EventReports() {
                 <div key={p.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-borderSoft rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
                   <div className="space-y-1">
                     <h3 className="font-semibold text-lg text-textPrimary">{p.name}</h3>
-                    <p className="text-sm text-textMuted">Ended: {new Date(p.final_end_date).toLocaleDateString()}</p>
+                    <p className="text-sm text-textMuted">Ended: {new Date(p.final_end_date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</p>
                     <p className="text-sm mt-1">{getDeadlineText(p)}</p>
                   </div>
                   <Button className="shrink-0 rounded-xl bg-brand text-white hover:bg-brand/90" onClick={() => setSelectedEventId(p.id)}>Submit Report</Button>
@@ -245,7 +244,7 @@ export default function EventReports() {
                   <div className="flex justify-between items-start gap-4">
                     <div className="space-y-0.5">
                       <h3 className="font-semibold text-lg text-textPrimary">{s.event_name}</h3>
-                      <p className="text-sm text-textMuted">Submitted on: {new Date(s.created_at).toLocaleDateString()}</p>
+                      <p className="text-sm text-textMuted">Submitted on: {new Date(s.created_at).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</p>
                     </div>
                     <Button variant="outline" size="sm" className="shrink-0 rounded-lg hover:bg-hoverSoft" onClick={() => handleEdit(s)}>Edit Report</Button>
                   </div>

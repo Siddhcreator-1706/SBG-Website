@@ -1,4 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import { AlertCircle, CheckCircle2, Clock, EyeOff, Loader2, MapPin, Plus } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { apiRequest, ApiVenue } from '../lib/api';
+import { Booking, GroupedBooking } from '../types';
+import { Button } from './ui/button';
 import {
     Dialog,
     DialogContent,
@@ -7,14 +13,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from './ui/dialog';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { apiRequest, ApiVenue } from '../lib/api';
-import { GroupedBooking, Booking } from '../types';
-import { Clock, MapPin, Calendar, Loader2, CheckCircle2, AlertCircle, EyeOff, Plus } from 'lucide-react';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 interface ExtraRoomDialogProps {
     booking: GroupedBooking | Booking | null;
@@ -138,7 +137,9 @@ const ExtraRoomDialog: React.FC<ExtraRoomDialogProps> = ({ booking, open, onOpen
                     <div className="p-4 rounded-xl bg-muted/20 border border-border/50 text-xs font-medium space-y-2.5">
                         <div className="flex justify-between items-center text-muted-foreground uppercase tracking-widest font-black text-[10px]">
                             <span>{booking.eventName}</span>
-                            <span>{eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            <span>{eventDate.toLocaleDateString('en-US', {
+                                timeZone: 'Asia/Kolkata',
+                                month: 'short', day: 'numeric' })}</span>
                         </div>
                         <div className="flex items-center gap-2.5 text-foreground font-bold text-sm">
                             <Clock size={14} className="text-brand/60" />

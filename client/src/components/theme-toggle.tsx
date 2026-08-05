@@ -1,15 +1,15 @@
-import * as React from "react"
-import { Moon, Sun, Monitor, Check } from "lucide-react"
+import { Check, Monitor, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
+import * as React from "react"
 
 import { Button } from "@/components/ui/button"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
 export function ThemeToggle() {

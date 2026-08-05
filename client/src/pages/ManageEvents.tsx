@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { apiRequest } from '../lib/api';
-import { toastInfo, toastError } from '../lib/toast';
-import { getErrorMessage } from '../lib/errors';
-import { Card, CardContent } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
+import { format, parseISO } from 'date-fns';
+import { motion } from 'framer-motion';
+import { AlertTriangle, Calendar, Clock, Edit, MapPin, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import RegisterEventDialog from '../components/RegisterEventDialog';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
-import { Skeleton } from '../components/ui/skeleton';
-import { Calendar, Clock, MapPin, Edit, Trash2, Plus, AlertTriangle, RefreshCw, Info } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
-import RegisterEventDialog from '../components/RegisterEventDialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { AppEvent, User } from '../types';
-import { cn, toLocalISOString } from '../lib/utils';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
 import { DatePicker } from '../components/ui/date-picker';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Skeleton } from '../components/ui/skeleton';
 import { TimePicker } from '../components/ui/time-picker';
-import { format, parseISO } from 'date-fns';
+import { apiRequest } from '../lib/api';
+import { getErrorMessage } from '../lib/errors';
+import { toastError, toastInfo } from '../lib/toast';
+import { cn, toLocalISOString } from '../lib/utils';
+import { AppEvent, User } from '../types';
 
 interface ManageEventsProps {
   currentUser?: User;
@@ -247,7 +247,7 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
                         <div className="flex items-center gap-1.5">
                           <Clock size={14} className="text-brand/70" />
                           <span>
-                            {startDate.toLocaleDateString()} {startDate.toTimeString().substring(0, 5)} - {endDate.toLocaleDateString()} {endDate.toTimeString().substring(0, 5)}
+                            {startDate.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} {startDate.toTimeString().substring(0, 5)} - {endDate.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} {endDate.toTimeString().substring(0, 5)}
                           </span>
                         </div>
                         {event.venue && (

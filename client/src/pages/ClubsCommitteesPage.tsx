@@ -1,42 +1,34 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-    ArrowLeft,
-    Users,
+    ArrowRight,
+    Building2,
+    Globe,
+    Instagram,
+    Layers,
+    Linkedin,
     Mail,
     Phone,
-    Calendar,
-    Layers,
     Search,
-    Shield,
-    ArrowRight,
-    Globe,
-    Linkedin,
-    Instagram,
-    Youtube,
-    Menu,
-    X,
-    Building2,
+    Users,
+    Youtube
 } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { Button } from '../components/ui/button';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
 } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
 import { apiRequest } from '../lib/api';
 import { toastError } from '../lib/toast';
-import { ThemeToggle } from '../components/theme-toggle';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Logo } from '../components/Logo';
-import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 
 import { cn } from '@/lib/utils';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 
 
 interface Club {
@@ -188,8 +180,12 @@ const ClubsCommitteesPage: React.FC = () => {
 
     const formatTenure = (start?: string | null, end?: string | null) => {
         if (!start && !end) return 'Not Specified';
-        const sStr = start ? new Date(start).toLocaleDateString(undefined, { year: 'numeric', month: 'short' }) : 'N/A';
-        const eStr = end ? new Date(end).toLocaleDateString(undefined, { year: 'numeric', month: 'short' }) : 'Present';
+        const sStr = start ? new Date(start).toLocaleDateString(undefined, {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric', month: 'short' }) : 'N/A';
+        const eStr = end ? new Date(end).toLocaleDateString(undefined, {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric', month: 'short' }) : 'Present';
         return `${sStr} – ${eStr}`;
     };
 

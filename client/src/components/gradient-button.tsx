@@ -1,7 +1,7 @@
-import * as React from 'react';
-import { motion, type HTMLMotionProps } from 'framer-motion';
-import { Slot } from '@radix-ui/react-slot';
 import { cn } from '@/lib/utils';
+import { Slot } from '@radix-ui/react-slot';
+import { motion, type HTMLMotionProps } from 'framer-motion';
+import * as React from 'react';
 
 interface GradientButtonProps extends Omit<HTMLMotionProps<'button'>, 'size'> {
   asChild?: boolean;

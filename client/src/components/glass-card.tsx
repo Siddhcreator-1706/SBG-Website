@@ -1,6 +1,6 @@
-import * as React from 'react';
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
+import * as React from 'react';
 
 interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Enable gradient border effect (wrapper with gradient border) */
@@ -103,4 +103,4 @@ const GlassCardFooter = React.forwardRef<
 ));
 GlassCardFooter.displayName = 'GlassCardFooter';
 
-export { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardDescription, GlassCardContent, GlassCardFooter };
+export { GlassCard, GlassCardContent, GlassCardDescription, GlassCardFooter, GlassCardHeader, GlassCardTitle };

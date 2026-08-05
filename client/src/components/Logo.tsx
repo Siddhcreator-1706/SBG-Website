@@ -1,5 +1,3 @@
-import React from 'react';
-import { RiCalendarCheckFill } from 'react-icons/ri';
 import { cn } from '@/lib/utils';
 
 interface LogoProps {

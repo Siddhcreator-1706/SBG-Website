@@ -1,5 +1,5 @@
-import { ApiError, NetworkError } from './errors';
 import { Booking, GroupedBooking } from '../types';
+import { ApiError, NetworkError } from './errors';
 
 type ApiOptions = {
   method?: string;
@@ -132,8 +132,12 @@ export const mapBooking = (booking: ApiBooking) => {
     clubName: booking.clubs?.name || booking.club_id,
     date: start.toISOString(),
     endDate: end.toISOString(),
-    startTime: start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-    endTime: end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+    startTime: start.toLocaleTimeString('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric', minute: '2-digit' }),
+    endTime: end.toLocaleTimeString('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric', minute: '2-digit' }),
     startTimeISO: booking.start_time,
     endTimeISO: booking.end_time,
     status: booking.status,

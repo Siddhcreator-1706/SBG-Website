@@ -1,24 +1,20 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
+    Calendar as CalendarIcon,
     ChevronLeft,
     ChevronRight,
-    Calendar as CalendarIcon,
     Clock,
     MapPin,
-    Users,
-    ArrowRight,
-    X,
-    Menu,
     Sparkles,
+    Users,
+    X
 } from 'lucide-react';
-import { apiRequest, type ApiBooking, type ApiVenue, mapBooking, groupBookings } from '../lib/api';
-import { getSocket, SOCKET_EVENTS } from '../lib/socket';
-import { ThemeToggle } from '../components/theme-toggle';
-import { Button } from '../components/ui/button';
-import { Logo } from '../components/Logo';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { GdgFooterCredit } from '../components/GdgFooterCredit';
+import { Button } from '../components/ui/button';
+import { apiRequest, type ApiVenue } from '../lib/api';
+import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 
 interface PublicEvent {
     id: string;
@@ -49,7 +45,9 @@ const MONTH_NAMES = [
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function formatTime(date: Date) {
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return date.toLocaleTimeString('en-US', {
+        timeZone: 'Asia/Kolkata',
+        hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 function formatEventType(t?: string) {
@@ -59,6 +57,7 @@ function formatEventType(t?: string) {
 
 function formatDayLabel(date: Date) {
     return date.toLocaleDateString('en-US', {
+        timeZone: 'Asia/Kolkata',
         weekday: 'long',
         month: 'short',
         day: 'numeric',
@@ -264,8 +263,12 @@ const LandingPage: React.FC = () => {
 
     const formatTenure = (start?: string, end?: string) => {
         if (!start && !end) return 'Not Specified';
-        const sStr = start ? new Date(start).toLocaleDateString(undefined, { year: 'numeric', month: 'short' }) : 'N/A';
-        const eStr = end ? new Date(end).toLocaleDateString(undefined, { year: 'numeric', month: 'short' }) : 'Present';
+        const sStr = start ? new Date(start).toLocaleDateString(undefined, {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric', month: 'short' }) : 'N/A';
+        const eStr = end ? new Date(end).toLocaleDateString(undefined, {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric', month: 'short' }) : 'Present';
         return `${sStr} – ${eStr}`;
     };
 
@@ -619,8 +622,14 @@ const LandingPage: React.FC = () => {
                                         <div>
                                             <p className="text-sm font-semibold text-textPrimary">
                                                 {isSameDay(selectedEvent.startTime, selectedEvent.endTime) 
-                                                    ? selectedEvent.startTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
-                                                    : `${selectedEvent.startTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${selectedEvent.endTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                                                    ? selectedEvent.startTime.toLocaleDateString('en-US', {
+                                                        timeZone: 'Asia/Kolkata',
+                                                        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+                                                    : `${selectedEvent.startTime.toLocaleDateString('en-US', {
+                                                        timeZone: 'Asia/Kolkata',
+                                                        month: 'short', day: 'numeric' })} – ${selectedEvent.endTime.toLocaleDateString('en-US', {
+                                                            timeZone: 'Asia/Kolkata',
+                                                            month: 'short', day: 'numeric', year: 'numeric' })}`
                                                 }
                                             </p>
                                             <p className="text-xs text-textSecondary">
@@ -682,6 +691,7 @@ const LandingPage: React.FC = () => {
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-lg font-bold text-textPrimary">
                                         {selectedDayEvents[0]?.startTime.toLocaleDateString('en-US', {
+                                            timeZone: 'Asia/Kolkata',
                                             weekday: 'long', month: 'short', day: 'numeric',
                                         })}
                                     </h3>

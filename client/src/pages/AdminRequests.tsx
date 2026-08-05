@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Filter, Calendar, AlertTriangle, CheckCircle, XCircle, ChevronDown, ChevronRight, Clock, X, Check, Search } from 'lucide-react';
-import { apiRequest, mapBooking, groupBookings, type ApiBooking, type ApiVenue } from '../lib/api';
-import { getErrorMessage } from '../lib/errors';
-import { toastError, toastSuccess } from '../lib/toast';
-import { GroupedBooking } from '../types';
+import { cn } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertTriangle, Calendar, Check, CheckCircle, ChevronDown, ChevronRight, Clock, Filter, RefreshCw, Search, X, XCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
+import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
-import { Badge } from '../components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Skeleton } from '../components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue } from '../lib/api';
+import { getErrorMessage } from '../lib/errors';
 import { getSocket } from '../lib/socket';
+import { toastError, toastSuccess } from '../lib/toast';
+import { GroupedBooking } from '../types';
 
 const AdminRequests: React.FC = () => {
   const [requests, setRequests] = useState<GroupedBooking[]>([]);
@@ -301,12 +301,12 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
               <Calendar size={14} className="text-textMuted shrink-0" />
               {req.endDate && new Date(req.date).toDateString() !== new Date(req.endDate).toDateString() ? (
                 <div className="flex flex-col text-xs space-y-0.5">
-                  <span className="whitespace-nowrap">{new Date(req.date).toLocaleDateString()} {req.startTime}</span>
+                  <span className="whitespace-nowrap">{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} {req.startTime}</span>
                   <span className="text-textMuted text-[10px]">to</span>
-                  <span className="whitespace-nowrap">{new Date(req.endDate).toLocaleDateString()} {req.endTime}</span>
+                  <span className="whitespace-nowrap">{new Date(req.endDate).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} {req.endTime}</span>
                 </div>
               ) : (
-                <span>{new Date(req.date).toLocaleDateString()}</span>
+                <span>{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</span>
               )}
             </div>
           </div>

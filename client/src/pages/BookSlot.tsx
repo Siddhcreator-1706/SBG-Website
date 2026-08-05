@@ -1,40 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { cn, toLocalISOString } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Calendar as CalendarIcon,
-  Users,
-  MapPin,
-  AlertTriangle,
-  CheckCircle2,
-  AlertOctagon,
-  Building2,
-  Lock,
-  ChevronDown,
-  Check,
-  Info,
-  Clock,
-  Plus
+    AlertTriangle,
+    Calendar as CalendarIcon,
+    Check,
+    CheckCircle2,
+    ChevronDown,
+    Clock,
+    Lock,
+    MapPin,
+    Plus,
+    Users
 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import RegisterEventDialog from '../components/RegisterEventDialog';
+import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Calendar } from '../components/ui/calendar';
+import { CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Separator } from '../components/ui/separator';
+import { TimePicker } from '../components/ui/time-picker';
 import { CLUBS, VENUES } from '../constants';
 import { apiRequest, type ApiClub, type ApiVenue } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { toastError, toastSuccess } from '../lib/toast';
-import { EventType, ClubGroupType, User, AppEvent } from '../types';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Separator } from '../components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { CardContent } from '../components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
-import { Badge } from '../components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
-import { Calendar } from '../components/ui/calendar';
-import RegisterEventDialog from '../components/RegisterEventDialog';
-import { TimePicker } from '../components/ui/time-picker';
-import { cn, toLocalISOString } from '@/lib/utils';
+import { AppEvent, ClubGroupType, User } from '../types';
 
 interface BookSlotProps {
   currentUser: User;
@@ -611,9 +607,13 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                         <p className="text-sm font-bold text-textPrimary">
                           {formData.date ? (
                             <span>
-                              {new Date(formData.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', weekday: 'short' })}
+                              {new Date(formData.date).toLocaleDateString('en-US', {
+                                  timeZone: 'Asia/Kolkata',
+                                month: 'short', day: 'numeric', year: 'numeric', weekday: 'short' })}
                               {formData.endDate && formData.endDate !== formData.date && (
-                                <> – {new Date(formData.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', weekday: 'short' })}</>
+                                <> – {new Date(formData.endDate).toLocaleDateString('en-US', {
+                                    timeZone: 'Asia/Kolkata',
+                                    month: 'short', day: 'numeric', year: 'numeric', weekday: 'short' })}</>
                               )}
                             </span>
                           ) : 'Not selected'}
@@ -676,7 +676,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                           })
                           .map(e => (
                             <SelectItem key={e.id} value={e.id} className="cursor-pointer">
-                              <span className="font-semibold">{e.name}</span> <span className="text-textMuted text-xs">({new Date(e.date).toLocaleDateString()})</span>
+                              <span className="font-semibold">{e.name}</span> <span className="text-textMuted text-xs">({new Date(e.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })})</span>
                             </SelectItem>
                           ))}
                       </SelectContent>
@@ -732,6 +732,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                           {formData.date ? (
                             <span className="font-semibold">
                               {new Date(formData.date).toLocaleDateString('en-US', {
+                                  timeZone: 'Asia/Kolkata',
                                 weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
                               })}
                             </span>
@@ -773,6 +774,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                           {formData.endDate ? (
                             <span className="font-semibold">
                               {new Date(formData.endDate).toLocaleDateString('en-US', {
+                                  timeZone: 'Asia/Kolkata',
                                 weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
                               })}
                             </span>

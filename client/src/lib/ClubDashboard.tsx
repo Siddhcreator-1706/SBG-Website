@@ -1,24 +1,24 @@
+import { motion } from 'framer-motion';
+import { AlertTriangle, CalendarPlus, Clock, Info, MapPin, RefreshCw, Users } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { CalendarPlus, Clock, MapPin, ChevronRight, Info, Users, AlertTriangle, RefreshCw, Plus, Globe, Linkedin, Instagram, Youtube } from 'lucide-react';
-import { apiRequest, mapBooking, groupBookings, type ApiBooking, type ApiVenue } from './api';
-import { getErrorMessage } from './errors';
-import { Booking, AppEvent, User } from '../types';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
-import { Calendar, type CalendarEvent } from '../components/ui/calendar';
-import { Skeleton } from '../components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
-import { getSocket, SOCKET_EVENTS } from './socket';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Calendar, type CalendarEvent } from '../components/ui/calendar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Skeleton } from '../components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { AppEvent, Booking, User } from '../types';
+import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue } from './api';
+import { getErrorMessage } from './errors';
+import { getSocket, SOCKET_EVENTS } from './socket';
 
 import { cn, toLocalISOString } from '@/lib/utils';
 
@@ -91,7 +91,9 @@ const ScheduleCalendarCard = ({
 
           <div className="min-w-0 border-t border-borderSoft pt-5 xl:min-h-[460px] xl:border-l xl:border-t-0 xl:pl-6 xl:pt-1">
             <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-              {selectedDate ? selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : 'Select a date'}
+              {selectedDate ? selectedDate.toLocaleDateString('en-US', {
+                  timeZone: 'Asia/Kolkata',
+                weekday: 'long', month: 'short', day: 'numeric' }) : 'Select a date'}
             </h4>
 
             <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 xl:max-h-[410px]">
@@ -532,7 +534,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                     <div className="font-semibold text-foreground text-sm">{event.eventName}</div>
                     <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
                       <CalendarPlus size={12} />
-                      {new Date(event.date).toLocaleDateString()}
+                      {new Date(event.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
                       <MapPin size={12} />
@@ -597,7 +599,9 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                       <div className="min-w-0 flex-1">
                         <div className="font-semibold text-foreground text-sm truncate">{event.name}</div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">
-                          Date: {new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                          Date: {new Date(event.date).toLocaleDateString(undefined, {
+                              timeZone: 'Asia/Kolkata',
+                            year: 'numeric', month: 'short', day: 'numeric' })}
                         </div>
                       </div>
                       {(() => {
@@ -685,8 +689,12 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <CalendarPlus size={12} className="text-primary/60 shrink-0" />
                               <span>
-                                {startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                                {isMultiDay && ` – ${endDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`}
+                                {startDate.toLocaleDateString('en-US', {
+                                    timeZone: 'Asia/Kolkata',
+                                    weekday: 'short', month: 'short', day: 'numeric' })}
+                                {isMultiDay && ` – ${endDate.toLocaleDateString('en-US', {
+                                    timeZone: 'Asia/Kolkata',
+                                    weekday: 'short', month: 'short', day: 'numeric' })}`}
                               </span>
                             </div>
                             {event.venue && (

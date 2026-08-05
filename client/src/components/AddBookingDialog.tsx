@@ -1,29 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import { Loader2, Plus } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { apiRequest, ApiVenue } from '../lib/api';
+import { Button } from './ui/button';
+import { DatePicker } from './ui/date-picker';
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
-    DialogTitle,
     DialogDescription,
     DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from './ui/dialog';
-import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import {
     Select,
-    SelectTrigger,
-    SelectValue,
     SelectContent,
     SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from './ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
-import { DatePicker } from './ui/date-picker';
 import { TimePicker } from './ui/time-picker';
-import { apiRequest, ApiVenue } from '../lib/api';
-import { Loader2, Plus, Calendar as CalendarIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 type Club = {
     id: string;

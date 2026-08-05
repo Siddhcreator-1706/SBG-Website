@@ -2,11 +2,10 @@ import type { Request, Response } from 'express';
 // Swap Supabase for your database pool
 import { db } from '../db';
 
-import { createBookingPendingNotifications } from '../services/notification';
-import { getSemesterRange, countCoCurricularBookings, CO_CURRICULAR_LIMIT } from '../services/semesterUtils';
 import { randomUUID } from 'crypto';
 import { io } from '../server';
 import { checkPendingEventReports } from '../services/eventReportService';
+import { createBookingPendingNotifications } from '../services/notification';
 
 type EventType = 'co_curricular' | 'open_all' | 'closed_club';
 
@@ -32,27 +31,27 @@ const isValidDate = (value: string) => {
 };
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-const RESTRICTED_START_MINUTES = 8 * 60;
-const RESTRICTED_END_MINUTES = 18 * 60;
+const RESTRICTED_START_MINUTES = 8 * 60; // 8:00 AM
+const RESTRICTED_END_MINUTES = 19 * 60; // 7:00 PM
 
 const violatesRestrictedWeekdayHours = (startUtc: Date, endUtc: Date) => {
   const startIst = new Date(startUtc.getTime() + IST_OFFSET_MS);
   const endIst = new Date(endUtc.getTime() + IST_OFFSET_MS);
 
   const cursor = new Date(startIst);
-  cursor.setHours(0, 0, 0, 0);
+  cursor.setUTCHours(0, 0, 0, 0);
 
   const lastDay = new Date(endIst);
-  lastDay.setHours(0, 0, 0, 0);
+  lastDay.setUTCHours(0, 0, 0, 0);
 
   while (cursor <= lastDay) {
-    const dayOfWeek = cursor.getDay();
+    const dayOfWeek = cursor.getUTCDay();
     const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
 
     if (isWeekday) {
       const dayStart = new Date(cursor);
       const dayEnd = new Date(cursor);
-      dayEnd.setDate(dayEnd.getDate() + 1);
+      dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
 
       const segmentStart = startIst > dayStart ? startIst : dayStart;
       const segmentEnd = endIst < dayEnd ? endIst : dayEnd;
@@ -60,6 +59,7 @@ const violatesRestrictedWeekdayHours = (startUtc: Date, endUtc: Date) => {
       if (segmentEnd > segmentStart) {
         const segmentStartMinutes = (segmentStart.getTime() - dayStart.getTime()) / 60000;
         const segmentEndMinutes = (segmentEnd.getTime() - dayStart.getTime()) / 60000;
+        
         const overlapsRestrictedHours =
           segmentStartMinutes < RESTRICTED_END_MINUTES &&
           segmentEndMinutes > RESTRICTED_START_MINUTES;
@@ -70,7 +70,7 @@ const violatesRestrictedWeekdayHours = (startUtc: Date, endUtc: Date) => {
       }
     }
 
-    cursor.setDate(cursor.getDate() + 1);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
   return false;
@@ -295,7 +295,7 @@ export const createBooking = async (req: Request, res: Response) => {
 
     const pendingForEmail = createdBookings.filter((b) => b.status === 'pending');
     if (pendingForEmail.length > 0) {
-      const formatTime = (iso: string) => new Date(iso).toLocaleString();
+      const formatTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
 
 
       const itemsForNotification = pendingForEmail.map((b) => {
@@ -356,9 +356,13 @@ export const createBooking = async (req: Request, res: Response) => {
           return venue?.name || 'Venue';
         });
 
-        const date = new Date(approvedBookings[0].start_time).toLocaleDateString('en-IN');
-        const startStr = new Date(approvedBookings[0].start_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-        const endStr = new Date(approvedBookings[0].end_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        const date = new Date(approvedBookings[0].start_time).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+        const startStr = new Date(approvedBookings[0].start_time).toLocaleTimeString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit', minute: '2-digit' });
+        const endStr = new Date(approvedBookings[0].end_time).toLocaleTimeString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit', minute: '2-digit' });
 
         await sendBulkBookingProcessedEmail(
           clubEmail,

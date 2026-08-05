@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Menu, X } from 'lucide-react';
-import { Button } from './ui/button';
+import React, { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Logo } from './Logo';
 import { ThemeToggle } from './theme-toggle';
+import { Button } from './ui/button';
 
 interface PublicNavbarProps {
     onGoToLogin: () => void;

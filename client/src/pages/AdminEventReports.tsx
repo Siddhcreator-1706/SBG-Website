@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../lib/api';
-import { Button } from '../components/ui/button';
+import { Download, Settings } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { GlassCard } from '../components/glass-card';
 import { GradientBackground } from '../components/gradient-background';
-import { toastError } from '../lib/toast';
-import { toast } from 'sonner';
-import { Settings, Download } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { Button } from '../components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Skeleton } from '../components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { apiRequest } from '../lib/api';
+import { toastError } from '../lib/toast';
 
 export default function AdminEventReports() {
   const [reports, setReports] = useState<any[]>([]);
@@ -169,7 +169,7 @@ export default function AdminEventReports() {
                   </h3>
                   <span className="text-sm bg-brand/10 text-brand px-2 py-1 rounded-md capitalize self-start shrink-0">{r.level}</span>
                 </div>
-                <p className="text-sm text-textMuted mt-1">Submitted: {new Date(r.created_at).toLocaleDateString()} | Event: {new Date(r.date).toLocaleDateString()}</p>
+                <p className="text-sm text-textMuted mt-1">Submitted: {new Date(r.created_at).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} | Event: {new Date(r.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</p>
                 <div className="flex flex-wrap gap-4 text-sm mt-2">
                   <a href={r.report_doc_link} target="_blank" rel="noreferrer" className="text-brand hover:underline">Report Doc</a>
                   <a href={r.photos_drive_link} target="_blank" rel="noreferrer" className="text-brand hover:underline">Photos</a>
@@ -198,7 +198,7 @@ export default function AdminEventReports() {
                   <tr key={e.id} className="border-b border-borderSoft hover:bg-hoverSoft/50">
                     <td className="px-4 py-3 font-medium">{e.name}</td>
                     <td className="px-4 py-3">{e.club_name}</td>
-                    <td className="px-4 py-3">{new Date(e.end_date || e.date).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">{new Date(e.end_date || e.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</td>
                     <td className="px-4 py-3">
                       <span className="text-error font-semibold">Pending</span>
                     </td>
@@ -236,7 +236,7 @@ export default function AdminEventReports() {
                   <tr key={e.id} className="border-b border-borderSoft hover:bg-hoverSoft/50">
                     <td className="px-4 py-3 font-medium">{e.name}</td>
                     <td className="px-4 py-3">{e.club_name}</td>
-                    <td className="px-4 py-3">{new Date(e.end_date || e.date).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">{new Date(e.end_date || e.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</td>
                     <td className="px-4 py-3">
                       <span className="text-gray-400">Exempt</span>
                     </td>

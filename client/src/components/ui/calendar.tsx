@@ -1,17 +1,17 @@
-import * as React from "react"
-import {
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  Clock,
-  MapPin,
-} from "lucide-react"
-import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
 import { AnimatePresence, motion } from "framer-motion"
+import {
+    ChevronDownIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    Clock,
+    MapPin,
+} from "lucide-react"
+import * as React from "react"
+import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
 import { createPortal } from "react-dom"
 
-import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 interface CalendarEvent {
   eventName: string
@@ -83,7 +83,9 @@ function Calendar({
           captionLayout={captionLayout}
           formatters={{
             formatMonthDropdown: (date) =>
-              date.toLocaleString("default", { month: "short" }),
+              date.toLocaleString("default", {
+                  timeZone: 'Asia/Kolkata',
+                month: "short" }),
             ...formatters,
           }}
           classNames={{
@@ -272,7 +274,7 @@ function CalendarDayButton({
         ref={ref}
         variant="ghost"
         size="icon"
-        data-day={day.date.toLocaleDateString()}
+        data-day={day.date.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}
         data-selected-single={isSelected}
         data-range-start={isRangeStart}
         data-range-end={isRangeEnd}
@@ -369,7 +371,9 @@ function EventHoverCard({
           x: Math.max(160, Math.min(window.innerWidth - 160, rect.left + rect.width / 2)),
           y: above ? rect.top - 10 : rect.bottom + 10,
           above,
-          dateLabel: date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
+          dateLabel: date.toLocaleDateString("en-US", {
+              timeZone: 'Asia/Kolkata',
+            weekday: "long", month: "short", day: "numeric" }),
         })
       }, 200)
     }
