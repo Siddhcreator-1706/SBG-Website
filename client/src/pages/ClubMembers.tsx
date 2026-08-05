@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { apiRequest } from '../lib/api';
 import { toastError, toastSuccess } from '../lib/toast';
-import { toLocalISOString } from '../lib/utils';
+import { toLocalISOString, isValidPhoneNumber } from '../lib/utils';
 import { ClubMember, User } from '../types';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -262,13 +262,18 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
     }
   };
 
-  const DESIGNATION_BADGES = {
-    'Convener': 'bg-brand/10 text-brand border-brand/20',
-    'Dy. Convener': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-    'Core': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-  };
-
   const DEFAULT_BADGE_STYLE = 'bg-slate-500/10 text-slate-500 border-slate-500/20';
+
+  const getDesignationBadgeStyle = (des?: string) => {
+    if (!des) return DEFAULT_BADGE_STYLE;
+    const d = des.toLowerCase().trim();
+    if (d === 'convener') return 'bg-brand/10 text-brand border-brand/20';
+    if (d === 'dy. convener' || d === 'dy convener') return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
+    if (d === 'core') return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+    if (d === 'extended core' || d === 'associate core') return DEFAULT_BADGE_STYLE;
+    if (d === 'others') return DEFAULT_BADGE_STYLE;
+    return 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20'; // Special tags
+  };
 
   const MemberRow = ({ member, editable }: { member: ClubMember; editable: boolean }) => (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-borderSoft bg-card/50 hover:bg-hoverSoft/50 transition-colors">
@@ -277,7 +282,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
           <p className="font-semibold text-textPrimary">{member.full_name}</p>
           <Badge 
             variant="secondary" 
-            className={DESIGNATION_BADGES[member.designation as keyof typeof DESIGNATION_BADGES] || DEFAULT_BADGE_STYLE}
+            className={getDesignationBadgeStyle(member.designation)}
           >
             {member.designation || 'Core'}
           </Badge>
@@ -539,7 +544,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
           <DialogFooter className="pt-4 border-t border-borderSoft">
             <Button
               onClick={saveMember}
-              disabled={isSaving || !formData.full_name.trim() || !formData.roll_number.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.tenure_start_date.trim() || !formData.designation.trim()}
+              disabled={isSaving || !formData.full_name.trim() || !formData.roll_number.trim() || !formData.email.trim() || !formData.email.trim().endsWith('@dau.ac.in') || !isValidPhoneNumber(formData.phone) || !formData.tenure_start_date.trim() || !formData.designation.trim()}
               className="rounded-xl w-full sm:w-auto"
             >
               {isSaving ? 'Saving...' : editingMember ? 'Save Changes' : 'Add Member'}

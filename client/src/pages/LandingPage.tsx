@@ -598,7 +598,7 @@ const LandingPage: React.FC = () => {
                                         <h3 className="text-xl font-bold text-gradient-heading tracking-tight truncate flex items-center gap-2">
                                             <span className="truncate">{selectedEvent.eventName}</span>
                                             {!isSameDay(selectedEvent.startTime, selectedEvent.endTime) && (
-                                                <span className="shrink-0 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-gradient-button text-brand border border-brand/20">Multi-Day</span>
+                                                <span className="shrink-0 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-brand/10 text-brand border border-brand/20">Multi-Day</span>
                                             )}
                                         </h3>
                                         <p className="text-sm text-textSecondary mt-1">{selectedEvent.clubName}</p>

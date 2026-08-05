@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Filter, Calendar, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { RefreshCw, Filter, Calendar, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { apiRequest } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { toastError, toastSuccess } from '../lib/toast';
@@ -230,8 +230,9 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
             <div className="text-xs text-textMuted mt-1">
               Type: {ev.event_type ? ev.event_type.replace('_', ' ') : 'N/A'}
             </div>
-            <div className="text-xs text-textMuted mt-1 sm:hidden flex items-center gap-1">
-               <Calendar size={12} /> {new Date(ev.date).toLocaleDateString()}
+            <div className="text-xs text-textMuted mt-1 sm:hidden flex flex-col gap-1">
+               <div className="flex items-center gap-1"><Calendar size={12} /> {new Date(ev.date).toLocaleDateString()}</div>
+               <div className="flex items-center gap-1"><Clock size={12} /> {new Date(ev.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '?'}</div>
             </div>
           </div>
         </div>
@@ -242,6 +243,10 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
             <Calendar size={14} className="text-textMuted shrink-0" />
             <span>{new Date(ev.date).toLocaleDateString()}</span>
           </div>
+          <div className="flex items-center gap-1.5 text-xs text-textMuted">
+            <Clock size={14} className="shrink-0" />
+            <span>{new Date(ev.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '?'}</span>
+          </div>
         </div>
       </td>
       <td className="px-4 sm:px-6 py-4">
@@ -251,7 +256,7 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
       </td>
       <td className="px-4 sm:px-6 py-4 text-right">
         <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-          {!isHistoryTab && !isStarted && (
+          {!isStarted && (
             <>
               {ev.status !== 'rejected' && (
                 <Button

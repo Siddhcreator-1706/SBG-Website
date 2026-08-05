@@ -204,7 +204,25 @@ const AboutSBG: React.FC = () => {
             .sort((a, b) => (DESIGNATION_ORDER[a.designation] || 99) - (DESIGNATION_ORDER[b.designation] || 99));
     }, [members, ecClub]);
 
-    const totalOrgs = stats.club + stats.committee + stats.organisation;
+    const uniqueStudentCounts = useMemo(() => {
+        const counts: Record<string, number> = { club: 0, committee: 0, organisation: 0, total: 0 };
+        const allUniqueIds = new Set<string>();
+        
+        (['club', 'committee', 'organisation'] as const).forEach(tab => {
+            const tabClubs = clubs.filter(c => c.organization_type === tab).map(c => c.id);
+            const tabMembers = members.filter(m => tabClubs.includes(m.club_id));
+            const uniqueIds = new Set(tabMembers.map(m => m.roll_number?.toLowerCase().trim() || m.id));
+            counts[tab] = uniqueIds.size;
+            
+            // Add to total
+            tabMembers.forEach(m => allUniqueIds.add(m.roll_number?.toLowerCase().trim() || m.id));
+        });
+        counts.total = allUniqueIds.size;
+        return counts;
+    }, [clubs, members]);
+
+    // The 4th card will represent total unique members across all organizations
+    const totalMembers = uniqueStudentCounts.total;
 
     const initials = (name: string) => getInitials(name);
 
@@ -235,10 +253,10 @@ const AboutSBG: React.FC = () => {
                 {/* ====== Stats row ====== */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     {[
-                        { label: 'Clubs', value: stats.club, icon: Users, accent: 'text-blue-500', bar: 'bg-blue-500' },
-                        { label: 'Committees', value: stats.committee, icon: Shield, accent: 'text-emerald-500', bar: 'bg-emerald-500' },
-                        { label: 'Organisations', value: stats.organisation, icon: Building2, accent: 'text-amber-500', bar: 'bg-amber-500' },
-                        { label: 'Total Bodies', value: totalOrgs, icon: Globe, accent: 'text-brand', bar: 'bg-brand' },
+                        { label: 'Clubs', value: stats.club, members: uniqueStudentCounts.club, icon: Users, accent: 'text-blue-500', bar: 'bg-blue-500' },
+                        { label: 'Committees', value: stats.committee, members: uniqueStudentCounts.committee, icon: Shield, accent: 'text-emerald-500', bar: 'bg-emerald-500' },
+                        { label: 'Organisations', value: stats.organisation, members: uniqueStudentCounts.organisation, icon: Building2, accent: 'text-amber-500', bar: 'bg-amber-500' },
+                        { label: 'Total Members', value: totalMembers, icon: Globe, accent: 'text-brand', bar: 'bg-brand' },
                     ].map((stat, i) => (
                         <motion.div
                             key={stat.label}
@@ -346,7 +364,7 @@ const AboutSBG: React.FC = () => {
                             </div>
                         </Panel>
 
-                        <Panel icon={<Users size={16} />} title={`Core SBG Members (${sbgMembers.length})`}>
+                        <Panel icon={<Users size={16} />} title={`Core SBG Members`}>
                             {sbgMembers.length === 0 && !loading ? (
                                 <p className="text-sm text-textMuted">No SBG members found. Members are managed by the admin.</p>
                             ) : (
@@ -367,11 +385,6 @@ const AboutSBG: React.FC = () => {
                                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${DESIGNATION_COLORS[member.designation] || 'bg-slate-500/10 text-slate-500 border-slate-500/20'}`}>
                                                         {member.designation}
                                                     </span>
-                                                    {member.roll_number && (
-                                                        <span className="text-[10px] text-textMuted font-medium">
-                                                            ID: {member.roll_number}
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-1 shrink-0">
@@ -400,22 +413,22 @@ const AboutSBG: React.FC = () => {
                             <div className="flex flex-col gap-2">
                                 <button onClick={() => navigate('/clubs-committees')} className="flex items-center justify-between p-3 rounded-xl border border-borderSoft/40 bg-hoverSoft/10 hover:bg-brand/5 hover:border-brand/30 transition-all group text-left">
                                     <span className="text-sm font-medium text-textSecondary group-hover:text-brand transition-colors">Club members</span>
-                                    <span className="font-semibold text-textPrimary">{loading ? '–' : (stats as any).members_club || 0}</span>
+                                    <span className="font-semibold text-textPrimary">{loading ? '–' : uniqueStudentCounts.club}</span>
                                 </button>
                                 <button onClick={() => navigate('/clubs-committees')} className="flex items-center justify-between p-3 rounded-xl border border-borderSoft/40 bg-hoverSoft/10 hover:bg-brand/5 hover:border-brand/30 transition-all group text-left">
                                     <span className="text-sm font-medium text-textSecondary group-hover:text-brand transition-colors">Committee members</span>
-                                    <span className="font-semibold text-textPrimary">{loading ? '–' : (stats as any).members_committee || 0}</span>
+                                    <span className="font-semibold text-textPrimary">{loading ? '–' : uniqueStudentCounts.committee}</span>
                                 </button>
                                 <button onClick={() => navigate('/clubs-committees')} className="flex items-center justify-between p-3 rounded-xl border border-borderSoft/40 bg-hoverSoft/10 hover:bg-brand/5 hover:border-brand/30 transition-all group text-left">
                                     <span className="text-sm font-medium text-textSecondary group-hover:text-brand transition-colors">Organisation members</span>
-                                    <span className="font-semibold text-textPrimary">{loading ? '–' : (stats as any).members_organisation || 0}</span>
+                                    <span className="font-semibold text-textPrimary">{loading ? '–' : uniqueStudentCounts.organisation}</span>
                                 </button>
 
                                 <div className="h-px bg-borderSoft/60 my-1 mx-2" />
 
                                 <div className="flex items-center justify-between p-3 rounded-xl border border-brand/20 bg-brand/5 hover:bg-brand/10 transition-all group cursor-default">
                                     <span className="text-sm font-bold text-textPrimary group-hover:text-brand transition-colors">Total student members</span>
-                                    <span className="font-bold text-brand">{loading ? '–' : ((stats as any).members_club || 0) + ((stats as any).members_committee || 0) + ((stats as any).members_organisation || 0)}</span>
+                                    <span className="font-bold text-brand">{loading ? '–' : uniqueStudentCounts.total}</span>
                                 </div>
                                 <div className="flex items-center justify-between p-3 rounded-xl border border-brand/20 bg-brand/5 hover:bg-brand/10 transition-all group cursor-default">
                                     <span className="text-sm font-bold text-textPrimary group-hover:text-brand transition-colors">Total Activities</span>

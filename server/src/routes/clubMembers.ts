@@ -2,6 +2,7 @@ import express from 'express';
 import { db } from '../db';
 import authMiddleware from '../middleware/auth';
 import { getClubForUser } from '../utils/clubAuth';
+import { isValidPhoneNumber } from '../utils/validation';
 
 const router = express.Router();
 
@@ -90,15 +91,31 @@ router.post('/', authMiddleware, clubOnly, async (req, res) => {
     return res.status(400).json({ error: 'Full name is required' });
   }
 
-  if (!phone || !phone.trim()) {
-    return res.status(400).json({ error: 'Phone number is required' });
+  if (!roll_number || !String(roll_number).trim()) {
+    return res.status(400).json({ error: 'Student ID/Roll Number is required' });
+  }
+
+  if (!phone || !isValidPhoneNumber(phone)) {
+    return res.status(400).json({ error: 'Valid phone number is required' });
   }
 
   if (!tenure_start_date || !tenure_start_date.trim()) {
     return res.status(400).json({ error: 'Tenure start date is required' });
   }
 
-  const validDesignation = designation && designation.trim() ? designation.trim() : 'Core';
+  if (!email || !email.trim()) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  if (!email.trim().endsWith('@dau.ac.in')) {
+    return res.status(400).json({ error: 'Email must end with @dau.ac.in' });
+  }
+
+  if (!designation || !designation.trim()) {
+    return res.status(400).json({ error: 'Designation is required' });
+  }
+
+  const validDesignation = designation.trim();
 
   try {
     const club = await getClubForUser(req);
@@ -207,14 +224,32 @@ router.patch('/:id', authMiddleware, clubOnly, async (req, res) => {
         if (field === 'full_name' && (typeof value !== 'string' || !value.trim())) {
           return res.status(400).json({ error: 'Full name is required' });
         }
-        if (field === 'phone' && (typeof value !== 'string' || !value.trim())) {
-          return res.status(400).json({ error: 'Phone number is required' });
+        if (field === 'roll_number' && (typeof value !== 'string' || !value.trim())) {
+          return res.status(400).json({ error: 'Student ID/Roll Number is required' });
+        }
+        if (field === 'phone') {
+          if (typeof value !== 'string' || !isValidPhoneNumber(value)) {
+            return res.status(400).json({ error: 'Valid phone number is required' });
+          }
+        }
+        if (field === 'email') {
+          if (typeof value !== 'string' || !value.trim()) {
+            return res.status(400).json({ error: 'Email is required' });
+          }
+          if (!value.trim().endsWith('@dau.ac.in')) {
+            return res.status(400).json({ error: 'Email must end with @dau.ac.in' });
+          }
+        }
+        if (field === 'tenure_start_date' && (typeof value !== 'string' || !value.trim())) {
+          return res.status(400).json({ error: 'Tenure start date is required' });
         }
         updates.push(`${field} = $${paramIndex}`);
         
         if (field === 'designation') {
-          const validDesignation = typeof value === 'string' && value.trim() ? value.trim() : 'Core';
-          values.push(validDesignation);
+          if (typeof value !== 'string' || !value.trim()) {
+            return res.status(400).json({ error: 'Designation is required' });
+          }
+          values.push(value.trim());
         } else {
           const trimmed = typeof value === 'string' ? value.trim() : value;
           values.push(trimmed === '' ? null : (trimmed ?? null));

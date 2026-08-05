@@ -45,7 +45,6 @@ const adminLinks = [
   { to: '/admin/event-requests', label: 'Event Registrations', icon: CalendarDays },
   { to: '/admin/clubs', label: 'Clubs', icon: Users },
   { to: '/admin/venues', label: 'Venues', icon: MapPin },
-  { to: '/manage-events', label: 'Manage Events', icon: Calendar },
   { to: '/admin/event-reports', label: 'Event Reports', icon: FileText },
   { to: '/members', label: 'Members', icon: Users },
   { to: '/archives', label: 'Archives', icon: Archive },

@@ -62,26 +62,35 @@ interface CommitteeMember {
     club_name: string;
     full_name: string;
     roll_number: string | null;
-    designation: 'Convener' | 'Dy. Convener' | 'Core' | 'Others';
+    designation: string;
     phone: string | null;
     tenure_start_date: string | null;
     tenure_end_date: string | null;
 }
 
-const DESIGNATION_ORDER = {
-    'Convener': 1,
-    'Dy. Convener': 2,
-    'Core': 3,
-    'Others': 4,
-};
-
-const DESIGNATION_BADGES = {
-    'Convener': 'bg-brand/10 text-brand border-brand/20',
-    'Dy. Convener': 'bg-orange-500/10 text-orange-600 border-orange-500/20',
-    'Core': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-};
-
 const DEFAULT_BADGE_STYLE = 'bg-slate-500/10 text-slate-500 border-slate-500/20';
+
+const getDesignationRank = (des?: string) => {
+    if (!des) return 6;
+    const d = des.toLowerCase().trim();
+    if (d === 'convener') return 1;
+    if (d === 'dy. convener' || d === 'dy convener') return 2;
+    if (d === 'core') return 4;
+    if (d === 'extended core' || d === 'associate core') return 5;
+    if (d === 'others') return 6;
+    return 3; // Special member tags
+};
+
+const getDesignationBadgeStyle = (des?: string) => {
+    if (!des) return DEFAULT_BADGE_STYLE;
+    const d = des.toLowerCase().trim();
+    if (d === 'convener') return 'bg-brand/10 text-brand border-brand/20';
+    if (d === 'dy. convener' || d === 'dy convener') return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
+    if (d === 'core') return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+    if (d === 'extended core' || d === 'associate core') return DEFAULT_BADGE_STYLE;
+    if (d === 'others') return DEFAULT_BADGE_STYLE;
+    return 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20'; // Special tags
+};
 
 const ClubsCommitteesPage: React.FC = () => {
     const navigate = useNavigate();
@@ -95,21 +104,24 @@ const ClubsCommitteesPage: React.FC = () => {
     const selectedClubMembers = useMemo(() => {
         if (!selectedClubForModal) return [];
         let clubMems = members.filter(m => m.club_id === selectedClubForModal.id);
+        
+        clubMems.sort((a, b) => getDesignationRank(a.designation) - getDesignationRank(b.designation));
+
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
+            const matchesClub = selectedClubForModal.name.toLowerCase().includes(q) ||
+                selectedClubForModal.email.toLowerCase().includes(q) ||
+                (!!selectedClubForModal.member_tag && selectedClubForModal.member_tag.toLowerCase().includes(q));
+            
+            if (matchesClub) {
+                return clubMems;
+            }
+
             clubMems = clubMems.filter(m =>
                 m.full_name.toLowerCase().includes(q) ||
                 (m.designation && m.designation.toLowerCase().includes(q)) ||
                 (m.roll_number && String(m.roll_number).toLowerCase().includes(q))
             );
-            // If the query matched the club name/tag, don't filter out members. 
-            // Only filter members if the query didn't match the club.
-            const matchesClub = selectedClubForModal.name.toLowerCase().includes(q) ||
-                selectedClubForModal.email.toLowerCase().includes(q) ||
-                (!!selectedClubForModal.member_tag && selectedClubForModal.member_tag.toLowerCase().includes(q));
-            if (matchesClub) {
-                return members.filter(m => m.club_id === selectedClubForModal.id);
-            }
         }
         return clubMems;
     }, [members, selectedClubForModal, searchQuery]);
@@ -132,8 +144,6 @@ const ClubsCommitteesPage: React.FC = () => {
         };
         fetchData();
     }, []);
-
-
 
     const filteredClubs = useMemo(() => {
         return clubs.filter(c => {
@@ -295,7 +305,7 @@ const ClubsCommitteesPage: React.FC = () => {
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <span className="font-bold text-textPrimary text-sm sm:text-base">{member.full_name}</span>
-                                                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${DESIGNATION_BADGES[member.designation as keyof typeof DESIGNATION_BADGES] || DEFAULT_BADGE_STYLE}`}>
+                                                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${getDesignationBadgeStyle(member.designation)}`}>
                                                         {member.designation}
                                                     </span>
                                                 </div>
@@ -312,7 +322,6 @@ const ClubsCommitteesPage: React.FC = () => {
                                                     className="h-8 px-3 rounded-lg border border-borderSoft/60 bg-background hover:bg-hoverSoft hover:text-brand text-xs font-semibold text-textSecondary flex items-center gap-1.5 self-start sm:self-center transition-all shadow-sm"
                                                 >
                                                     <Phone size={12} />
-                                                    {member.phone}
                                                 </a>
                                             )}
                                         </div>
