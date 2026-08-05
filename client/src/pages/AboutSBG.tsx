@@ -158,7 +158,7 @@ const AboutSBG: React.FC = () => {
     const [members, setMembers] = useState<Member[]>([]);
     const [stats, setStats] = useState<Record<string, number>>({ club: 0, committee: 0, organisation: 0 });
     const [settings, setSettings] = useState<Record<string, string>>({});
-    const [loading, setLoading] = useState(true);    
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         let mounted = true;
@@ -211,13 +211,13 @@ const AboutSBG: React.FC = () => {
     const uniqueStudentCounts = useMemo(() => {
         const counts: Record<string, number> = { club: 0, committee: 0, organisation: 0, total: 0 };
         const allUniqueIds = new Set<string>();
-        
+
         (['club', 'committee', 'organisation'] as const).forEach(tab => {
             const tabClubs = clubs.filter(c => c.organization_type === tab).map(c => c.id);
             const tabMembers = members.filter(m => tabClubs.includes(m.club_id));
             const uniqueIds = new Set(tabMembers.map(m => m.roll_number?.toLowerCase().trim() || m.id));
             counts[tab] = uniqueIds.size;
-            
+
             // Add to total
             tabMembers.forEach(m => allUniqueIds.add(m.roll_number?.toLowerCase().trim() || m.id));
         });
@@ -325,8 +325,8 @@ const AboutSBG: React.FC = () => {
                                             </svg>
                                         </div>
                                         <div className="flex items-center gap-3 rounded-xl border border-borderSoft/60 bg-card hover:bg-hoverSoft/20 transition-all px-4 py-3 shadow-sm relative z-10">
-                                            <span className="h-9 w-9 rounded-lg bg-card border border-brand/20 flex items-center justify-center shrink-0 p-1.5">
-                                                <img src={sbgClub?.logo_url || "/sbg_logo.webp"} alt="SBG" width="36" height="36" className="w-full h-full object-contain" loading="lazy" />
+                                            <span className="h-9 w-9 rounded-lg bg-card border border-brand/20 flex items-center justify-center shrink-0 overflow-hidden">
+                                                <img src={sbgClub?.logo_url || "/sbg_logo.webp"} alt="SBG" width="36" height="36" className="w-full h-full" loading="lazy" />
                                             </span>
                                             <div className="min-w-0">
                                                 <p className="font-semibold text-textPrimary text-sm">Student Body Government (SBG)</p>
@@ -349,8 +349,8 @@ const AboutSBG: React.FC = () => {
                                             className="flex items-center gap-3 rounded-xl border border-borderSoft/60 bg-card hover:bg-hoverSoft/40 hover:border-violet-500/30 transition-all px-4 py-3 text-left w-full cursor-pointer shadow-sm relative z-10"
                                         >
                                             {ecClub?.logo_url ? (
-                                                <span className="h-9 w-9 rounded-lg bg-card border border-brand/20 flex items-center justify-center shrink-0 p-1.5">
-                                                    <img src={ecClub.logo_url} alt="EC" width="36" height="36" className="w-full h-full object-contain" loading="lazy" />
+                                                <span className="h-9 w-9 rounded-lg bg-card border border-brand/20 flex items-center justify-center shrink-0 overflow-hidden">
+                                                    <img src={ecClub.logo_url} alt="EC" width="36" height="36" className="w-full h-full object-cover" loading="lazy" />
                                                 </span>
                                             ) : (
                                                 <span className="h-9 w-9 rounded-lg bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
@@ -487,9 +487,13 @@ const AboutSBG: React.FC = () => {
                     <div className="p-6">
                         <DialogHeader className="mb-6 space-y-1 pr-8">
                             <div className="flex items-center gap-3 mb-2">
-                                <span className="h-10 w-10 shrink-0 rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center">
-                                    <Building2 size={20} />
-                                </span>
+                                {ecClub?.logo_url ? (
+                                    <img src={ecClub.logo_url} alt="EC Logo" className="h-10 w-10 shrink-0 rounded-xl object-cover bg-card border border-borderSoft/60 shadow-sm overflow-hidden" />
+                                ) : (
+                                    <span className="h-10 w-10 shrink-0 rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+                                        <Building2 size={20} />
+                                    </span>
+                                )}
                                 <div>
                                     <DialogTitle className="text-lg sm:text-xl font-bold text-textPrimary leading-tight">The Election Commission</DialogTitle>
                                     <p className="text-sm font-medium text-violet-600 dark:text-violet-400 mt-0.5">Independent Body</p>
@@ -530,8 +534,12 @@ const AboutSBG: React.FC = () => {
                                     <div className="flex flex-col gap-2.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                                         {ecMembers.map(member => (
                                             <div key={member.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-hoverSoft/20 border border-borderSoft/40">
-                                                <div className="h-9 w-9 rounded-full bg-violet-500/15 border border-violet-500/20 flex items-center justify-center shrink-0">
-                                                    <span className="text-xs font-bold text-violet-600 dark:text-violet-400">{initials(member.full_name)}</span>
+                                                <div className="h-9 w-9 rounded-full bg-violet-500/15 border border-violet-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                                                    {((member as any).profile_picture_url || (member as any).photo_url) ? (
+                                                        <img src={(member as any).profile_picture_url || (member as any).photo_url} alt={member.full_name} className="h-full w-full object-cover" />
+                                                    ) : (
+                                                        <span className="text-xs font-bold text-violet-600 dark:text-violet-400">{initials(member.full_name)}</span>
+                                                    )}
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <p className="font-semibold text-textPrimary text-sm truncate">{member.full_name}</p>

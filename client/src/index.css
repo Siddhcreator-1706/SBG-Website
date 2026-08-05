@@ -19,13 +19,13 @@
   --btn-grad-start: #3B82F6;
   --btn-grad-end: #4F46E5;
 
-  --bgMain: #F1F5F9;
-  --card: #FFFFFF;
-  --borderSoft: rgba(15, 23, 42, 0.1);
-  --hoverSoft: rgba(15, 23, 42, 0.04);
-  --textPrimary: #0F172A;
-  --textSecondary: #334155;
-  --textMuted: #64748B;
+  --bgMain: #E2E8F0;
+  --card: #F8FAFC;
+  --borderSoft: rgba(15, 23, 42, 0.25);
+  --hoverSoft: rgba(15, 23, 42, 0.12);
+  --textPrimary: #020617;
+  --textSecondary: #0F172A;
+  --textMuted: #334155;
 
   --brand: #4F46E5;
   --brand-glow: rgba(79, 70, 229, 0.1);
@@ -35,13 +35,13 @@
   --error: #EF4444;
   --warning: #F59E0B;
 
-  --popover: #FFFFFF;
+  --popover: #F8FAFC;
   --popover-foreground: #0F172A;
   --accent: rgba(15, 23, 42, 0.04);
   --accent-foreground: #0F172A;
 
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-bg: rgba(248, 250, 252, 0.85);
+  --glass-border: rgba(248, 250, 252, 0.3);
   --glass-blur: 12px;
 
   --sidebar-width: 272px;
@@ -272,13 +272,6 @@
   }
 
   .btn-shimmer { animation: shimmer 2s infinite; }
-
-  /* Touch-friendly targets for mobile */
-  @media (pointer: coarse) {
-    button, a, [role="button"], input, select, textarea {
-      min-height: 44px;
-    }
-  }
 
   button, a, [role="button"] {
     -webkit-user-select: none;
