@@ -72,16 +72,6 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
 
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
 
-  const reloadEvents = async () => {
-    try {
-      const eventsData = await apiRequest<AppEvent[]>('/api/events', { auth: true });
-      setEvents(eventsData);
-      return eventsData;
-    } catch (error) {
-      console.error('Failed to reload events:', error);
-    }
-  };
-
   useEffect(() => {
     if (currentUser && currentUser.role === 'club') {
       setFormData(prev => ({ ...prev, clubName: currentUser.name }));
@@ -405,6 +395,32 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Events a booking may be linked to. Short-notice events are created with
+  // status 'pending' (they need admin approval), so they must stay selectable —
+  // filtering to 'active' only meant a freshly registered event disappeared from
+  // this list while event_id was still set to it, leaving the trigger blank.
+  const selectableEvents = React.useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return events.filter(e => {
+      if (e.status === 'cancelled' || e.status === 'rejected') return false;
+      const endsOn = new Date(e.dynamic_end_date || e.date);
+      endsOn.setHours(0, 0, 0, 0);
+      return endsOn >= today;
+    });
+  }, [events]);
+
+  const selectedEvent = selectableEvents.find(e => e.id === formData.event_id);
+
+  // Drop a stale link (event deleted, cancelled or now in the past) so the
+  // trigger falls back to its placeholder instead of rendering empty.
+  useEffect(() => {
+    if (!formData.event_id || events.length === 0) return;
+    if (!selectableEvents.some(e => e.id === formData.event_id)) {
+      setFormData(prev => ({ ...prev, event_id: '' }));
+    }
+  }, [formData.event_id, selectableEvents, events.length]);
+
   const handleVenueToggle = (venueId: string) => {
     if (busyVenueIds.includes(venueId)) return;
     setFormData(prev => {
@@ -490,7 +506,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="max-w-5xl mx-auto space-y-8 w-full pb-10 px-4"
+      className="max-w-5xl mx-auto space-y-6 sm:space-y-8 w-full pb-10"
     >
       {/* Enhanced Header */}
       <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-10">
@@ -552,7 +568,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
           <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-0">
 
             {/* Sidebar / Left Panel Context Info */}
-            <div className="lg:col-span-4 bg-hoverSoft/30 p-8 space-y-8 lg:border-r border-borderSoft lg:border-b-0 border-b">
+            <div className="lg:col-span-4 bg-hoverSoft/30 p-5 sm:p-8 space-y-6 sm:space-y-8 lg:border-r border-borderSoft lg:border-b-0 border-b">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="h-8 w-1.5 bg-gradient-to-b from-brand to-brandLink rounded-full" />
@@ -637,13 +653,13 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
             </div>
 
             {/* Main Form Area - Enhanced */}
-            <div className="lg:col-span-8 p-8 space-y-8">
+            <div className="lg:col-span-8 p-5 sm:p-8 space-y-7 sm:space-y-8">
 
               {/* Event Info */}
               <section className="space-y-5">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-8 w-1.5 bg-gradient-to-b from-brand to-brandLink rounded-full" />
-                  <h2 className="text-2xl font-bold text-textPrimary">Event Details</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">Event Details</h2>
                 </div>
 
                 <div className="grid grid-cols-1 gap-6">
@@ -662,25 +678,43 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                       </Button>
                     </div>
                     <Select value={formData.event_id || ''} onValueChange={(v) => handleChange('event_id', v)}>
-                      <SelectTrigger id="event_id" className="h-10 border-borderSoft hover:bg-hoverSoft/50 focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl">
-                        <SelectValue placeholder={events.length > 0 ? "Select an Event..." : "No events registered yet."} />
+                      <SelectTrigger id="event_id" className="h-11 border-borderSoft hover:bg-hoverSoft/50 focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl">
+                        <SelectValue placeholder={selectableEvents.length > 0 ? "Select an event…" : "No events registered yet"} />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl">
-                        {events
-                          .filter(e => {
-                            const eventDate = new Date(e.dynamic_end_date || e.date);
-                            eventDate.setHours(0, 0, 0, 0);
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            return eventDate >= today && e.status === 'active';
-                          })
-                          .map(e => (
-                            <SelectItem key={e.id} value={e.id} className="cursor-pointer">
-                              <span className="font-semibold">{e.name}</span> <span className="text-textMuted text-xs">({new Date(e.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })})</span>
+                        {selectableEvents.length === 0 ? (
+                          <p className="px-3 py-6 text-center text-sm text-textMuted">
+                            No upcoming events.<br />
+                            <span className="text-xs">Use “Register Event” to create one.</span>
+                          </p>
+                        ) : (
+                          selectableEvents.map(e => (
+                            <SelectItem
+                              key={e.id}
+                              value={e.id}
+                              textValue={e.name}
+                              className="cursor-pointer"
+                              trailing={e.status === 'pending' ? (
+                                <span className="text-[10px] font-bold uppercase tracking-wide text-warning bg-warning/10 border border-warning/30 px-1.5 py-0.5 rounded">
+                                  Awaiting approval
+                                </span>
+                              ) : undefined}
+                            >
+                              <span className="font-semibold">{e.name}</span>{' '}
+                              <span className="text-textMuted text-xs">
+                                ({new Date(e.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })})
+                              </span>
                             </SelectItem>
-                          ))}
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
+                    {selectedEvent?.status === 'pending' && (
+                      <p className="text-xs text-warning font-medium flex items-start gap-1.5">
+                        <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                        This event is still awaiting admin approval — bookings linked to it stay pending until it is approved.
+                      </p>
+                    )}
                   </div>
 
 
@@ -711,7 +745,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
               <section className="space-y-5">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-8 w-1.5 bg-gradient-to-b from-brand to-brandLink rounded-full" />
-                  <h2 className="text-2xl font-bold text-textPrimary">Date & Time</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">Date & Time</h2>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -876,7 +910,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
               <section className="space-y-5">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-8 w-1.5 bg-gradient-to-b from-brand to-brandLink rounded-full" />
-                  <h2 className="text-2xl font-bold text-textPrimary">Select Venue</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">Select Venue</h2>
                 </div>
 
                 <div className="space-y-3">
@@ -1074,7 +1108,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
               <section className="space-y-5">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-8 w-1.5 bg-gradient-to-b from-brand to-brandLink rounded-full" />
-                  <h2 className="text-2xl font-bold text-textPrimary">List of Permissions (if any)</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">List of Permissions (if any)</h2>
                 </div>
                 <div className="space-y-2.5">
                   <Label htmlFor="permissionsLink" className="text-textSecondary font-semibold text-sm">Drive Link to Document (Optional)</Label>
