@@ -27,7 +27,7 @@ export function DatePicker({ date, setDate, minDate, className }: DatePickerProp
                 <Button
                     variant={"outline"}
                     className={cn(
-                        "w-full h-10 justify-start text-left font-normal border-borderSoft bg-white/90 dark:bg-white/5 backdrop-blur-sm hover:bg-hoverSoft transition-all text-textPrimary rounded-xl shadow-sm overflow-hidden",
+                        "w-full h-11 sm:h-10 justify-start text-left font-normal border-borderSoft bg-white/90 dark:bg-white/5 backdrop-blur-sm hover:bg-hoverSoft transition-all text-textPrimary rounded-xl shadow-sm overflow-hidden",
                         !date && "text-textMuted",
                         className
                     )}
