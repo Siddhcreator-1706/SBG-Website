@@ -89,7 +89,9 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         ]);
         setClubs(clubsData);
         setVenues(venuesData);
-        setEvents(eventsData);
+        setEvents(
+          (eventsData || []).map(e => ({ ...e, id: String(e.id) }))
+        );
       } catch (error) {
         console.error('Failed to load clubs/venues:', error);
         setMetaError(getErrorMessage(error, 'Failed to load clubs and venues. Please refresh the page.'));
@@ -113,7 +115,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         startTime: prefill.startTime || '',
         endTime: prefill.endTime || '',
         clubName: prefill.clubName || prev.clubName,
-        event_id: prefill.event_id || ''
+        event_id: prefill.event_id ? String(prefill.event_id) : ''
       }));
 
       if (prefill.date) {
@@ -395,31 +397,49 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Calendar day in IST — event timestamps are TIMESTAMPTZ and naive
+  // setHours(0,0,0,0) in the browser TZ can drop same-day / near-day events.
+  const istDay = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+
   // Events a booking may be linked to. Short-notice events are created with
   // status 'pending' (they need admin approval), so they must stay selectable —
   // filtering to 'active' only meant a freshly registered event disappeared from
-  // this list while event_id was still set to it, leaving the trigger blank.
+  // this list while event_id was still set to it, which breaks Radix Select
+  // (controlled value with no matching SelectItem → blank / unusable trigger).
   const selectableEvents = React.useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return events.filter(e => {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    const filtered = events.filter(e => {
+      if (!e?.id) return false;
       if (e.status === 'cancelled' || e.status === 'rejected') return false;
-      const endsOn = new Date(e.dynamic_end_date || e.date);
-      endsOn.setHours(0, 0, 0, 0);
-      return endsOn >= today;
+      const endIso = e.dynamic_end_date || e.end_date || e.date;
+      if (!endIso) return true;
+      return istDay(endIso) >= today;
     });
-  }, [events]);
+
+    // Keep the currently linked event in the list even if date math would
+    // exclude it — otherwise Radix has a value with no SelectItem and the
+    // dropdown appears broken.
+    if (formData.event_id && !filtered.some(e => e.id === formData.event_id)) {
+      const selected = events.find(e => e.id === formData.event_id);
+      if (selected && selected.status !== 'cancelled' && selected.status !== 'rejected') {
+        return [selected, ...filtered];
+      }
+    }
+    return filtered;
+  }, [events, formData.event_id]);
 
   const selectedEvent = selectableEvents.find(e => e.id === formData.event_id);
 
-  // Drop a stale link (event deleted, cancelled or now in the past) so the
-  // trigger falls back to its placeholder instead of rendering empty.
+  // Only clear the link when the event is gone or explicitly not bookable —
+  // do not clear for date-filter edge cases (those stay visible above).
   useEffect(() => {
     if (!formData.event_id || events.length === 0) return;
-    if (!selectableEvents.some(e => e.id === formData.event_id)) {
+    const linked = events.find(e => e.id === formData.event_id);
+    if (!linked || linked.status === 'cancelled' || linked.status === 'rejected') {
       setFormData(prev => ({ ...prev, event_id: '' }));
     }
-  }, [formData.event_id, selectableEvents, events.length]);
+  }, [formData.event_id, events]);
 
   const handleVenueToggle = (venueId: string) => {
     if (busyVenueIds.includes(venueId)) return;
@@ -677,7 +697,10 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                         Register Event
                       </Button>
                     </div>
-                    <Select value={formData.event_id || ''} onValueChange={(v) => handleChange('event_id', v)}>
+                    <Select
+                      value={formData.event_id}
+                      onValueChange={(v) => handleChange('event_id', v)}
+                    >
                       <SelectTrigger id="event_id" className="h-11 border-borderSoft hover:bg-hoverSoft/50 focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl">
                         <SelectValue placeholder={selectableEvents.length > 0 ? "Select an event…" : "No events registered yet"} />
                       </SelectTrigger>
@@ -691,7 +714,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                           selectableEvents.map(e => (
                             <SelectItem
                               key={e.id}
-                              value={e.id}
+                              value={String(e.id)}
                               textValue={e.name}
                               className="cursor-pointer"
                               trailing={e.status === 'pending' ? (
@@ -1170,8 +1193,12 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         onOpenChange={setIsAddEventOpen}
         currentUser={currentUser}
         onEventCreated={(createdEvent) => {
-          setEvents(prev => [createdEvent, ...prev]);
-          setFormData(prev => ({ ...prev, event_id: createdEvent.id }));
+          const id = String(createdEvent.id);
+          setEvents(prev => {
+            const without = prev.filter(e => e.id !== id);
+            return [{ ...createdEvent, id }, ...without];
+          });
+          setFormData(prev => ({ ...prev, event_id: id }));
         }}
       />
     </motion.div>
