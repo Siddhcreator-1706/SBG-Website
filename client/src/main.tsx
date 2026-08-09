@@ -20,6 +20,15 @@ root.render(
         richColors
         closeButton
         position="top-center"
+        // The app is a standalone PWA with viewport-fit=cover and a translucent
+        // status bar, so the viewport starts behind the notch/Dynamic Island.
+        // Without the inset a top-center toast renders under it.
+        offset={{ top: 'calc(env(safe-area-inset-top, 0px) + 24px)' }}
+        mobileOffset={{
+          top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+          left: '12px',
+          right: '12px',
+        }}
         toastOptions={{
           classNames: {
             toast: 'rounded-2xl border border-borderSoft bg-card/95 backdrop-blur-xl shadow-[0_8px_40px_rgba(16,24,40,0.14)]',

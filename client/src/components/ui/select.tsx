@@ -16,7 +16,8 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-lg border border-borderSoft/80 dark:border-white/10 bg-white/90 dark:bg-white/5 backdrop-blur-sm px-3 py-2 text-sm text-textPrimary placeholder:text-textMuted focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 transition-colors cursor-pointer",
+      // text-base on mobile keeps iOS Safari from zooming the viewport on focus
+      "flex h-11 sm:h-10 w-full items-center justify-between rounded-lg border border-borderSoft/80 dark:border-white/10 bg-white/90 dark:bg-white/5 backdrop-blur-sm px-3 py-2 text-base sm:text-sm text-textPrimary placeholder:text-textMuted focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 [&>span]:text-left transition-colors cursor-pointer",
       className
     )}
     {...props}
@@ -72,7 +73,9 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-xl border border-borderSoft/80 dark:border-white/10 bg-white/95 dark:bg-bgMain/95 backdrop-blur-xl text-textPrimary shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        // Cap height to the space Radix measured, with a 24rem fallback so a
+        // missing/0 available-height var cannot collapse the menu to invisible.
+        "relative z-50 max-h-[min(24rem,var(--radix-select-content-available-height,24rem))] min-w-[8rem] overflow-hidden rounded-xl border border-borderSoft/80 dark:border-white/10 bg-white/95 dark:bg-bgMain/95 backdrop-blur-xl text-textPrimary shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className
@@ -83,7 +86,7 @@ const SelectContent = React.forwardRef<
       {!hideScrollButtons && <SelectScrollUpButton />}
       <SelectPrimitive.Viewport
         className={cn(
-          "p-1",
+          "p-1 overflow-y-auto overscroll-contain",
           position === "popper" &&
           "w-full min-w-[var(--radix-select-trigger-width)]"
         )}
@@ -110,12 +113,21 @@ SelectLabel.displayName = SelectPrimitive.Label.displayName
 
 const SelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item> & {
+    /**
+     * Rendered at the end of the row inside the list only. Radix mirrors
+     * everything inside ItemText into the closed trigger, so list-only
+     * metadata (badges, hints) belongs here rather than in `children`.
+     */
+    trailing?: React.ReactNode
+  }
+>(({ className, children, trailing, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-pointer select-none items-center rounded-lg py-2.5 pl-8 pr-2 text-sm text-textPrimary outline-none focus:bg-hoverSoft data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors",
+      "relative flex w-full cursor-pointer select-none items-center gap-2 rounded-lg py-2.5 pl-8 pr-2 text-sm text-textPrimary outline-none focus:bg-hoverSoft data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors",
+      // comfortable touch target on coarse pointers
+      "min-h-11 sm:min-h-0",
       className
     )}
     {...props}
@@ -127,6 +139,7 @@ const SelectItem = React.forwardRef<
     </span>
 
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    {trailing ? <span className="ml-auto shrink-0">{trailing}</span> : null}
   </SelectPrimitive.Item>
 ))
 SelectItem.displayName = SelectPrimitive.Item.displayName

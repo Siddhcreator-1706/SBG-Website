@@ -50,6 +50,7 @@ export interface AppEvent {
   club_id: string;
   name: string;
   date: string;
+  end_date?: string | null;
   venue: string | null;
   dynamic_end_date?: string;
   event_type?: EventType;

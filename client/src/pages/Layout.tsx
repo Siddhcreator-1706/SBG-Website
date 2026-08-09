@@ -26,7 +26,7 @@ import NotificationPanel from '../components/NotificationPanel';
 import { ThemeToggle } from '../components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '../components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle } from '../components/ui/sheet';
 import { getSocket } from '../lib/socket';
 import { User } from '../types';
 
@@ -37,14 +37,14 @@ interface LayoutProps {
 }
 
 const adminLinks = [
-  { to: '/', label: 'Dashboard', icon: ShieldCheck, end: true },
-  { to: '/admin/requests', label: 'Slot Requests', icon: ClipboardList },
-  { to: '/admin/event-requests', label: 'Event Registrations', icon: CalendarDays },
-  { to: '/admin/clubs', label: 'Clubs', icon: Users },
-  { to: '/admin/venues', label: 'Venues', icon: MapPin },
-  { to: '/admin/event-reports', label: 'Event Reports', icon: FileText },
-  { to: '/members', label: 'Members', icon: Users },
-  { to: '/archives', label: 'Archives', icon: Archive },
+  { to: '/', label: 'Dashboard', short: 'Home', icon: ShieldCheck, end: true },
+  { to: '/admin/requests', label: 'Slot Requests', short: 'Slots', icon: ClipboardList },
+  { to: '/admin/event-requests', label: 'Event Registrations', short: 'Events', icon: CalendarDays },
+  { to: '/admin/clubs', label: 'Clubs', short: 'Clubs', icon: Users },
+  { to: '/admin/venues', label: 'Venues', short: 'Venues', icon: MapPin },
+  { to: '/admin/event-reports', label: 'Event Reports', short: 'Reports', icon: FileText },
+  { to: '/members', label: 'Members', short: 'Members', icon: Users },
+  { to: '/archives', label: 'Archives', short: 'Archives', icon: Archive },
 ];
 
 const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
@@ -55,18 +55,22 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     ? (user.organization_type === 'other' ? 'Club' : user.organization_type.charAt(0).toUpperCase() + user.organization_type.slice(1)) 
     : (user.name.toLowerCase().includes('committee') ? 'Committee' : 'Club');
 
-  const links = user.role === 'club' 
+  const links = user.role === 'club'
     ? [
-        { to: '/', label: `${clubLabel} Portal`, icon: Home, end: true },
-        { to: '/book', label: 'Book Venue', icon: CalendarPlus },
-        { to: '/my-bookings', label: 'My Bookings', icon: ListTodo },
-        { to: '/manage-events', label: 'Manage Events', icon: Calendar },
-        { to: '/event-reports', label: 'Event Reports', icon: FileText },
-        { to: '/members', label: 'Members', icon: Users },
-        { to: '/archives', label: 'Archives', icon: Archive },
-        { to: '/policy', label: 'Policy', icon: FileText },
+        { to: '/', label: `${clubLabel} Portal`, short: 'Home', icon: Home, end: true },
+        { to: '/book', label: 'Book Venue', short: 'Book', icon: CalendarPlus },
+        { to: '/my-bookings', label: 'My Bookings', short: 'Bookings', icon: ListTodo },
+        { to: '/manage-events', label: 'Manage Events', short: 'Events', icon: Calendar },
+        { to: '/event-reports', label: 'Event Reports', short: 'Reports', icon: FileText },
+        { to: '/members', label: 'Members', short: 'Members', icon: Users },
+        { to: '/archives', label: 'Archives', short: 'Archives', icon: Archive },
+        { to: '/policy', label: 'Policy', short: 'Policy', icon: FileText },
       ]
     : adminLinks;
+
+  // Bottom bar carries the four most-used destinations; the rest stay one tap
+  // away behind "More", which opens the same drawer the sidebar uses.
+  const primaryLinks = links.slice(0, 4);
 
   React.useEffect(() => {
     if (user.role !== 'club') return;
@@ -103,10 +107,11 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
   const mobileNavClass = (isActive: boolean) =>
     cn(
-      'flex flex-col items-center justify-center gap-0.5 py-1 px-2 rounded-xl transition-all duration-200 relative min-h-0 cursor-pointer',
+      'flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl transition-colors duration-200 relative cursor-pointer select-none',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
       isActive
         ? 'text-brand'
-        : 'text-textMuted active:text-textPrimary'
+        : 'text-textMuted active:bg-hoverSoft active:text-textPrimary'
     );
 
   return (
@@ -195,18 +200,16 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)' }}
         >
           <div className="flex items-center gap-3 min-w-0">
-            {/* Mobile Hamburger & Logo */}
-            <div className="lg:hidden flex items-center gap-3">
+            {/* Mobile: logo in the header, navigation lives in the bottom bar */}
+            <div className="lg:hidden flex items-center gap-3 min-w-0">
+              <Logo size="sm" />
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 p-0 text-textPrimary hover:bg-hoverSoft cursor-pointer">
-                    <Menu className="h-5 w-5" />
-                    <span className="sr-only">Toggle Menu</span>
-                  </Button>
-                </SheetTrigger>
                 <SheetContent side="left" className="w-[280px] sm:w-[320px] flex flex-col p-0 border-r border-borderSoft bg-card/90 backdrop-blur-xl">
                   <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                  <div className="p-5 border-b border-borderSoft">
+                  <div
+                    className="p-5 border-b border-borderSoft"
+                    style={{ paddingTop: 'max(env(safe-area-inset-top), 1.25rem)' }}
+                  >
                     <Logo size="md" />
                   </div>
                   <nav aria-label="Sidebar navigation" className="flex-1 flex flex-col gap-1 p-3 overflow-y-auto overscroll-contain scrollbar-hide">
@@ -288,7 +291,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         </motion.header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 mb-bottom-nav">
           <div className="max-w-7xl mx-auto w-full">
             <AnimatePresence mode="wait">
               <motion.div
@@ -310,9 +313,53 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         </footer>
       </div>
 
-      <ChangePasswordModal 
-        open={isPasswordModalOpen} 
-        onOpenChange={setIsPasswordModalOpen} 
+      {/* ====== Mobile Bottom Navigation ====== */}
+      <nav
+        aria-label="Primary"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-borderSoft bg-card/95 backdrop-blur-xl"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        <div className="grid grid-cols-5 items-stretch px-1 h-(--bottom-nav-height)">
+          {primaryLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.end}
+              className={({ isActive }) => mobileNavClass(isActive)}
+            >
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <motion.div
+                      layoutId="bottom-nav-active"
+                      className="absolute inset-x-1.5 top-0 h-0.5 rounded-full bg-brand"
+                      transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                  <link.icon size={21} strokeWidth={isActive ? 2.4 : 1.8} />
+                  <span className="text-[10px] font-semibold leading-none truncate max-w-full">
+                    {link.short}
+                  </span>
+                </>
+              )}
+            </NavLink>
+          ))}
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label="More navigation options"
+            aria-expanded={isMobileMenuOpen}
+            className={mobileNavClass(isMobileMenuOpen)}
+          >
+            <Menu size={21} strokeWidth={isMobileMenuOpen ? 2.4 : 1.8} />
+            <span className="text-[10px] font-semibold leading-none">More</span>
+          </button>
+        </div>
+      </nav>
+
+      <ChangePasswordModal
+        open={isPasswordModalOpen}
+        onOpenChange={setIsPasswordModalOpen}
         userEmail={user.email}
       />
     </div>

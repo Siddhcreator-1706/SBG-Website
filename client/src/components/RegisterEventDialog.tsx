@@ -127,7 +127,11 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
                     ...(currentUser?.role === 'admin' && selectedClubId ? { club_id: selectedClubId } : {})
                 }
             });
-            toastSuccess('Event registered successfully');
+            toastSuccess(
+                createdEvent.status === 'pending'
+                    ? 'Event submitted — awaiting admin approval'
+                    : 'Event registered successfully'
+            );
             onEventCreated(createdEvent);
             onOpenChange(false);
         } catch (err) {
@@ -139,7 +143,7 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md rounded-2xl bg-card border border-borderSoft text-textPrimary overflow-y-auto max-h-[85dvh]">
+            <DialogContent className="sm:max-w-md bg-card border border-borderSoft text-textPrimary overflow-y-auto sm:rounded-2xl sm:max-h-[85dvh]">
                 <DialogHeader>
                     <DialogTitle>Register a New Event</DialogTitle>
                     <DialogDescription className="text-textMuted">
@@ -198,7 +202,7 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
                         <div className="grid gap-2">
                             <Label className="text-textSecondary">Start Date *</Label>
                             <DatePicker
@@ -225,7 +229,7 @@ const RegisterEventDialog: React.FC<RegisterEventDialogProps> = ({
                             />
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
                         <div className="grid gap-2">
                             <Label className="text-textSecondary">End Date *</Label>
                             <DatePicker

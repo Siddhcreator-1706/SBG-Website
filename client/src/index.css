@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Generates the animate-in / fade-in-0 / zoom-in-95 / slide-in-from-* utilities
+   that every Radix overlay in this app relies on. Without it those classes emit
+   no CSS and all popovers, dialogs and menus appear with no transition. */
+@plugin "tailwindcss-animate";
+
 @custom-variant dark (&:is(.dark *));
 
 /* ================================================================
@@ -309,10 +314,12 @@
   .pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px); }
   .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
 
-  /* Bottom nav safe area */
+  /* Reserves room for the fixed bottom nav. Must release at the same breakpoint
+     the nav itself hides at (`lg:hidden`, 1024px) — releasing earlier left the
+     nav overlapping page content on 768–1023px tablets. */
   .mb-bottom-nav { margin-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px)); }
 
-  @media (min-width: 768px) {
+  @media (min-width: 1024px) {
     .mb-bottom-nav { margin-bottom: 0; }
   }
 }
@@ -440,15 +447,17 @@
 }
 
 /* ================================================================
-   Popover & Modal Animations
+   Motion preferences
    ================================================================ */
-@keyframes popoverSlide {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-[data-state="open"] {
-  animation: popoverSlide 0.2s ease-out;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ================================================================
