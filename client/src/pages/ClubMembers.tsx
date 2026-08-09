@@ -24,6 +24,7 @@ import {
     SelectValue,
 } from '../components/ui/select';
 import { Skeleton } from '../components/ui/skeleton';
+import { Switch } from '../components/ui/switch';
 import { apiRequest } from '../lib/api';
 import { toastError, toastSuccess } from '../lib/toast';
 import { isValidPhoneNumber, toLocalISOString } from '../lib/utils';
@@ -57,6 +58,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
     email: '',
     designation: 'Core',
     phone: '',
+    show_number: true,
     is_core_member: true,
     tenure_start_date: '',
     tenure_end_date: '',
@@ -160,6 +162,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
       email: '',
       designation: 'Core',
       phone: '',
+      show_number: true,
       is_core_member: true,
       tenure_start_date: '',
       tenure_end_date: '',
@@ -176,6 +179,7 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
       email: member.email ?? '',
       designation: member.designation ?? 'Core',
       phone: member.phone ?? '',
+      show_number: member.show_number ?? true,
       is_core_member: true,
       tenure_start_date: member.tenure_start_date ? toLocalISOString(new Date(member.tenure_start_date)) : '',
       tenure_end_date: member.tenure_end_date ? toLocalISOString(new Date(member.tenure_end_date)) : '',
@@ -565,6 +569,18 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="rounded-xl"
                 placeholder="e.g. 9876543210"
+              />
+            </div>
+
+            <div className="flex flex-row items-center justify-between rounded-xl border border-borderSoft p-3 shadow-sm bg-card">
+              <div className="space-y-0.5">
+                <Label htmlFor="show_number" className="text-sm font-medium">Show Phone Number</Label>
+                <p className="text-[10px] sm:text-xs text-textMuted">Display on public directories (e.g., About SBG)</p>
+              </div>
+              <Switch
+                id="show_number"
+                checked={formData.show_number}
+                onCheckedChange={(checked) => setFormData({ ...formData, show_number: checked })}
               />
             </div>
 

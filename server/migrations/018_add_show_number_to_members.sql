@@ -1,0 +1,1 @@
+ALTER TABLE club_members ADD COLUMN show_number BOOLEAN DEFAULT TRUE;

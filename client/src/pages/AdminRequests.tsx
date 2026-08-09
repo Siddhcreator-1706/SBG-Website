@@ -110,9 +110,12 @@ const AdminRequests: React.FC = () => {
   const getVenueName = React.useCallback((id: string) => venues.find(v => v.id === id)?.name || id, [venues]);
 
   const filteredRequests = requests.filter(req => {
+    const isStarted = new Date(req.bookings[0].startTimeISO!) <= new Date();
+    const isPending = req.status === 'pending' || (req.status === 'partial' && req.bookings.some(b => b.status === 'pending'));
+
     const matchesTab = activeTab === 'pending'
-      ? (req.status === 'pending' || (req.status === 'partial' && req.bookings.some(b => b.status === 'pending')))
-      : (req.status !== 'pending' && !(req.status === 'partial' && req.bookings.some(b => b.status === 'pending')));
+      ? (isPending && !isStarted)
+      : (!isPending || isStarted);
 
     const matchesSearch =
       req.clubName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -120,6 +123,18 @@ const AdminRequests: React.FC = () => {
 
     return matchesTab && matchesSearch;
   });
+
+  const pendingCount = requests.filter(req => {
+    const isStarted = new Date(req.bookings[0].startTimeISO!) <= new Date();
+    const isPending = req.status === 'pending' || (req.status === 'partial' && req.bookings.some(b => b.status === 'pending'));
+    return isPending && !isStarted;
+  }).reduce((acc, req) => acc + req.bookings.filter(b => b.status === 'pending').length, 0);
+
+  const historyCount = requests.filter(req => {
+    const isStarted = new Date(req.bookings[0].startTimeISO!) <= new Date();
+    const isPending = req.status === 'pending' || (req.status === 'partial' && req.bookings.some(b => b.status === 'pending'));
+    return !isPending || isStarted;
+  }).length;
 
   return (
     <motion.div
@@ -161,10 +176,10 @@ const AdminRequests: React.FC = () => {
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pending' | 'history')} className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-hoverSoft border-borderSoft rounded-xl p-1">
           <TabsTrigger value="pending" className="data-[state=active]:bg-background">
-            Pending Review ({requests.reduce((acc, req) => acc + req.bookings.filter(b => b.status === 'pending').length, 0)})
+            Pending Review ({pendingCount})
           </TabsTrigger>
           <TabsTrigger value="history" className="data-[state=active]:bg-background">
-            History ({requests.filter(req => req.status !== 'pending' && !req.bookings.some(b => b.status === 'pending')).length})
+            History ({historyCount})
           </TabsTrigger>
         </TabsList>
 

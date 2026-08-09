@@ -36,6 +36,7 @@ export interface ClubMember {
   email: string | null;
   designation: string | null;
   phone: string | null;
+  show_number: boolean;
   is_core_member: boolean;
   tenure_start_date: string | null;
   tenure_end_date: string | null;

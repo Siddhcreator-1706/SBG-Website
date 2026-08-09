@@ -13,13 +13,14 @@ const clubOnly = (req: express.Request, res: express.Response, next: express.Nex
   return next();
 };
 
-const MEMBER_EDITABLE_FIELDS = ['full_name', 'roll_number', 'email', 'designation', 'phone', 'tenure_start_date', 'tenure_end_date', 'tenure_end_reason', 'promotion_history'] as const;
+const MEMBER_EDITABLE_FIELDS = ['full_name', 'roll_number', 'email', 'designation', 'phone', 'show_number', 'tenure_start_date', 'tenure_end_date', 'tenure_end_reason', 'promotion_history'] as const;
 
 /** Get public core members of all clubs */
 router.get('/public', async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT cm.id, cm.club_id, cm.full_name, cm.roll_number, cm.designation, cm.phone, cm.email,
+      `SELECT cm.id, cm.club_id, cm.full_name, cm.roll_number, cm.designation, 
+              CASE WHEN cm.show_number THEN cm.phone ELSE NULL END as phone, cm.email,
               cm.tenure_start_date, cm.tenure_end_date, c.name as club_name,
               c.organization_type
        FROM club_members cm
@@ -62,7 +63,7 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 
     const { rows } = await db.query(
-      `SELECT id, club_id, full_name, roll_number, email, designation, phone,
+      `SELECT id, club_id, full_name, roll_number, email, designation, phone, show_number,
               is_core_member, tenure_start_date, tenure_end_date, tenure_end_reason, promotion_history, created_at, updated_at
        FROM club_members
        WHERE club_id = $1
@@ -85,7 +86,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
 /** Add a new member to the roster (club accounts only) */
 router.post('/', authMiddleware, clubOnly, async (req, res) => {
-  const { full_name, roll_number, email, designation, phone, tenure_start_date, tenure_end_date, tenure_end_reason } = req.body;
+  const { full_name, roll_number, email, designation, phone, show_number, tenure_start_date, tenure_end_date, tenure_end_reason } = req.body;
 
   if (!full_name || !full_name.trim()) {
     return res.status(400).json({ error: 'Full name is required' });
@@ -134,9 +135,9 @@ router.post('/', authMiddleware, clubOnly, async (req, res) => {
     }
 
     const { rows } = await db.query(
-      `INSERT INTO club_members (club_id, full_name, roll_number, email, designation, phone, is_core_member, tenure_start_date, tenure_end_date, tenure_end_reason, promotion_history)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       RETURNING id, club_id, full_name, roll_number, email, designation, phone,
+      `INSERT INTO club_members (club_id, full_name, roll_number, email, designation, phone, show_number, is_core_member, tenure_start_date, tenure_end_date, tenure_end_reason, promotion_history)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING id, club_id, full_name, roll_number, email, designation, phone, show_number,
                  is_core_member, tenure_start_date, tenure_end_date, tenure_end_reason, promotion_history, created_at, updated_at`,
       [
         club.id,
@@ -145,6 +146,7 @@ router.post('/', authMiddleware, clubOnly, async (req, res) => {
         email ? email.trim() : null,
         validDesignation,
         phone ? phone.trim() : null,
+        show_number !== undefined ? Boolean(show_number) : true,
         true, // is_core_member is always true now
         tenure_start_date && tenure_start_date.trim() ? tenure_start_date.trim() : null,
         tenure_end_date && tenure_end_date.trim() ? tenure_end_date.trim() : null,
@@ -252,6 +254,8 @@ router.patch('/:id', authMiddleware, clubOnly, async (req, res) => {
             return res.status(400).json({ error: 'Designation is required' });
           }
           values.push(value.trim());
+        } else if (field === 'show_number') {
+          values.push(Boolean(value));
         } else {
           const trimmed = typeof value === 'string' ? value.trim() : value;
           values.push(trimmed === '' ? null : (trimmed ?? null));
@@ -275,7 +279,7 @@ router.patch('/:id', authMiddleware, clubOnly, async (req, res) => {
       `UPDATE club_members
        SET ${updates.join(', ')}
        WHERE id = $${paramIndex} AND club_id = $${paramIndex + 1}
-       RETURNING id, club_id, full_name, roll_number, email, designation, phone,
+       RETURNING id, club_id, full_name, roll_number, email, designation, phone, show_number,
                  is_core_member, tenure_start_date, tenure_end_date, tenure_end_reason, promotion_history, created_at, updated_at`,
       values
     );
