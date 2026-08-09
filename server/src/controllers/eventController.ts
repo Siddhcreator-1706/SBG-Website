@@ -85,6 +85,9 @@ export const createEvent = async (req: Request, res: Response) => {
 
 export const getEvents = async (req: Request, res: Response) => {
   try {
+    // Auto-reject any pending events that have already started
+    await db.query(`UPDATE events SET status = 'rejected' WHERE status = 'pending' AND date < NOW()`);
+
     const isAdmin = req.user?.role === 'admin';
     let clubId: string | undefined;
 

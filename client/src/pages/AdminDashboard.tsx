@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
-import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, ChevronRight, Download, Plus, RefreshCw, Settings, X, XCircle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, ChevronRight, Download, Pencil, Plus, RefreshCw, Settings, X, XCircle } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import AddBookingDialog from '../components/AddBookingDialog';
+import EditBookingDialog from '../components/EditBookingDialog';
 import RegisterEventDialog from '../components/RegisterEventDialog';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
@@ -20,7 +21,7 @@ import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue }
 import { getErrorMessage } from '../lib/errors';
 import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 import { toastError, toastSuccess } from '../lib/toast';
-import { GroupedBooking } from '../types';
+import { GroupedBooking, Booking } from '../types';
 
 const AdminDashboard: React.FC = () => {
   const [pendingRequests, setPendingRequests] = React.useState<GroupedBooking[]>([]);
@@ -39,6 +40,9 @@ const AdminDashboard: React.FC = () => {
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [registerDialogOpen, setRegisterDialogOpen] = React.useState(false);
   const [isProcessingAction, setIsProcessingAction] = React.useState(false);
+  
+  const [editingBooking, setEditingBooking] = React.useState<Booking | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
   // SBG Settings State
   const [sbgSettingsOpen, setSbgSettingsOpen] = React.useState(false);
@@ -666,6 +670,19 @@ const AdminDashboard: React.FC = () => {
                                       <X size={14} />
                                     </Button>
                                   )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 text-textMuted hover:text-primary"
+                                    onClick={() => {
+                                      setEditingBooking(booking);
+                                      setIsEditDialogOpen(true);
+                                    }}
+                                    title="Edit booking timings"
+                                    disabled={isProcessingAction}
+                                  >
+                                    <Pencil size={14} />
+                                  </Button>
                                   {booking.status !== 'approved' && (
                                     <Button
                                       variant="ghost"
@@ -800,6 +817,13 @@ const AdminDashboard: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EditBookingDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        booking={editingBooking}
+        onUpdated={fetchData}
+      />
     </motion.div>
   );
 };

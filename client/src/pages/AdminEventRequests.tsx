@@ -229,30 +229,38 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
             <div className="text-xs text-textMuted mt-1">
               Type: {ev.event_type ? ev.event_type.replace('_', ' ') : 'N/A'}
             </div>
-            <div className="text-xs text-textMuted mt-1 sm:hidden flex flex-col gap-1">
-               <div className="flex items-center gap-1"><Calendar size={12} /> {new Date(ev.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</div>
-               <div className="flex items-center gap-1"><Clock size={12} /> {new Date(ev.date).toLocaleTimeString([], {
-                   timeZone: 'Asia/Kolkata',
-                hour: '2-digit', minute: '2-digit' })} - {ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], {
-                    timeZone: 'Asia/Kolkata',
-                    hour: '2-digit', minute: '2-digit' }) : '?'}</div>
+            <div className="text-xs text-textMuted mt-1 sm:hidden flex flex-col gap-2">
+               <div className="flex flex-col gap-0.5">
+                 <span className="font-medium text-textPrimary">Start:</span>
+                 <div className="flex items-center gap-1"><Calendar size={12} /> {new Date(ev.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} <Clock size={12} className="ml-1" /> {new Date(ev.date).toLocaleTimeString([], { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}</div>
+               </div>
+               <div className="flex flex-col gap-0.5">
+                 <span className="font-medium text-textPrimary">End:</span>
+                 <div className="flex items-center gap-1"><Calendar size={12} /> {ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' }) : '?'} <Clock size={12} className="ml-1" /> {ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' }) : '?'}</div>
+               </div>
             </div>
           </div>
         </div>
       </td>
-      <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1.5">
-            <Calendar size={14} className="text-textMuted shrink-0" />
-            <span>{new Date(ev.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</span>
+      <td className="px-4 sm:px-6 py-4 hidden sm:table-cell whitespace-nowrap">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-0.5 text-xs">
+            <span className="font-medium text-textPrimary">Start:</span>
+            <div className="flex items-center gap-1.5 text-textMuted">
+              <Calendar size={14} className="shrink-0" />
+              <span>{new Date(ev.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: 'numeric' })}</span>
+              <Clock size={14} className="shrink-0 ml-1" />
+              <span>{new Date(ev.date).toLocaleTimeString([], { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-textMuted">
-            <Clock size={14} className="shrink-0" />
-            <span>{new Date(ev.date).toLocaleTimeString([], {
-                timeZone: 'Asia/Kolkata',
-                hour: '2-digit', minute: '2-digit' })} - {ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], {
-                    timeZone: 'Asia/Kolkata',
-                    hour: '2-digit', minute: '2-digit' }) : '?'}</span>
+          <div className="flex flex-col gap-0.5 text-xs">
+            <span className="font-medium text-textPrimary">End:</span>
+            <div className="flex items-center gap-1.5 text-textMuted">
+              <Calendar size={14} className="shrink-0" />
+              <span>{ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: 'numeric' }) : '?'}</span>
+              <Clock size={14} className="shrink-0 ml-1" />
+              <span>{ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' }) : '?'}</span>
+            </div>
           </div>
         </div>
       </td>

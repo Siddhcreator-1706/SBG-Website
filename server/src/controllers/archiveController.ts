@@ -7,7 +7,11 @@ export const getArchivedEvents = async (req: Request, res: Response) => {
     const userRole = (req as any).user?.role;
     const isAdmin = userRole === 'admin' || userRole === 'super_admin';
 
-    let query = 'SELECT * FROM archived_events';
+    let query = `
+      SELECT ae.*, c.name as club_name
+      FROM archived_events ae
+      LEFT JOIN clubs c ON ae.club_id = c.id
+    `;
     let params: any[] = [];
 
     if (!isAdmin) {
@@ -15,11 +19,11 @@ export const getArchivedEvents = async (req: Request, res: Response) => {
       if (!club) {
         return res.status(404).json({ error: 'Club not found for this account' });
       }
-      query += ' WHERE club_id = $1';
+      query += ' WHERE ae.club_id = $1';
       params.push(club.id);
     }
 
-    query += ' ORDER BY archived_at DESC';
+    query += ' ORDER BY ae.archived_at DESC';
 
     const eventsRes = await db.query(query, params);
     const events = eventsRes.rows;
@@ -89,5 +93,25 @@ export const deleteArchivedEvent = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error deleting archived event:', error);
     return res.status(500).json({ error: 'Failed to delete archived event' });
+  }
+};
+
+export const emptyArchives = async (req: Request, res: Response) => {
+  try {
+    const userRole = (req as any).user?.role;
+    const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Not authorized to empty archives' });
+    }
+
+    await db.query('DELETE FROM archived_event_reports');
+    await db.query('DELETE FROM archived_bookings');
+    await db.query('DELETE FROM archived_events');
+
+    return res.json({ message: 'All archives deleted successfully' });
+  } catch (error: any) {
+    console.error('Error emptying archives:', error);
+    return res.status(500).json({ error: 'Failed to empty archives' });
   }
 };

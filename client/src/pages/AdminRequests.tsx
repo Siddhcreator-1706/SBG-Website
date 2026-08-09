@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Calendar, Check, CheckCircle, ChevronDown, ChevronRight, Clock, Filter, RefreshCw, Search, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Calendar, Check, CheckCircle, ChevronDown, ChevronRight, Clock, Filter, Pencil, RefreshCw, Search, X, XCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
@@ -13,7 +13,8 @@ import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue }
 import { getErrorMessage } from '../lib/errors';
 import { getSocket } from '../lib/socket';
 import { toastError, toastSuccess } from '../lib/toast';
-import { GroupedBooking } from '../types';
+import { GroupedBooking, Booking } from '../types';
+import EditBookingDialog from '../components/EditBookingDialog';
 
 const AdminRequests: React.FC = () => {
   const [requests, setRequests] = useState<GroupedBooking[]>([]);
@@ -23,6 +24,8 @@ const AdminRequests: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const fetchRequests = React.useCallback(async () => {
     setIsLoading(true);
@@ -197,6 +200,10 @@ const AdminRequests: React.FC = () => {
                         getVenueName={getVenueName}
                         isHistoryTab={activeTab === 'history'}
                         isProcessingAction={isProcessingAction}
+                        onEdit={(booking) => {
+                          setEditingBooking(booking);
+                          setIsEditDialogOpen(true);
+                        }}
                       />
                     ))}
                   </tbody>
@@ -214,6 +221,13 @@ const AdminRequests: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <EditBookingDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        booking={editingBooking}
+        onUpdated={fetchRequests}
+      />
     </motion.div>
   );
 };
@@ -227,9 +241,10 @@ interface AdminRequestRowProps {
   getVenueName: (id: string) => string;
   isHistoryTab: boolean;
   isProcessingAction: boolean;
+  onEdit: (booking: Booking) => void;
 }
 
-const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, handleAction, handleSendEmail, getVenueName, isHistoryTab, isProcessingAction }) => {
+const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, handleAction, handleSendEmail, getVenueName, isHistoryTab, isProcessingAction, onEdit }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const isMultiVenue = req.bookings.length > 1;
 
@@ -345,6 +360,19 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                     <XCircle size={18} />
                   </Button>
                 )}
+                {!isMultiVenue && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Edit booking"
+                    onClick={(e) => { e.stopPropagation(); onEdit(req.bookings[0]); }}
+                    className="text-textMuted hover:text-primary"
+                    title="Edit booking timings"
+                    disabled={isProcessingAction}
+                  >
+                    <Pencil size={16} />
+                  </Button>
+                )}
                 {!isMultiVenue && req.bookings[0]?.status !== 'approved' && (
                   <Button
                     variant="ghost"
@@ -430,6 +458,18 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                             disabled={isProcessingAction}
                           >
                             <X size={16} />
+                          </Button>
+                        )}
+                        {!isStarted && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onEdit(booking)}
+                            className="h-8 w-8 p-0 text-textMuted hover:text-primary"
+                            title="Edit booking timings"
+                            disabled={isProcessingAction}
+                          >
+                            <Pencil size={14} />
                           </Button>
                         )}
                         {!isStarted && booking.status !== 'approved' && (

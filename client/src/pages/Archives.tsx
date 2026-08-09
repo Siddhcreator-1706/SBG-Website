@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Skeleton } from '../components/ui/skeleton';
 import { apiRequest } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
-import { toastError } from '../lib/toast';
+import { toastError, toastSuccess } from '../lib/toast';
 
 interface ArchivedBooking {
   id: string;
@@ -36,6 +36,7 @@ interface ArchivedReport {
 interface ArchivedEvent {
   id: string;
   club_id: string;
+  club_name?: string;
   name: string;
   date: string;
   end_date: string;
@@ -54,6 +55,12 @@ const Archives: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [archiveToDelete, setArchiveToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [emptyDialogOpen, setEmptyDialogOpen] = useState(false);
+  const [isEmptying, setIsEmptying] = useState(false);
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const isAdmin = user?.role === 'admin';
 
   const fetchArchives = React.useCallback(async () => {
     setIsLoading(true);
@@ -89,6 +96,20 @@ const Archives: React.FC = () => {
     }
   };
 
+  const confirmEmpty = async () => {
+    setIsEmptying(true);
+    try {
+      await apiRequest('/api/archives/events/all', { method: 'DELETE', auth: true });
+      setArchives([]);
+      setEmptyDialogOpen(false);
+      toastSuccess('All archives emptied successfully');
+    } catch (err) {
+      toastError(err, 'Failed to empty archives');
+    } finally {
+      setIsEmptying(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4 p-4">
@@ -116,9 +137,16 @@ const Archives: React.FC = () => {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchArchives} className="gap-2 shrink-0">
-          <RefreshCw size={16} /> Refresh
-        </Button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
+          {isAdmin && archives.length > 0 && (
+            <Button variant="destructive" size="sm" onClick={() => setEmptyDialogOpen(true)} className="w-full sm:w-auto gap-2 shrink-0">
+              <Trash2 size={16} /> Empty All
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={fetchArchives} className="w-full sm:w-auto gap-2 shrink-0">
+            <RefreshCw size={16} /> Refresh
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -151,6 +179,7 @@ const Archives: React.FC = () => {
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                   <div className="min-w-0">
                     <CardTitle className="text-lg text-textPrimary break-words">{event.name}</CardTitle>
+                    <div className="text-sm font-medium text-textSecondary mt-1">{event.club_name || 'Unknown Club'}</div>
                     <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2 text-xs text-textSecondary">
                       <span className="flex items-center gap-1 shrink-0"><Calendar size={12}/> {new Date(event.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</span>
                       {event.venue && <span className="flex items-center gap-1 shrink-0"><MapPin size={12}/> {event.venue}</span>}
@@ -230,6 +259,28 @@ const Archives: React.FC = () => {
             </Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting} className="rounded-xl bg-error hover:bg-error/90 text-white font-semibold">
               {isDeleting ? 'Deleting...' : 'Yes, Delete Permanently'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={emptyDialogOpen} onOpenChange={setEmptyDialogOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-error flex items-center gap-1.5">
+              <Trash2 size={20} />
+              Empty All Archives
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to completely delete ALL event records, bookings, and reports in the archives? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setEmptyDialogOpen(false)} disabled={isEmptying} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmEmpty} disabled={isEmptying} className="rounded-xl bg-error hover:bg-error/90 text-white font-semibold">
+              {isEmptying ? 'Emptying...' : 'Yes, Empty All'}
             </Button>
           </DialogFooter>
         </DialogContent>

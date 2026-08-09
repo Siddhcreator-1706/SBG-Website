@@ -76,6 +76,10 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
   const [resignReason, setResignReason] = useState('Resigned');
   const [isResigning, setIsResigning] = useState(false);
 
+  // Empty All Dialog State
+  const [emptyDialogOpen, setEmptyDialogOpen] = useState(false);
+  const [isEmptying, setIsEmptying] = useState(false);
+
   const isClubUser = user?.role === 'club';
   const getEntityType = () => {
     if (isClubUser && user?.name) {
@@ -262,6 +266,26 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
     }
   };
 
+  const confirmEmptyAll = async () => {
+    setIsEmptying(true);
+    try {
+      const url = user?.role === 'admin' 
+        ? `/api/club-members/all?clubId=${selectedClubId}`
+        : '/api/club-members/all';
+      await apiRequest(url, {
+        method: 'DELETE',
+        auth: true,
+      });
+      toastSuccess('All members removed successfully');
+      setEmptyDialogOpen(false);
+      fetchMembers(user?.role === 'admin' ? selectedClubId : undefined);
+    } catch (err) {
+      toastError(err, 'Failed to remove members');
+    } finally {
+      setIsEmptying(false);
+    }
+  };
+
   const DEFAULT_BADGE_STYLE = 'bg-slate-500/10 text-slate-500 border-slate-500/20';
 
   const getDesignationBadgeStyle = (des?: string) => {
@@ -393,8 +417,15 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
             </div>
           )}
 
+          {members.length > 0 && (user?.role === 'admin' || isClubUser) && (
+            <Button variant="destructive" onClick={() => setEmptyDialogOpen(true)} className="w-full sm:w-auto rounded-xl font-semibold gap-1.5 whitespace-nowrap">
+              <Trash2 size={16} />
+              Empty All
+            </Button>
+          )}
+
           {isClubUser && (
-            <Button onClick={openAdd} className="rounded-xl bg-brand hover:bg-brand/90 text-white font-semibold">
+            <Button onClick={openAdd} className="w-full sm:w-auto rounded-xl bg-brand hover:bg-brand/90 text-white font-semibold whitespace-nowrap">
               <Plus size={16} className="mr-1.5" />
               Add Member
             </Button>
@@ -634,6 +665,29 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
               className="rounded-xl w-full sm:w-auto"
             >
               {isResigning ? 'Recording...' : 'End Tenure'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Empty All Confirmation Dialog */}
+      <Dialog open={emptyDialogOpen} onOpenChange={setEmptyDialogOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-error flex items-center gap-1.5">
+              <Trash2 size={20} />
+              Empty All Members
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete <strong className="text-textPrimary">ALL</strong> members for this {entityType.toLowerCase()}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setEmptyDialogOpen(false)} disabled={isEmptying} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmEmptyAll} disabled={isEmptying} className="rounded-xl bg-error hover:bg-error/90 text-white font-semibold">
+              {isEmptying ? 'Emptying...' : 'Yes, Empty All'}
             </Button>
           </DialogFooter>
         </DialogContent>

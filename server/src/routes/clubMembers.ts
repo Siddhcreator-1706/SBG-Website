@@ -287,6 +287,38 @@ router.patch('/:id', authMiddleware, clubOnly, async (req, res) => {
   }
 });
 
+/** Delete ALL members from the roster (club or admin) */
+router.delete('/all', authMiddleware, async (req, res) => {
+  try {
+    let clubId: string | undefined;
+
+    if (req.user?.role === 'admin') {
+      clubId = req.query.clubId as string;
+      if (!clubId) {
+        return res.status(400).json({ error: 'clubId query parameter is required for administrators' });
+      }
+    } else if (req.user?.role === 'club') {
+      const club = await getClubForUser(req);
+      if (!club) {
+        return res.status(404).json({ error: 'Club not found for this account' });
+      }
+      clubId = club.id;
+    } else {
+      return res.status(403).json({ error: 'Access denied: invalid role' });
+    }
+
+    const { rowCount } = await db.query(
+      'DELETE FROM club_members WHERE club_id = $1',
+      [clubId]
+    );
+
+    return res.json({ success: true, message: `Deleted ${rowCount} members successfully` });
+  } catch (err: unknown) {
+    console.error('Delete all club members error:', err);
+    return res.status(500).json({ error: 'Failed to delete all members' });
+  }
+});
+
 /** Delete a member from the roster (club accounts only) */
 router.delete('/:id', authMiddleware, clubOnly, async (req, res) => {
   const { id } = req.params;

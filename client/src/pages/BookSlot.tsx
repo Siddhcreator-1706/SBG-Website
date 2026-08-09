@@ -627,7 +627,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                       <div>
                         <p className="text-[10px] font-bold text-success uppercase tracking-wider">Time Range</p>
                         <p className="text-sm font-bold text-textPrimary">
-                          {formData.startTime && formData.endTime ? `${formData.startTime} – ${formData.endTime}` : 'Pick times'}
+                          {(formData.startTime && formData.endTime) ? `${formData.startTime} – ${formData.endTime}` : 'Pick times'}
                         </p>
                       </div>
                     </div>

@@ -57,8 +57,12 @@ router.get('/bookings', async (_req, res) => {
 // Event endpoints
 router.get('/events/pending', async (_req, res) => {
   try {
+    // Auto-reject any pending events that have already started
+    await db.query(`UPDATE events SET status = 'rejected' WHERE status = 'pending' AND date < NOW()`);
+
     const { rows } = await db.query(`
       SELECT e.*, 
+             COALESCE(e.end_date, e.date) as dynamic_end_date,
              json_build_object('name', c.name) AS clubs
       FROM events e
       LEFT JOIN clubs c ON e.club_id = c.id
@@ -73,8 +77,12 @@ router.get('/events/pending', async (_req, res) => {
 
 router.get('/events', async (_req, res) => {
   try {
+    // Auto-reject any pending events that have already started
+    await db.query(`UPDATE events SET status = 'rejected' WHERE status = 'pending' AND date < NOW()`);
+
     const { rows } = await db.query(`
       SELECT e.*, 
+             COALESCE(e.end_date, e.date) as dynamic_end_date,
              json_build_object('name', c.name) AS clubs
       FROM events e
       LEFT JOIN clubs c ON e.club_id = c.id
@@ -677,6 +685,7 @@ router.get('/clubs/:id/events', async (req, res) => {
     const { rows } = await db.query(`
       SELECT 
         e.*,
+        COALESCE(e.end_date, e.date) as dynamic_end_date,
         c.name as club_name,
         c.email as club_email
       FROM events e
