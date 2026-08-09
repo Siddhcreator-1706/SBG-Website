@@ -109,19 +109,18 @@ const AdminRequests: React.FC = () => {
 
   const getVenueName = React.useCallback((id: string) => venues.find(v => v.id === id)?.name || id, [venues]);
 
-  const filteredRequests = requests.filter(req => {
+  const pendingRequests = requests.filter(req => {
     const isStarted = new Date(req.bookings[0].startTimeISO!) <= new Date();
     const isPending = req.status === 'pending' || (req.status === 'partial' && req.bookings.some(b => b.status === 'pending'));
+    const matchesSearch = req.clubName.toLowerCase().includes(searchTerm.toLowerCase()) || req.eventName.toLowerCase().includes(searchTerm.toLowerCase());
+    return isPending && !isStarted && matchesSearch;
+  });
 
-    const matchesTab = activeTab === 'pending'
-      ? (isPending && !isStarted)
-      : (!isPending || isStarted);
-
-    const matchesSearch =
-      req.clubName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.eventName.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return matchesTab && matchesSearch;
+  const historyRequests = requests.filter(req => {
+    const isStarted = new Date(req.bookings[0].startTimeISO!) <= new Date();
+    const isPending = req.status === 'pending' || (req.status === 'partial' && req.bookings.some(b => b.status === 'pending'));
+    const matchesSearch = req.clubName.toLowerCase().includes(searchTerm.toLowerCase()) || req.eventName.toLowerCase().includes(searchTerm.toLowerCase());
+    return (!isPending || isStarted) && matchesSearch;
   });
 
   const pendingCount = requests.filter(req => {
@@ -183,7 +182,7 @@ const AdminRequests: React.FC = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value={activeTab} className="mt-6">
+        <TabsContent value="pending" className="mt-6">
           <Card className="rounded-xl overflow-hidden">
             {isLoading ? (
               <CardContent className="p-6">
@@ -191,7 +190,7 @@ const AdminRequests: React.FC = () => {
                 <Skeleton className="h-12 w-full mb-4" />
                 <Skeleton className="h-12 w-full" />
               </CardContent>
-            ) : filteredRequests.length > 0 ? (
+            ) : pendingRequests.length > 0 ? (
               <div className="overflow-x-auto w-full">
                 <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
                   <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
@@ -204,7 +203,7 @@ const AdminRequests: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
-                    {filteredRequests.map((req, index) => (
+                    {pendingRequests.map((req, index) => (
                       <AdminRequestRow
                         key={req.batchId || req.ids[0]}
                         req={req}
@@ -213,7 +212,7 @@ const AdminRequests: React.FC = () => {
                         handleAction={handleAction}
                         handleSendEmail={handleSendEmail}
                         getVenueName={getVenueName}
-                        isHistoryTab={activeTab === 'history'}
+                        isHistoryTab={false}
                         isProcessingAction={isProcessingAction}
                         onEdit={(booking) => {
                           setEditingBooking(booking);
@@ -231,6 +230,59 @@ const AdminRequests: React.FC = () => {
                 </div>
                 <h3 className="text-lg font-medium text-textPrimary">No requests found</h3>
                 <p className="text-textMuted mt-1">Try adjusting your search or tab filter.</p>
+              </CardContent>
+            )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <Card className="rounded-xl overflow-hidden">
+            {isLoading ? (
+              <CardContent className="p-6">
+                <Skeleton className="h-12 w-full mb-4" />
+                <Skeleton className="h-12 w-full mb-4" />
+                <Skeleton className="h-12 w-full" />
+              </CardContent>
+            ) : historyRequests.length > 0 ? (
+              <div className="overflow-x-auto w-full">
+                <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
+                  <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
+                    <tr>
+                      <th className="px-4 sm:px-6 py-4">Club / Event</th>
+                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">Venue & Time</th>
+                      <th className="px-4 sm:px-6 py-4">Date</th>
+                      <th className="px-4 sm:px-6 py-4">Status</th>
+                      <th className="px-4 sm:px-6 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {historyRequests.map((req, index) => (
+                      <AdminRequestRow
+                        key={req.batchId || req.ids[0]}
+                        req={req}
+                        index={index}
+                        venues={venues}
+                        handleAction={handleAction}
+                        handleSendEmail={handleSendEmail}
+                        getVenueName={getVenueName}
+                        isHistoryTab={true}
+                        isProcessingAction={isProcessingAction}
+                        onEdit={(booking) => {
+                          setEditingBooking(booking);
+                          setIsEditDialogOpen(true);
+                        }}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <CardContent className="p-8 sm:p-12 text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-hoverSoft text-textMuted mb-4">
+                  <Filter size={24} />
+                </div>
+                <h3 className="text-lg font-medium text-textPrimary">No history found</h3>
+                <p className="text-textMuted mt-1">Try adjusting your search filter.</p>
               </CardContent>
             )}
           </Card>

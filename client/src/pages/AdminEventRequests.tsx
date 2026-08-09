@@ -79,16 +79,14 @@ const AdminEventRequests: React.FC = () => {
     }
   };
 
-  const filteredEvents = events.filter(ev => {
-    const matchesTab = activeTab === 'pending'
-      ? ev.status === 'pending'
-      : ev.status !== 'pending';
+  const pendingEvents = events.filter(ev => {
+    const matchesSearch = ev.clubName.toLowerCase().includes(searchTerm.toLowerCase()) || ev.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return ev.status === 'pending' && matchesSearch;
+  });
 
-    const matchesSearch =
-      ev.clubName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ev.name.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return matchesTab && matchesSearch;
+  const historyEvents = events.filter(ev => {
+    const matchesSearch = ev.clubName.toLowerCase().includes(searchTerm.toLowerCase()) || ev.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return ev.status !== 'pending' && matchesSearch;
   });
 
   return (
@@ -138,7 +136,7 @@ const AdminEventRequests: React.FC = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value={activeTab} className="mt-6">
+        <TabsContent value="pending" className="mt-6">
           <Card className="rounded-xl overflow-hidden">
             {isLoading ? (
               <CardContent className="p-6">
@@ -146,7 +144,7 @@ const AdminEventRequests: React.FC = () => {
                 <Skeleton className="h-12 w-full mb-4" />
                 <Skeleton className="h-12 w-full" />
               </CardContent>
-            ) : filteredEvents.length > 0 ? (
+            ) : pendingEvents.length > 0 ? (
               <div className="overflow-x-auto w-full">
                 <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
                   <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
@@ -158,13 +156,13 @@ const AdminEventRequests: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
-                    {filteredEvents.map((ev, index) => (
+                    {pendingEvents.map((ev, index) => (
                       <AdminEventRow
                         key={ev.id}
                         ev={ev}
                         index={index}
                         handleAction={handleEventAction}
-                        isHistoryTab={activeTab === 'history'}
+                        isHistoryTab={false}
                         isProcessingAction={isProcessingAction}
                       />
                     ))}
@@ -178,6 +176,51 @@ const AdminEventRequests: React.FC = () => {
                 </div>
                 <h3 className="text-lg font-medium text-textPrimary">No event registrations found</h3>
                 <p className="text-textMuted mt-1">Try adjusting your search or tab filter.</p>
+              </CardContent>
+            )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <Card className="rounded-xl overflow-hidden">
+            {isLoading ? (
+              <CardContent className="p-6">
+                <Skeleton className="h-12 w-full mb-4" />
+                <Skeleton className="h-12 w-full mb-4" />
+                <Skeleton className="h-12 w-full" />
+              </CardContent>
+            ) : historyEvents.length > 0 ? (
+              <div className="overflow-x-auto w-full">
+                <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
+                  <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
+                    <tr>
+                      <th className="px-4 sm:px-6 py-4">Club / Event</th>
+                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">Date</th>
+                      <th className="px-4 sm:px-6 py-4">Status</th>
+                      <th className="px-4 sm:px-6 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {historyEvents.map((ev, index) => (
+                      <AdminEventRow
+                        key={ev.id}
+                        ev={ev}
+                        index={index}
+                        handleAction={handleEventAction}
+                        isHistoryTab={true}
+                        isProcessingAction={isProcessingAction}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <CardContent className="p-8 sm:p-12 text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-hoverSoft text-textMuted mb-4">
+                  <Filter size={24} />
+                </div>
+                <h3 className="text-lg font-medium text-textPrimary">No history found</h3>
+                <p className="text-textMuted mt-1">Try adjusting your search filter.</p>
               </CardContent>
             )}
           </Card>
