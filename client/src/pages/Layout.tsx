@@ -216,11 +216,11 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                     <div className="px-3 py-2 text-[10px] font-bold text-textMuted/50 uppercase tracking-[0.15em] mt-1 mb-1">
                       {user.role === 'club' ? 'Club Menu' : 'Admin Controls'}
                     </div>
-                    {links.map((link) => (
+                    {links.map((link, index) => (
                       <NavLink 
                         key={link.to} 
                         to={link.to} 
-                        className={navItemClass} 
+                        className={({ isActive }) => cn(navItemClass({ isActive }), index < 4 ? "hidden lg:flex" : "")} 
                         end={link.end}
                         onClick={() => setIsMobileMenuOpen(false)}
                       >

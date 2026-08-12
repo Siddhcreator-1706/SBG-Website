@@ -21,16 +21,19 @@ import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue }
 import { getErrorMessage } from '../lib/errors';
 import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 import { toastError, toastSuccess } from '../lib/toast';
-import { GroupedBooking, Booking } from '../types';
+import { GroupedBooking, Booking, AppEvent } from '../types';
 
 const AdminDashboard: React.FC = () => {
   const [pendingRequests, setPendingRequests] = React.useState<GroupedBooking[]>([]);
+  const [pendingEvents, setPendingEvents] = React.useState<(AppEvent & { clubName: string })[]>([]);
   const [venues, setVenues] = React.useState<ApiVenue[]>([]);
   const [stats, setStats] = React.useState({
-    pending: 0,
-    scheduled: 0,
+    pendingBookings: 0,
+    scheduledBookings: 0,
     conflicts: 0,
-    activeClubs: 0
+    activeClubs: 0,
+    pendingEvents: 0,
+    scheduledEvents: 0
   });
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -63,6 +66,25 @@ const AdminDashboard: React.FC = () => {
       });
     } catch (err) {
       console.error('Failed to fetch SBG settings', err);
+    }
+  };
+
+  const handleEventAction = async (ids: string[], action: 'active' | 'rejected') => {
+    if (isProcessingAction) return;
+    setIsProcessingAction(true);
+    try {
+      await apiRequest('/api/admin/events/bulk-status', {
+        method: 'PATCH',
+        auth: true,
+        body: { ids, status: action },
+      });
+      toastSuccess(`Event(s) ${action === 'active' ? 'approved' : 'rejected'} successfully`);
+      fetchData();
+    } catch (err) {
+      console.error('Failed to update event(s):', err);
+      toastError(err, `Failed to ${action} event(s). Please try again.`);
+    } finally {
+      setIsProcessingAction(false);
     }
   };
 
@@ -129,23 +151,29 @@ const AdminDashboard: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [venuesData, pendingData, statsData, allBookingsData] = await Promise.all([
+      const [venuesData, pendingData, statsData, allBookingsData, pendingEventsData] = await Promise.all([
         apiRequest<ApiVenue[]>('/api/venues'),
         apiRequest<ApiBooking[]>('/api/admin/pending', { auth: true }),
-        apiRequest<{ pending: number; scheduled: number; conflicts: number; activeClubs: number }>('/api/admin/stats', { auth: true }),
-        apiRequest<ApiBooking[]>('/api/admin/bookings', { auth: true })
+        apiRequest<{ pendingBookings: number; scheduledBookings: number; conflicts: number; activeClubs: number; pendingEvents: number; scheduledEvents: number }>('/api/admin/stats', { auth: true }),
+        apiRequest<ApiBooking[]>('/api/admin/bookings', { auth: true }),
+        apiRequest<any[]>('/api/admin/events/pending', { auth: true })
       ]);
 
       setVenues(venuesData);
       setPendingRequests(groupBookings(pendingData.map(mapBooking)));
       setStats(statsData);
       setCalendarEvents(groupBookings(allBookingsData.map(mapBooking)));
+      setPendingEvents(pendingEventsData.map(e => ({
+        ...e,
+        clubName: e.clubs?.name || 'Unknown Club'
+      })));
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
       setError(getErrorMessage(err, 'Failed to load dashboard.'));
       setPendingRequests([]);
-      setStats({ pending: 0, scheduled: 0, conflicts: 0, activeClubs: 0 });
+      setStats({ pendingBookings: 0, scheduledBookings: 0, conflicts: 0, activeClubs: 0, pendingEvents: 0, scheduledEvents: 0 });
       setCalendarEvents([]);
+      setPendingEvents([]);
     } finally {
       setIsLoading(false);
     }
@@ -358,50 +386,50 @@ const AdminDashboard: React.FC = () => {
         transition={{ delay: 0.1 }}
         className="px-1 sm:px-4"
       >
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 w-full">
-          <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 transition-colors">
-            <div className="p-1.5 sm:p-2 bg-warning/10 text-warning rounded-lg shrink-0">
-              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3 w-full">
+          <Link to="/admin/requests" className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer">
+            <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group">
+              <div className="p-1.5 sm:p-2 bg-warning/10 text-warning rounded-lg shrink-0 group-hover:scale-110 transition-transform">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">Pending Bookings</div>
+                <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">{stats.pendingBookings}</div>
+              </div>
             </div>
-            <div className="min-w-0">
-              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">Pending</div>
-              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">{stats.pending}</div>
-            </div>
-          </div>
+          </Link>
 
-          <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-brand/40 transition-colors">
+          <Link to="/admin/event-requests" className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer">
+            <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group">
+              <div className="p-1.5 sm:p-2 bg-warning/10 text-warning rounded-lg shrink-0 group-hover:scale-110 transition-transform">
+                <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">Pending Events</div>
+                <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">{stats.pendingEvents}</div>
+              </div>
+            </div>
+          </Link>
+
+          <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-brand/40 transition-colors cursor-pointer">
             <div className="p-1.5 sm:p-2 bg-brand/10 text-brand rounded-lg shrink-0">
               <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">Scheduled</div>
-              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">{stats.scheduled}</div>
+              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">Scheduled Bookings</div>
+              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">{stats.scheduledBookings}</div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-error/40 transition-colors">
-            <div className="p-1.5 sm:p-2 bg-error/10 text-error rounded-lg shrink-0">
-              <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-brand/40 transition-colors cursor-pointer">
+            <div className="p-1.5 sm:p-2 bg-brand/10 text-brand rounded-lg shrink-0">
+              <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">Conflicts</div>
-              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">{stats.conflicts}</div>
+              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">Scheduled Events</div>
+              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">{stats.scheduledEvents}</div>
             </div>
           </div>
-
-          <Link to="/admin/clubs" className="block focus-visible:ring-2 focus-visible:ring-success rounded-xl outline-none">
-            <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-success/40 hover:bg-success/5 transition-all group">
-              <div className="p-1.5 sm:p-2 bg-success/10 text-success rounded-lg shrink-0 group-hover:scale-110 transition-transform">
-                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">Clubs</div>
-                <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5 flex items-center gap-1">
-                  {stats.activeClubs} <ChevronRight className="w-3 h-3 text-success opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
-            </div>
-          </Link>
         </div>
       </motion.div>
 
@@ -441,7 +469,7 @@ const AdminDashboard: React.FC = () => {
                     weekday: 'long', month: 'short', day: 'numeric' }) : 'Select a date'}
                 </h4>
 
-                <div className="flex-1 overflow-y-auto space-y-3 max-h-[300px]">
+                <div className="flex-1 overflow-y-auto space-y-3 max-h-[350px]">
                   {selectedDateEvents.length > 0 ? (
                     selectedDateEvents.map((event, index) => (
                       <motion.div
@@ -487,7 +515,7 @@ const AdminDashboard: React.FC = () => {
       </motion.div>
 
       {/* All Events List (visible to admin) */}
-      <motion.div
+      {/* <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.45 }}
@@ -591,7 +619,7 @@ const AdminDashboard: React.FC = () => {
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </motion.div> */}
 
       {/* Pending Requests Section */}
       <motion.div
@@ -742,6 +770,104 @@ const AdminDashboard: React.FC = () => {
                           size="sm"
                           className="flex items-center gap-2"
                           onClick={() => handleAction(req.ids, 'approved')}
+                          disabled={isProcessingAction}
+                        >
+                          <CheckCircle size={16} />
+                          <span className="hidden sm:inline">Approve</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+
+      {/* Pending Events Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.35 }}
+      >
+        <Card className="border border-borderSoft rounded-xl mb-6">
+          <CardHeader className="border-b border-borderSoft">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <CardTitle className="text-lg sm:text-xl">Pending Event Registrations</CardTitle>
+                <CardDescription className="mt-1">Event requests requiring admin approval</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" asChild className="hidden sm:flex whitespace-nowrap border-[1.5px]">
+                  <Link to="/admin/event-requests">View All</Link>
+                </Button>
+              </div>
+            </div>
+            <div className="sm:hidden px-4 pt-4 pb-2">
+              <Button variant="outline" size="sm" asChild className="w-full border-[1.5px]">
+                <Link to="/admin/event-requests">View All</Link>
+              </Button>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-0">
+            <div className="divide-y divide-border/40">
+              {isLoading ? (
+                <div className="p-4 sm:p-6">
+                  <Skeleton className="h-20 w-full" />
+                </div>
+              ) : pendingEvents.length === 0 ? (
+                <div className="p-12 text-center">
+                  <p className="text-textMuted">No pending event registrations.</p>
+                </div>
+              ) : (
+                pendingEvents.slice(0, 5).map((evt, index) => (
+                  <motion.div
+                    key={evt.id || index}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className="p-4 sm:p-6 hover:bg-hoverSoft transition-colors"
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {evt.clubName}
+                          </Badge>
+                          <span className="text-xs text-textMuted">•</span>
+                          <span className="text-sm text-textMuted">{new Date(evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</span>
+                        </div>
+                        <h4 className="text-base sm:text-lg font-medium text-foreground">{evt.name}</h4>
+                        
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                          {evt.event_type ? (
+                            <Badge variant="outline" className="text-[10px] bg-brand/5 border-brand/20 text-brand">
+                              {evt.event_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] bg-indigo-500/5 border-indigo-500/20 text-indigo-600">General</Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex items-center gap-2"
+                          onClick={() => handleEventAction([evt.id], 'rejected')}
+                          disabled={isProcessingAction}
+                        >
+                          <XCircle size={16} />
+                          <span className="hidden sm:inline">Reject</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex items-center gap-2"
+                          onClick={() => handleEventAction([evt.id], 'active')}
                           disabled={isProcessingAction}
                         >
                           <CheckCircle size={16} />

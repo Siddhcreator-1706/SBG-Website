@@ -85,7 +85,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         const [clubsData, venuesData, eventsData] = await Promise.all([
           apiRequest<ApiClub[]>('/api/clubs'),
           apiRequest<ApiVenue[]>('/api/venues'),
-          currentUser.role === 'club' ? apiRequest<AppEvent[]>('/api/events', { auth: true }).catch(() => []) : Promise.resolve([])
+          apiRequest<AppEvent[]>('/api/events?futureOnly=true', { auth: true }).catch(() => [])
         ]);
         setClubs(clubsData);
         setVenues(venuesData);
@@ -805,9 +805,10 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                           onSelect={setSelectedDate}
                           initialFocus
                           disabled={(date) => {
+                            // Ensure date is strictly before today in local timezone
                             const today = new Date();
                             today.setHours(0, 0, 0, 0);
-                            return date < today;
+                            return date.getTime() < today.getTime();
                           }}
                           defaultMonth={selectedDate || new Date()}
                         />
@@ -846,11 +847,14 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                           selected={selectedEndDate || selectedDate}
                           onSelect={setSelectedEndDate}
                           disabled={(date) => {
-                            // Can only select End Date >= Start Date
-                            if (!selectedDate) return false;
+                            if (!selectedDate) {
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              return date.getTime() < today.getTime();
+                            }
                             const start = new Date(selectedDate);
                             start.setHours(0, 0, 0, 0);
-                            return date < start;
+                            return date.getTime() < start.getTime();
                           }}
                           defaultMonth={selectedEndDate || selectedDate || new Date()}
                         />

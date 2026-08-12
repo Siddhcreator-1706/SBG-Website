@@ -251,7 +251,12 @@ const LandingPage: React.FC = () => {
     }, [calendarDays, events]);
 
     const upcomingEvents = useMemo(
-        () => [...events].sort((a, b) => a.startTime.getTime() - b.startTime.getTime()),
+        () => {
+            const now = new Date();
+            return [...events]
+                .filter(a => a.endTime >= now)
+                .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+        },
         [events],
     );
 

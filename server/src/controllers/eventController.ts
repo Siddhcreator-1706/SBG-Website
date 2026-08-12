@@ -111,7 +111,11 @@ export const getEvents = async (req: Request, res: Response) => {
       params.push(clubId);
     }
 
-    query += ` GROUP BY e.id, c.name ORDER BY e.date DESC, e.created_at DESC`;
+    if (req.query.futureOnly === 'true') {
+      query += ` GROUP BY e.id, c.name HAVING COALESCE(MAX(b.end_time), e.end_date, e.date) >= CURRENT_DATE ORDER BY e.date DESC, e.created_at DESC`;
+    } else {
+      query += ` GROUP BY e.id, c.name ORDER BY e.date DESC, e.created_at DESC`;
+    }
 
     const { rows } = await db.query(query, params);
     return res.json(rows);
@@ -137,13 +141,15 @@ export const updateEvent = async (req: Request, res: Response) => {
       clubId = club.id;
     }
 
-    const checkRes = await db.query('SELECT club_id, date, event_type, status FROM events WHERE id = $1', [id]);
+    const checkRes = await db.query('SELECT club_id, date, COALESCE(end_date, date) as end_date, event_type, status FROM events WHERE id = $1', [id]);
     if (checkRes.rows.length === 0) {
       return res.status(404).json({ error: 'Event not found' });
     }
     const existingEvent = checkRes.rows[0];
     if (!isAdmin && existingEvent.club_id !== clubId) {
       return res.status(403).json({ error: 'You do not have permission to edit this event' });
+    } else if (new Date(existingEvent.date) <= new Date()) {
+      return res.status(403).json({ error: 'Ongoing or past events cannot be edited' });
     }
 
     const updateFields: Record<string, any> = {};
@@ -219,12 +225,15 @@ export const deleteEvent = async (req: Request, res: Response) => {
       clubId = club.id;
     }
 
-    const checkRes = await db.query('SELECT club_id FROM events WHERE id = $1', [id]);
+    const checkRes = await db.query('SELECT club_id, date, COALESCE(end_date, date) as end_date FROM events WHERE id = $1', [id]);
     if (checkRes.rows.length === 0) {
       return res.status(404).json({ error: 'Event not found' });
     }
-    if (!isAdmin && checkRes.rows[0].club_id !== clubId) {
+    const existingEvent = checkRes.rows[0];
+    if (!isAdmin && existingEvent.club_id !== clubId) {
       return res.status(403).json({ error: 'You do not have permission to delete this event' });
+    } else if (new Date(existingEvent.end_date) < new Date()) {
+      return res.status(403).json({ error: 'Past events cannot be deleted' });
     }
 
     await db.query('BEGIN');
@@ -275,7 +284,6 @@ export const getPublicEvents = async (_req: Request, res: Response) => {
       FROM events e
       LEFT JOIN clubs c ON e.club_id = c.id
       WHERE e.event_type IN ('open_all', 'co_curricular')
-        AND e.end_date >= NOW()
         AND e.status = 'active'
       ORDER BY e.date ASC
     `);

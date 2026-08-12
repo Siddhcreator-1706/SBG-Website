@@ -574,17 +574,21 @@ router.post('/bookings', async (req, res) => {
 router.get('/stats', async (_req, res) => {
   try {
     // Run all count queries simultaneously using Promise.all
-    const [pendingRes, scheduledRes, clubsRes] = await Promise.all([
+    const [pendingRes, scheduledRes, clubsRes, pendingEventsRes, scheduledEventsRes] = await Promise.all([
       db.query("SELECT COUNT(*) FROM bookings WHERE status = 'pending'"),
       db.query("SELECT COUNT(*) FROM bookings WHERE status = 'approved'"),
-      db.query("SELECT COUNT(*) FROM clubs")
+      db.query("SELECT COUNT(*) FROM clubs"),
+      db.query("SELECT COUNT(*) FROM events WHERE status = 'pending'"),
+      db.query("SELECT COUNT(*) FROM events WHERE status = 'active'")
     ]);
 
     return res.json({
-      pending: parseInt(pendingRes.rows[0].count, 10) || 0,
-      scheduled: parseInt(scheduledRes.rows[0].count, 10) || 0,
+      pendingBookings: parseInt(pendingRes.rows[0].count, 10) || 0,
+      scheduledBookings: parseInt(scheduledRes.rows[0].count, 10) || 0,
       conflicts: 0, 
-      activeClubs: parseInt(clubsRes.rows[0].count, 10) || 0
+      activeClubs: parseInt(clubsRes.rows[0].count, 10) || 0,
+      pendingEvents: parseInt(pendingEventsRes.rows[0].count, 10) || 0,
+      scheduledEvents: parseInt(scheduledEventsRes.rows[0].count, 10) || 0
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });

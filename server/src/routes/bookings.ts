@@ -289,7 +289,7 @@ router.get('/campus-bookings', authMiddleware, async (_req, res) => {
       LEFT JOIN clubs c ON b.club_id = c.id
       LEFT JOIN venues v ON b.venue_id = v.id
       LEFT JOIN events e ON b.event_id = e.id
-      WHERE b.status IN ('approved', 'pending') AND b.end_time >= NOW()
+      WHERE b.status IN ('approved', 'pending')
       ORDER BY b.start_time ASC
     `);
 

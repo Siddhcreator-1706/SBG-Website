@@ -223,6 +223,8 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
               {displayedEvents.map((event, index) => {
                 const startDate = new Date(event.date);
             const endDate = event.dynamic_end_date ? new Date(event.dynamic_end_date) : startDate;
+            const hasStarted = startDate <= new Date();
+            const isPast = endDate < new Date();
             
             return (
               <motion.div
@@ -259,26 +261,30 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Button variant="outline" size="sm" onClick={() => handleEditClick(event)} className="gap-2">
-                        <Edit size={14} /> Edit
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleDeleteClick(event.id)} 
-                        disabled={deletingEventId === event.id}
-                        className="gap-2 text-error border-error/30 hover:bg-error/10 hover:border-error disabled:opacity-50"
-                      >
-                        {deletingEventId === event.id ? (
-                          <>
-                            <RefreshCw size={14} className="animate-spin" /> Deleting...
-                          </>
-                        ) : (
-                          <>
-                            <Trash2 size={14} /> Delete
-                          </>
-                        )}
-                      </Button>
+                      {!hasStarted && (
+                        <Button variant="outline" size="sm" onClick={() => handleEditClick(event)} className="gap-2">
+                          <Edit size={14} /> Edit
+                        </Button>
+                      )}
+                      {(!isPast) && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleDeleteClick(event.id)} 
+                          disabled={deletingEventId === event.id}
+                          className="gap-2 text-error border-error/30 hover:bg-error/10 hover:border-error disabled:opacity-50"
+                        >
+                          {deletingEventId === event.id ? (
+                            <>
+                              <RefreshCw size={14} className="animate-spin" /> Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 size={14} /> Delete
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
