@@ -12,7 +12,7 @@ import {
     Users,
     Youtube
 } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
@@ -88,6 +88,8 @@ const ClubsCommitteesPage: React.FC = () => {
     const navigate = useNavigate();
     const [clubs, setClubs] = useState<Club[]>([]);
     const [members, setMembers] = useState<CommitteeMember[]>([]);
+    const touchStartY = useRef<number>(0);
+    const [dragY, setDragY] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'club' | 'committee' | 'organisation'>('club');
     const [searchQuery, setSearchQuery] = useState('');
@@ -258,9 +260,39 @@ const ClubsCommitteesPage: React.FC = () => {
                 </section>
 
                 {/* ====== Club Committee Roster Modal ====== */}
-                <Dialog open={!!selectedClubForModal} onOpenChange={(open) => !open && setSelectedClubForModal(null)}>
-                    <DialogContent className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-xl p-4 sm:p-6 rounded-2xl max-h-[85dvh] overflow-y-auto bg-card">
-                        <DialogHeader className="border-b border-borderSoft/40 pb-4 flex flex-row items-center gap-3 sm:gap-4 space-y-0">
+                <Dialog open={!!selectedClubForModal} onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedClubForModal(null);
+                        setTimeout(() => setDragY(0), 300);
+                    }
+                }}>
+                    <DialogContent 
+                        className="w-[95vw] max-w-[95vw] sm:w-full sm:max-w-xl p-4 sm:p-6 rounded-2xl max-h-[85dvh] overflow-y-auto bg-card transition-none"
+                        style={{ 
+                            transform: dragY > 0 ? (window.innerWidth < 640 ? `translateY(${dragY}px)` : `translate(-50%, calc(-50% + ${dragY}px))`) : '',
+                            transition: dragY === 0 ? 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)' : 'none'
+                        }}
+                    >
+                        <DialogHeader 
+                            className="border-b border-borderSoft/40 pb-4 flex flex-row items-center gap-3 sm:gap-4 space-y-0 select-none cursor-grab active:cursor-grabbing"
+                            onTouchStart={(e) => {
+                                touchStartY.current = e.touches[0].clientY;
+                            }}
+                            onTouchMove={(e) => {
+                                const y = e.touches[0].clientY - touchStartY.current;
+                                if (y > 0) {
+                                    setDragY(y);
+                                }
+                            }}
+                            onTouchEnd={(e) => {
+                                if (dragY > 100) {
+                                    setSelectedClubForModal(null);
+                                    // Reset handled by onOpenChange
+                                } else {
+                                    setDragY(0);
+                                }
+                            }}
+                        >
                             <Avatar className={cn("h-14 w-14 border border-borderSoft rounded-2xl shrink-0", selectedClubForModal?.logo_bg === 'white' ? 'bg-white' : selectedClubForModal?.logo_bg === 'dark' ? 'bg-slate-900' : 'bg-transparent')}>
                                 <AvatarImage src={selectedClubForModal?.logo_url || ''} alt={selectedClubForModal?.name} className="object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
                                 <AvatarFallback className="bg-brand text-white font-bold text-lg rounded-2xl flex items-center justify-center">
@@ -298,7 +330,7 @@ const ClubsCommitteesPage: React.FC = () => {
                                         selectedClubMembers.map(member => (
                                             <div
                                                 key={member.id}
-                                                className="p-3.5 rounded-xl border border-borderSoft/60 bg-hoverSoft/15 hover:bg-hoverSoft/30 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                                                className="p-3.5 rounded-xl border border-borderSoft/60 bg-hoverSoft/15 hover:bg-hoverSoft/30 transition-colors flex flex-row items-center justify-between gap-3"
                                             >
                                                 <div className="space-y-1">
                                                     <div className="flex items-center gap-2 flex-wrap">
@@ -317,7 +349,7 @@ const ClubsCommitteesPage: React.FC = () => {
                                                 {member.phone && (
                                                     <a
                                                         href={`tel:${member.phone}`}
-                                                        className="h-8 px-3 rounded-lg border border-borderSoft/60 bg-background hover:bg-hoverSoft hover:text-brand text-xs font-semibold text-textSecondary flex items-center gap-1.5 self-start sm:self-center transition-all shadow-sm"
+                                                        className="h-8 px-3 rounded-lg border border-borderSoft/60 bg-background hover:bg-hoverSoft hover:text-brand text-xs font-semibold text-textSecondary flex items-center gap-1.5 shrink-0 transition-all shadow-sm"
                                                     >
                                                         <Phone size={12} />
                                                     </a>

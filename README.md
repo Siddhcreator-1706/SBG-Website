@@ -62,7 +62,7 @@ cp client/.env.example client/.env
 **`server/.env`**
 ```env
 DATABASE_URL="postgresql://..."
-PORT=4000
+PORT=5000
 NODE_ENV="development"
 CORS_ORIGIN="http://localhost:3005,http://localhost:5173"
 JWT_SECRET="local-dev-secret"
@@ -70,7 +70,7 @@ JWT_SECRET="local-dev-secret"
 
 **`client/.env`**
 ```env
-VITE_API_URL="http://localhost:4000"
+VITE_API_URL="http://localhost:5000"
 ```
 
 ### 4. Run Database Migrations
@@ -85,7 +85,7 @@ npm run migrate
 ### 5. Start development servers
 
 ```bash
-# Terminal 1 — API server (localhost:4000)
+# Terminal 1 — API server (localhost:5000)
 cd server
 npm run dev
 
@@ -162,7 +162,7 @@ Ensure you change the following critical variables for production in `server/.en
 *   `NODE_ENV`: Set this strictly to `"production"`.
 *   `CORS_ORIGIN`: Set this to your live frontend URL (e.g., `"https://sbg.dau.ac.in"`).
 *   `JWT_SECRET`: Generate a long, secure random string used to sign authentication tokens.
-*   `PORT`: The port the backend will run on (e.g., `4000`).
+*   `PORT`: The port the backend will run on (e.g., `5000`).
 
 **4. Start the Application with PM2**
 ```bash
@@ -175,7 +175,7 @@ pm2 save
 ```
 
 **5. Setup Reverse Proxy (Optional but Recommended)**
-Use Apache or Nginx on your CentOS server to reverse-proxy external HTTP/HTTPS traffic to the Node application running on your chosen `PORT` (e.g., 4000).
+Use Apache or Nginx on your CentOS server to reverse-proxy external HTTP/HTTPS traffic to the Node application running on your chosen `PORT` (e.g., 5000).
 
 ## Contributing
 
@@ -186,6 +186,8 @@ Contributions are welcome! If you'd like to help improve SBG-Website:
 4. Push to your branch (`git push origin feature/my-feature`)
 5. Open a Pull Request
 
+*Note: By contributing to this repository, you agree that your contributions will be licensed under its proprietary license.*
+
 ## Contributors
 
 A huge thank you to everyone who has contributed to this project:
@@ -194,4 +196,8 @@ A huge thank you to everyone who has contributed to this project:
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+**Proprietary and Confidential.**
+
+This repository and its contents are proprietary to the Student Body Government (SBG), DAU. The source code is made publicly available for the sole purpose of transparency, portfolio demonstration, and peer review. No license is granted for any use, modification, distribution, or reproduction.
+
+See the [LICENSE](LICENSE) file for the full legal text.
