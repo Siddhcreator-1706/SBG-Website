@@ -210,18 +210,12 @@ const MyBookings: React.FC = () => {
                             <div className="flex items-center gap-2 text-sm mb-4 font-medium text-textSecondary">
                               <Clock size={16} className="text-brand" />
                               <span>
-                                {booking.endDate && new Date(booking.date).toDateString() !== new Date(booking.endDate).toDateString() ? (
-                                  <>
-                                    {new Date(booking.date).toLocaleDateString('en-US', {
-                                        timeZone: 'Asia/Kolkata',
-                                        month: 'short', day: 'numeric' })}, {booking.startTime} –{' '}
-                                    {new Date(booking.endDate).toLocaleDateString('en-US', {
-                                        timeZone: 'Asia/Kolkata',
-                                        month: 'short', day: 'numeric' })}, {booking.endTime}
-                                  </>
-                                ) : (
-                                  `${booking.startTime} – ${booking.endTime}`
-                                )}
+                                {new Date(booking.date).toLocaleDateString('en-US', {
+                                    timeZone: 'Asia/Kolkata',
+                                    month: 'short', day: 'numeric', year: 'numeric' })}, {booking.startTime} –{' '}
+                                {new Date(booking.endDate || booking.date).toLocaleDateString('en-US', {
+                                    timeZone: 'Asia/Kolkata',
+                                    month: 'short', day: 'numeric', year: 'numeric' })}, {booking.endTime}
                               </span>
                             </div>
 

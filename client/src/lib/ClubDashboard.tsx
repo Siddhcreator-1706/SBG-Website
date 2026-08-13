@@ -15,8 +15,8 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { AppEvent, Booking, User } from '../types';
-import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue } from './api';
+import { AppEvent, Booking, GroupedBooking, User } from '../types';
+import { apiRequest, groupBookings, mapBooking, splitGroupedBookingsByDay, type ApiBooking, type ApiVenue } from './api';
 import { getErrorMessage } from './errors';
 import { getSocket, SOCKET_EVENTS } from './socket';
 
@@ -36,7 +36,7 @@ type ScheduleCalendarCardProps = {
   headerAction?: React.ReactNode;
   selectedDate?: Date;
   onSelectDate: (date?: Date) => void;
-  sourceEvents: Booking[];
+  sourceGroupedEvents: GroupedBooking[];
   calendarEvents: CalendarEvent[];
   eventDates: Date[];
   venues: ApiVenue[];
@@ -54,14 +54,14 @@ const ScheduleCalendarCard = ({
   headerAction,
   selectedDate,
   onSelectDate,
-  sourceEvents,
+  sourceGroupedEvents,
   calendarEvents,
   eventDates,
   venues,
   emptyMessage,
 }: ScheduleCalendarCardProps) => {
   const selectedDateEvents = selectedDate
-    ? sourceEvents.filter(event => isSameDay(new Date(event.date), selectedDate))
+    ? sourceGroupedEvents.filter(event => isSameDay(new Date(event.date), selectedDate))
     : [];
 
   return (
@@ -99,9 +99,8 @@ const ScheduleCalendarCard = ({
             <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 xl:max-h-[410px]">
               {selectedDate ? (
                 (() => {
-                  const dayGrouped = groupBookings(selectedDateEvents, venues);
-                  return dayGrouped.length > 0 ? (
-                    dayGrouped.map((event, index) => (
+                  return selectedDateEvents.length > 0 ? (
+                    selectedDateEvents.map((event, index) => (
                       <motion.div
                         key={event.batchId || event.ids?.[0] || index}
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -303,7 +302,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
     return [...myEvents, ...otherPublicEvents];
   }, [allEvents, myEvents]);
 
-  const getEventDates = React.useCallback((events: Booking[]) =>
+  const getEventDates = React.useCallback((events: GroupedBooking[]) =>
     events.map(e => {
       const d = new Date(e.date);
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -315,7 +314,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
     events.map(e => {
       // For partial bookings, only show the names of approved venues
       const approvedVenueName = e.status === 'partial'
-        ? (e.bookings || []).filter((b: any) => b.status === 'approved').map((b: any) => getVenueName(b.venueId)).join(', ')
+        ? (e.bookings || []).filter((b: any) => b.status === 'approved').map((b: any) => getVenueName(b.venueId)).sort((a: string, b: string) => a.localeCompare(b)).join(', ')
         : (e.venueName || getVenueName(e.venueId || e.venueIds?.[0]));
       return {
         eventName: e.eventName,
@@ -331,18 +330,25 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
     [venues]
   );
 
-  // Normalize to local midnight so DayPicker's modifier date-matching works correctly
-  const eventDates = React.useMemo(() => getEventDates(visibleGlobalEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending')), [getEventDates, visibleGlobalEvents]);
-  const myEventDates = React.useMemo(() => getEventDates(myEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending')), [getEventDates, myEvents]);
-
   // Show approved/pending campus bookings plus this club's own approved/partial/pending bookings in the calendar views.
-  const calendarEventsWithVenue = React.useMemo(() => toCalendarEvents(groupBookings(visibleGlobalEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending'), venues)), [toCalendarEvents, visibleGlobalEvents, venues]);
-  const myCalendarEventsWithVenue = React.useMemo(() => toCalendarEvents(groupBookings(myEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending'), venues)), [toCalendarEvents, myEvents, venues]);
+  const calendarEventsGrouped = React.useMemo(() => groupBookings(visibleGlobalEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending'), venues), [visibleGlobalEvents, venues]);
+  const myCalendarEventsGrouped = React.useMemo(() => groupBookings(myEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending'), venues), [myEvents, venues]);
+
+  const calendarEventsWithVenueSplit = React.useMemo(() => splitGroupedBookingsByDay(calendarEventsGrouped), [calendarEventsGrouped]);
+  const myCalendarEventsWithVenueSplit = React.useMemo(() => splitGroupedBookingsByDay(myCalendarEventsGrouped), [myCalendarEventsGrouped]);
+
+  // Normalize to local midnight so DayPicker's modifier date-matching works correctly
+  const eventDates = React.useMemo(() => getEventDates(calendarEventsWithVenueSplit), [getEventDates, calendarEventsWithVenueSplit]);
+  const myEventDates = React.useMemo(() => getEventDates(myCalendarEventsWithVenueSplit), [getEventDates, myCalendarEventsWithVenueSplit]);
+
+  const calendarEventsWithVenue = React.useMemo(() => toCalendarEvents(calendarEventsWithVenueSplit), [toCalendarEvents, calendarEventsWithVenueSplit]);
+  const myCalendarEventsWithVenue = React.useMemo(() => toCalendarEvents(myCalendarEventsWithVenueSplit), [toCalendarEvents, myCalendarEventsWithVenueSplit]);
+
   const activeCalendar = React.useMemo(() => {
     if (calendarView === 'club') {
       return {
         title: 'My Club Calendar',
-        sourceEvents: myEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending'),
+        sourceGroupedEvents: myCalendarEventsWithVenueSplit,
         calendarEvents: myCalendarEventsWithVenue,
         eventDates: myEventDates,
         emptyMessage: 'No club events scheduled for this day.',
@@ -351,7 +357,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
 
     return {
       title: 'Global Booking Schedule',
-      sourceEvents: visibleGlobalEvents.filter(e => e.status === 'approved' || (e.status as string) === 'partial' || e.status === 'pending'),
+      sourceGroupedEvents: calendarEventsWithVenueSplit,
       calendarEvents: calendarEventsWithVenue,
       eventDates,
       emptyMessage: 'No events scheduled for this day.',
@@ -359,11 +365,11 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
   }, [
     calendarView,
     calendarEventsWithVenue,
+    calendarEventsWithVenueSplit,
     eventDates,
     myCalendarEventsWithVenue,
+    myCalendarEventsWithVenueSplit,
     myEventDates,
-    myEvents,
-    visibleGlobalEvents,
   ]);
 
   const upcomingEvents = React.useMemo(() => {
@@ -496,7 +502,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
             }
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
-            sourceEvents={activeCalendar.sourceEvents}
+            sourceGroupedEvents={activeCalendar.sourceGroupedEvents}
             calendarEvents={activeCalendar.calendarEvents}
             eventDates={activeCalendar.eventDates}
             venues={venues}
@@ -531,7 +537,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                     className="p-4 hover:bg-hoverSoft transition-colors"
                   >
-                    <div className="font-semibold text-foreground text-sm">{event.eventName}</div>
+                    <div className="font-semibold text-foreground text-sm"><span className="text-xs text-muted-foreground font-normal mr-1.5">Booking Name:</span>{event.eventName}</div>
                     <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
                       <CalendarPlus size={12} />
                       {new Date(event.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}

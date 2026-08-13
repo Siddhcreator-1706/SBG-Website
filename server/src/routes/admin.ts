@@ -134,16 +134,10 @@ router.patch('/events/bulk-status', async (req, res) => {
     await client.query('COMMIT');
 
     // Create notifications
+    const { createBulkEventStatusNotifications } = await import('../services/notification');
+    await createBulkEventStatusNotifications(events, status);
+
     for (const data of events) {
-      // NOTE: We could send an email here if we had an event approval email template.
-      // But for now, we'll just send in-app notifications.
-      await createNotification({
-        type: status === 'active' ? 'event_approved' : 'event_rejected',
-        title: `Event ${status === 'active' ? 'Approved' : 'Rejected'}`,
-        message: `"${data.name || 'Event'}" has been ${status === 'active' ? 'approved' : 'rejected'}.`,
-        userId: null, // Broadcast to club
-        metadata: { eventId: data.id, status, clubId: data.club_id },
-      });
       // Optionally notify via socket if there is an active connection
       io.to(`club:${data.club_id}`).emit('events:updated');
     }
@@ -201,21 +195,21 @@ router.patch('/bookings/bulk-status', async (req, res) => {
     await client.query('COMMIT');
 
     // Create notifications and emit socket events
-    for (const data of bookings) {
-      await createNotification({
-        type: status === 'approved' ? 'booking_approved' : 'booking_rejected',
-        title: `Booking ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-        message: `"${data.event_name || 'Event'}" has been ${status}.`,
-        userId: data.user_id,
-        metadata: { bookingId: data.id, status },
-      });
+    const { createBulkBookingStatusNotifications } = await import('../services/notification');
+    await createBulkBookingStatusNotifications(bookings, status);
 
-      io.to(`club:${data.club_id}`).emit('booking:status_changed', {
-        bookingId: data.id,
-        status,
-        eventName: data.event_name || 'Event',
-        clubId: data.club_id,
-      });
+    const emittedClubs = new Set<string>();
+    for (const data of bookings) {
+      const key = `${data.club_id}-${data.event_name}`;
+      if (!emittedClubs.has(key)) {
+        io.to(`club:${data.club_id}`).emit('booking:status_changed', {
+          bookingId: data.id,
+          status,
+          eventName: data.event_name || 'Event',
+          clubId: data.club_id,
+        });
+        emittedClubs.add(key);
+      }
     }
 
     io.emit('events:updated');

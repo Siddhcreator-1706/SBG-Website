@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, ChevronRight, Download, Pencil, Plus, RefreshCw, Settings, X, XCircle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, ChevronRight, Download, MapPin, Pencil, Plus, RefreshCw, Settings, X, XCircle } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -17,7 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Skeleton } from '../components/ui/skeleton';
-import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue } from '../lib/api';
+import { apiRequest, groupBookings, mapBooking, splitGroupedBookingsByDay, type ApiBooking, type ApiVenue } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 import { toastError, toastSuccess } from '../lib/toast';
@@ -249,8 +249,10 @@ const AdminDashboard: React.FC = () => {
       d1.getDate() === d2.getDate();
   };
 
+  const splitEvents = React.useMemo(() => splitGroupedBookingsByDay(calendarEvents), [calendarEvents]);
+
   const getEventsForDate = (date: Date) => {
-    return calendarEvents.filter(e => {
+    return splitEvents.filter(e => {
       const eDate = new Date(e.date);
       return isSameDay(eDate, date) && (e.status === 'approved' || e.status === 'partial');
     });
@@ -260,30 +262,30 @@ const AdminDashboard: React.FC = () => {
 
   // Normalize to local midnight so DayPicker's modifier matching works
   const eventDates = React.useMemo(() =>
-    calendarEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
+    splitEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
       const d = new Date(e.date);
       return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     }),
-    [calendarEvents]
+    [splitEvents]
   );
 
   const calendarEventsWithVenue: CalendarEvent[] = React.useMemo(() =>
-    calendarEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
+    splitEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
       // For partial bookings, only show the names of approved venues
       const approvedVenueName = e.status === 'partial'
-        ? e.bookings.filter(b => b.status === 'approved').map(b => getVenueName(b.venueId)).join(', ')
-        : (e.venueName || e.venueIds.map(getVenueName).join(', '));
+        ? e.bookings.filter(b => b.status === 'approved').map(b => getVenueName(b.venueId)).sort((a, b) => a.localeCompare(b)).join(', ')
+        : (e.venueName || e.venueIds.map(getVenueName).sort((a, b) => a.localeCompare(b)).join(', '));
       return {
         eventName: e.eventName,
         clubName: e.clubName,
         date: e.date,
         startTime: e.startTime,
         endTime: e.endTime,
-        venueName: approvedVenueName || e.venueName || e.venueIds.map(getVenueName).join(', '),
+        venueName: approvedVenueName || e.venueName || e.venueIds.map(getVenueName).sort((a, b) => a.localeCompare(b)).join(', '),
         status: e.status,
       };
     }),
-    [calendarEvents, venues]
+    [splitEvents, venues]
   );
 
   if (error) {
@@ -557,8 +559,8 @@ const AdminDashboard: React.FC = () => {
                   <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
                     <tr>
                       <th className="px-4 sm:px-6 py-4">Club / Event</th>
-                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">Venue & Time</th>
-                      <th className="px-4 sm:px-6 py-4">Date</th>
+                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">Venue</th>
+                      <th className="px-4 sm:px-6 py-4">Date & Time</th>
                       <th className="px-4 sm:px-6 py-4">Status</th>
                     </tr>
                   </thead>
@@ -579,25 +581,34 @@ const AdminDashboard: React.FC = () => {
                               🔗 View Permissions
                             </a>
                           )}
-                          <div className="text-xs text-textMuted mt-1 sm:hidden">
+                          <div className="text-xs text-textMuted mt-1 sm:hidden flex flex-col gap-1">
                             <div className="flex items-center gap-1">
-                              <CalendarIcon size={12} /> {evt.startTime} - {evt.endTime}
+                              <CalendarIcon size={12} className="shrink-0" />
+                              <div className="flex flex-col">
+                                <span className="whitespace-nowrap">{new Date(evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' })} {evt.startTime}</span>
+                                <span className="text-[10px] text-textMuted">to</span>
+                                <span className="whitespace-nowrap">{new Date(evt.endDate || evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' })} {evt.endTime}</span>
+                              </div>
                             </div>
-                            <div>{evt.venueName}</div>
+                            <div className="flex items-center gap-1">
+                              <MapPin size={12} className="shrink-0" />
+                              <span>{evt.venueName}</span>
+                            </div>
                           </div>
                         </td>
                         <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
                           <div className="flex items-center gap-1.5 text-textPrimary">
                             {evt.venueName}
                           </div>
-                          <div className="text-xs text-textMuted mt-0.5 flex items-center gap-1">
-                            <CalendarIcon size={12} /> {evt.startTime} - {evt.endTime}
-                          </div>
                         </td>
                         <td className="px-4 sm:px-6 py-4">
-                          <div className="flex items-center gap-1.5">
-                            <CalendarIcon size={14} className="text-textMuted" />
-                            {new Date(evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}
+                          <div className="flex items-start gap-1.5">
+                            <CalendarIcon size={14} className="text-textMuted shrink-0 mt-0.5" />
+                            <div className="flex flex-col text-xs space-y-0.5">
+                              <span className="whitespace-nowrap">{new Date(evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {evt.startTime}</span>
+                              <span className="text-textMuted text-[10px]">to</span>
+                              <span className="whitespace-nowrap">{new Date(evt.endDate || evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {evt.endTime}</span>
+                            </div>
                           </div>
                         </td>
                         <td className="px-4 sm:px-6 py-4">
@@ -672,12 +683,16 @@ const AdminDashboard: React.FC = () => {
                           <Badge variant="secondary" className="text-xs">
                             {req.clubName}
                           </Badge>
-                          <span className="text-xs text-textMuted">•</span>
-                          <span className="text-sm text-textMuted">{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</span>
                         </div>
                         <h4 className="text-base sm:text-lg font-medium text-foreground">{req.eventName}</h4>
                         <div className="mt-2 text-sm text-textMuted">
-                          <div className="mb-2">Time: {req.startTime} - {req.endTime}</div>
+                          <div className="mb-2 flex items-center gap-1.5">
+                            {/* <span className="font-medium mr-1 text-textPrimary">Booking Time:</span> */}
+                            <CalendarIcon size={14} className="text-textMuted shrink-0" />
+                            <span>{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {req.startTime}</span>
+                            <span className="text-[10px] mx-1">to</span>
+                            <span>{new Date(req.endDate || req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {req.endTime}</span>
+                          </div>
                           <div className="flex flex-col gap-2">
                             {req.bookings.map(booking => (
                               <div key={booking.id} className="flex items-center justify-between bg-background border border-borderSoft rounded-md p-2 text-sm">
@@ -837,12 +852,21 @@ const AdminDashboard: React.FC = () => {
                           <Badge variant="secondary" className="text-xs">
                             {evt.clubName}
                           </Badge>
-                          <span className="text-xs text-textMuted">•</span>
-                          <span className="text-sm text-textMuted">{new Date(evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</span>
                         </div>
-                        <h4 className="text-base sm:text-lg font-medium text-foreground">{evt.name}</h4>
+                        <h4 className="text-base sm:text-lg font-medium text-foreground"><span className="text-sm text-textMuted font-normal mr-2">Event Name:</span>{evt.name}</h4>
                         
-                        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        <div className="mt-2 flex flex-col gap-2 text-xs mb-2">
+                          <div className="flex items-center gap-1.5 text-textMuted text-sm">
+                            <span className="font-medium mr-1 text-textPrimary">Event Time:</span>
+                            <CalendarIcon size={14} className="text-textMuted shrink-0" />
+                            <span>{new Date(evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {new Date(evt.date).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}</span>
+                            {evt.dynamic_end_date && (
+                              <>
+                                <span className="text-[10px] mx-1">to</span>
+                                <span>{new Date(evt.dynamic_end_date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {new Date(evt.dynamic_end_date).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}</span>
+                              </>
+                            )}
+                          </div>
                           {evt.event_type ? (
                             <Badge variant="outline" className="text-[10px] bg-brand/5 border-brand/20 text-brand">
                               {evt.event_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}

@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Calendar, Check, CheckCircle, ChevronDown, ChevronRight, Clock, Filter, Pencil, RefreshCw, Search, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Calendar, Check, CheckCircle, ChevronDown, ChevronRight, Clock, Filter, MapPin, Pencil, RefreshCw, Search, X, XCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
@@ -195,11 +195,11 @@ const AdminRequests: React.FC = () => {
                 <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
                   <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
                     <tr>
-                      <th className="px-4 sm:px-6 py-4">Club / Event</th>
-                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">Venue & Time</th>
-                      <th className="px-4 sm:px-6 py-4">Date</th>
-                      <th className="px-4 sm:px-6 py-4">Status</th>
-                      <th className="px-4 sm:px-6 py-4 text-right">Actions</th>
+                      <th className="px-4 sm:px-6 py-4 w-[40%] sm:w-[35%]">Booking</th>
+                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell w-[15%]">Venue</th>
+                      <th className="px-4 sm:px-6 py-4 w-[35%] sm:w-[25%]">Date & Time</th>
+                      <th className="px-4 sm:px-6 py-4 w-[10%]">Status</th>
+                      <th className="px-4 sm:px-6 py-4 text-right w-[15%]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
@@ -248,11 +248,11 @@ const AdminRequests: React.FC = () => {
                 <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
                   <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
                     <tr>
-                      <th className="px-4 sm:px-6 py-4">Club / Event</th>
-                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">Venue & Time</th>
-                      <th className="px-4 sm:px-6 py-4">Date</th>
-                      <th className="px-4 sm:px-6 py-4">Status</th>
-                      <th className="px-4 sm:px-6 py-4 text-right">Actions</th>
+                      <th className="px-4 sm:px-6 py-4 w-[40%] sm:w-[35%]">Booking</th>
+                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell w-[15%]">Venue</th>
+                      <th className="px-4 sm:px-6 py-4 w-[35%] sm:w-[25%]">Date & Time</th>
+                      <th className="px-4 sm:px-6 py-4 w-[10%]">Status</th>
+                      <th className="px-4 sm:px-6 py-4 text-right w-[15%]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
@@ -361,10 +361,20 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                 </a>
               )}
               <div className="text-xs text-textMuted mt-1 sm:hidden">
-                <div className="flex items-center gap-1">
-                  <Clock size={12} /> {req.startTime} - {req.endTime}
+                <div className="flex flex-col gap-1 mb-1">
+                  <div className="flex items-center gap-1">
+                    <Clock size={12} className="shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="whitespace-nowrap">{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' })} {req.startTime}</span>
+                      <span className="text-[10px] text-textMuted">to</span>
+                      <span className="whitespace-nowrap">{new Date(req.endDate || req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' })} {req.endTime}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>{req.venueName}</div>
+                <div className="flex items-center gap-1">
+                  <MapPin size={12} className="shrink-0" />
+                  <span>{req.venueName}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -373,23 +383,16 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
           <div className="flex items-center gap-1.5 text-textPrimary">
             {req.venueName}
           </div>
-          <div className="text-xs text-textMuted mt-0.5 flex items-center gap-1">
-            <Clock size={12} /> {req.startTime} - {req.endTime}
-          </div>
         </td>
         <td className="px-4 sm:px-6 py-4">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
               <Calendar size={14} className="text-textMuted shrink-0" />
-              {req.endDate && new Date(req.date).toDateString() !== new Date(req.endDate).toDateString() ? (
-                <div className="flex flex-col text-xs space-y-0.5">
-                  <span className="whitespace-nowrap">{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} {req.startTime}</span>
-                  <span className="text-textMuted text-[10px]">to</span>
-                  <span className="whitespace-nowrap">{new Date(req.endDate).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} {req.endTime}</span>
-                </div>
-              ) : (
-                <span>{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</span>
-              )}
+              <div className="flex flex-col text-xs space-y-0.5">
+                <span className="whitespace-nowrap">{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {req.startTime}</span>
+                <span className="text-textMuted text-[10px]">to</span>
+                <span className="whitespace-nowrap">{new Date(req.endDate || req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {req.endTime}</span>
+              </div>
             </div>
           </div>
         </td>

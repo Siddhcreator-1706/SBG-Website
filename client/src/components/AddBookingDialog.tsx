@@ -284,7 +284,25 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                                 <SelectValue placeholder="Select an event" />
                             </SelectTrigger>
                             <SelectContent>
-                                {clubEvents.map((evt) => (
+                                {clubEvents.filter(evt => {
+                                    const d = new Date(evt.dynamic_end_date || evt.end_date || evt.date);
+                                    if (isNaN(d.getTime())) return true;
+                                    const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' } as const;
+                                    const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(d);
+                                    const y = parseInt(parts.find(p => p.type === 'year')?.value || '0', 10);
+                                    const m = parseInt(parts.find(p => p.type === 'month')?.value || '0', 10) - 1;
+                                    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0', 10);
+                                    const eventMidnight = new Date(y, m, day).getTime();
+                                    
+                                    const today = new Date();
+                                    const todayParts = new Intl.DateTimeFormat('en-US', options).formatToParts(today);
+                                    const ty = parseInt(todayParts.find(p => p.type === 'year')?.value || '0', 10);
+                                    const tm = parseInt(todayParts.find(p => p.type === 'month')?.value || '0', 10) - 1;
+                                    const tday = parseInt(todayParts.find(p => p.type === 'day')?.value || '0', 10);
+                                    const todayMidnight = new Date(ty, tm, tday).getTime();
+                                    
+                                    return eventMidnight >= todayMidnight;
+                                }).map((evt) => (
                                     <SelectItem key={evt.id} value={evt.id}>
                                         {evt.name}
                                     </SelectItem>

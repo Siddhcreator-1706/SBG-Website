@@ -271,6 +271,7 @@ function CalendarDayButton({
       )}
     >
       <Button
+        type="button"
         ref={ref}
         variant="ghost"
         size="icon"
@@ -453,7 +454,7 @@ function EventHoverCard({
                     <div className="w-[3px] shrink-0 rounded-full bg-primary my-0.5 group-hover:scale-y-110 transition-transform" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-[13px] text-foreground leading-snug truncate">
-                        {event.eventName}
+                        <span className="text-[11px] text-muted-foreground font-normal mr-1.5">Booking Name:</span>{event.eventName}
                       </div>
                       <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-muted-foreground">
                         <Clock size={11} className="shrink-0 text-primary/50" />

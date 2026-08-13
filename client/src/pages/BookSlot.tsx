@@ -397,29 +397,29 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Calendar day in IST — event timestamps are TIMESTAMPTZ and naive
-  // setHours(0,0,0,0) in the browser TZ can drop same-day / near-day events.
-  const istDay = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  // Robustly get midnight in IST as a numerical timestamp to avoid browser locale string differences
+  const getIstMidnight = (iso: string | Date) => {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return 0;
+    const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' } as const;
+    const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(d);
+    const y = parseInt(parts.find(p => p.type === 'year')?.value || '0', 10);
+    const m = parseInt(parts.find(p => p.type === 'month')?.value || '0', 10) - 1;
+    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0', 10);
+    return new Date(y, m, day).getTime();
+  };
 
-  // Events a booking may be linked to. Short-notice events are created with
-  // status 'pending' (they need admin approval), so they must stay selectable —
-  // filtering to 'active' only meant a freshly registered event disappeared from
-  // this list while event_id was still set to it, which breaks Radix Select
-  // (controlled value with no matching SelectItem → blank / unusable trigger).
   const selectableEvents = React.useMemo(() => {
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    const todayIstMidnight = getIstMidnight(new Date());
     const filtered = events.filter(e => {
       if (!e?.id) return false;
       if (e.status === 'cancelled' || e.status === 'rejected') return false;
       const endIso = e.dynamic_end_date || e.end_date || e.date;
       if (!endIso) return true;
-      return istDay(endIso) >= today;
+      return getIstMidnight(endIso) >= todayIstMidnight;
     });
 
-    // Keep the currently linked event in the list even if date math would
-    // exclude it — otherwise Radix has a value with no SelectItem and the
-    // dropdown appears broken.
+    // Keep the currently linked event in the list even if date math would exclude it
     if (formData.event_id && !filtered.some(e => e.id === formData.event_id)) {
       const selected = events.find(e => e.id === formData.event_id);
       if (selected && selected.status !== 'cancelled' && selected.status !== 'rejected') {

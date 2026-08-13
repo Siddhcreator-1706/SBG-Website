@@ -112,7 +112,7 @@ export const getEvents = async (req: Request, res: Response) => {
     }
 
     if (req.query.futureOnly === 'true') {
-      query += ` GROUP BY e.id, c.name HAVING COALESCE(MAX(b.end_time), e.end_date, e.date) >= CURRENT_DATE ORDER BY e.date DESC, e.created_at DESC`;
+      query += ` GROUP BY e.id, c.name HAVING (COALESCE(MAX(b.end_time), e.end_date, e.date) AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date >= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata')::date ORDER BY e.date DESC, e.created_at DESC`;
     } else {
       query += ` GROUP BY e.id, c.name ORDER BY e.date DESC, e.created_at DESC`;
     }
