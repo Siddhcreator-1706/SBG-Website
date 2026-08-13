@@ -1,5 +1,7 @@
 # SBG-Website
 
+> This repository is a fork of the original repo [ossdaiict/sbg_dau](https://github.com/ossdaiict/sbg_dau.git), created and maintained by the sole members of GDG On Campus DAU.
+
 The official portal for the Student Body Government (SBG) of DAU. Far beyond a simple slot booking system, this platform serves as the central hub for campus life. It streamlines everything from venue reservations and real-time master schedules, to comprehensive club membership management, post-event reporting, and automated administrative workflows. Designed to eliminate email chains and double-bookings, it empowers clubs to operate efficiently while giving administrators total visibility and control.
 
 ## Features
