@@ -77,11 +77,13 @@ const violatesRestrictedWeekdayHours = (startUtc: Date, endUtc: Date) => {
   return false;
 };
 
-// NOTE: `queryable` defaults to the shared pool (`db`) for backwards
+
+//  `queryable` defaults to the shared pool (`db`) for backwards
 // compatibility with existing callers (e.g. checkConflict, getBusyVenues),
 // but createBooking and updateBookingTimings now pass in a transaction
 // client so the conflict check participates in the same transaction as
 // the row lock + insert/update, closing the race condition.
+
 const performVenueConflictCheck = async (
   venueIds: string[],
   startTime: string,
