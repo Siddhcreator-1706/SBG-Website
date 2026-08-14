@@ -611,11 +611,8 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                         </div>
                       </div>
                       {(() => {
-                        const eventDate = new Date(event.date);
-                        eventDate.setHours(0, 0, 0, 0);
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const isPast = eventDate < today;
+                        const eventEndDate = event.dynamic_end_date ? new Date(event.dynamic_end_date) : new Date(event.date);
+                        const isPast = eventEndDate < new Date();
                         
                         return !isPast ? (
                           <Button

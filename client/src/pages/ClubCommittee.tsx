@@ -5,7 +5,7 @@ import RegisterEventDialog from '../components/RegisterEventDialog';
 import { Button } from '../components/ui/button';
 import { apiRequest } from '../lib/api';
 import { toastError } from '../lib/toast';
-import { toLocalISOString } from '../lib/utils';
+import { formatISTDate, getISTNow, toLocalISOString } from '../lib/utils';
 import { AppEvent, User } from '../types';
 
 interface ClubCommitteeProps {
@@ -20,7 +20,7 @@ const ClubCommittee: React.FC<ClubCommitteeProps> = ({ user }) => {
   const isCommittee = user.name.toLowerCase().includes('committee');
   const entityType = isCommittee ? 'Committee' : 'Club';
 
-  const todayStr = toLocalISOString(new Date());
+  const todayStr = toLocalISOString(getISTNow());
 
   const fetchData = async () => {
     try {
@@ -71,8 +71,7 @@ const ClubCommittee: React.FC<ClubCommitteeProps> = ({ user }) => {
                 <div>
                   <h4 className="font-semibold text-base text-textPrimary">{event.name}</h4>
                   <p className="text-xs text-textMuted mt-1">
-                    Date: {new Date(event.date).toLocaleDateString(undefined, {
-                        timeZone: 'Asia/Kolkata',
+                    Date: {formatISTDate(event.date, {
                         year: 'numeric', month: 'short', day: 'numeric' })}
                   </p>
                   {event.venue && (

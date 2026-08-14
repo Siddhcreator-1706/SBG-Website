@@ -17,7 +17,7 @@ import { TimePicker } from '../components/ui/time-picker';
 import { apiRequest } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { toastError, toastInfo } from '../lib/toast';
-import { cn, toLocalISOString } from '../lib/utils';
+import { cn, formatISTDate, formatISTTime, toLocalISOString } from '../lib/utils';
 import { AppEvent, User } from '../types';
 
 interface ManageEventsProps {
@@ -206,7 +206,7 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
                 onClick={() => setActiveTab(tab as any)}
                 className={cn(
                   "px-6 py-2.5 rounded-lg text-sm font-semibold capitalize transition-all",
-                  activeTab === tab ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary"
+                  activeTab === tab ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary hover:bg-hoverSoft cursor-pointer"
                 )}
               >
                 {tab}
@@ -249,7 +249,7 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
                         <div className="flex items-center gap-1.5">
                           <Clock size={14} className="text-brand/70" />
                           <span>
-                            {startDate.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} {startDate.toTimeString().substring(0, 5)} - {endDate.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} {endDate.toTimeString().substring(0, 5)}
+                            {formatISTDate(startDate, { month: 'short', day: 'numeric', year: 'numeric' })} {formatISTTime(startDate, { hour: '2-digit', minute: '2-digit' })} - {formatISTDate(endDate, { month: 'short', day: 'numeric', year: 'numeric' })} {formatISTTime(endDate, { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                         {event.venue && (

@@ -37,6 +37,46 @@ function makeDateKey(d: Date) {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
 }
 
+const CalendarRoot = ({ className, rootRef, ...props }: any) => {
+  return (
+    <motion.div
+      data-slot="calendar"
+      ref={rootRef}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className={cn(className)}
+      {...props}
+    />
+  )
+}
+
+const CalendarChevron = ({ className, orientation, ...props }: any) => {
+  const Icon = orientation === "left" ? ChevronLeftIcon
+    : orientation === "right" ? ChevronRightIcon
+      : ChevronDownIcon
+  return (
+    <motion.span
+      whileHover={{ scale: 1.2 }}
+      whileTap={{ scale: 0.85 }}
+      transition={{ type: "spring", stiffness: 500, damping: 25 }}
+      className="inline-flex"
+    >
+      <Icon className={cn("size-4", className)} {...props} />
+    </motion.span>
+  )
+}
+
+const CalendarWeekNumber = ({ children, ...props }: any) => {
+  return (
+    <td {...props}>
+      <div className="flex size-[--cell-size] items-center justify-center text-center">
+        {children}
+      </div>
+    </td>
+  )
+}
+
 function Calendar({
   className,
   classNames,
@@ -173,44 +213,10 @@ function Calendar({
             ...classNames,
           }}
           components={{
-            Root: ({ className, rootRef, ...props }) => {
-              return (
-                <motion.div
-                  data-slot="calendar"
-                  ref={rootRef}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className={cn(className)}
-                  {...(props as any)}
-                />
-              )
-            },
-            Chevron: ({ className, orientation, ...props }) => {
-              const Icon = orientation === "left" ? ChevronLeftIcon
-                : orientation === "right" ? ChevronRightIcon
-                  : ChevronDownIcon
-              return (
-                <motion.span
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.85 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                  className="inline-flex"
-                >
-                  <Icon className={cn("size-4", className)} {...props} />
-                </motion.span>
-              )
-            },
+            Root: CalendarRoot,
+            Chevron: CalendarChevron,
             DayButton: CalendarDayButton,
-            WeekNumber: ({ children, ...props }) => {
-              return (
-                <td {...props}>
-                  <div className="flex size-[--cell-size] items-center justify-center text-center">
-                    {children}
-                  </div>
-                </td>
-              )
-            },
+            WeekNumber: CalendarWeekNumber,
             ...components,
           }}
           {...props}

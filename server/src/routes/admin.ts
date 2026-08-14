@@ -97,14 +97,14 @@ router.get('/events', async (_req, res) => {
 router.patch('/events/bulk-status', async (req, res) => {
   const { ids, status } = req.body as {
     ids: string[];
-    status: 'active' | 'rejected';
+    status: 'active' | 'rejected' | 'pending';
   };
 
   if (!Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ error: 'No event IDs provided' });
   }
 
-  if (status !== 'active' && status !== 'rejected') {
+  if (status !== 'active' && status !== 'rejected' && status !== 'pending') {
     return res.status(400).json({ error: 'Invalid status' });
   }
 
@@ -131,6 +131,13 @@ router.patch('/events/bulk-status', async (req, res) => {
       [status, ids]
     );
 
+    if (status === 'rejected') {
+      await client.query(
+        `UPDATE bookings SET status = 'rejected' WHERE event_id = ANY($1)`,
+        [ids]
+      );
+    }
+
     await client.query('COMMIT');
 
     // Create notifications
@@ -156,14 +163,14 @@ router.patch('/events/bulk-status', async (req, res) => {
 router.patch('/bookings/bulk-status', async (req, res) => {
   const { ids, status } = req.body as {
     ids: string[];
-    status: 'approved' | 'rejected';
+    status: 'approved' | 'rejected' | 'pending';
   };
 
   if (!Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ error: 'No booking IDs provided' });
   }
 
-  if (status !== 'approved' && status !== 'rejected') {
+  if (status !== 'approved' && status !== 'rejected' && status !== 'pending') {
     return res.status(400).json({ error: 'Invalid status' });
   }
 

@@ -100,7 +100,7 @@ export async function createBookingPendingNotifications(
  */
 export async function createBulkBookingStatusNotifications(
     bookings: { id: string; event_name: string; club_id: string; user_id?: string | null; venue_name?: string }[],
-    status: 'approved' | 'rejected'
+    status: 'approved' | 'rejected' | 'pending'
 ) {
     if (bookings.length === 0) return;
 
@@ -135,9 +135,9 @@ export async function createBulkBookingStatusNotifications(
 
             placeholders.push(`($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, false)`);
             values.push(
-                status === 'approved' ? 'booking_approved' : 'booking_rejected',
+                status === 'approved' ? 'booking_approved' : status === 'rejected' ? 'booking_rejected' : 'booking_pending',
                 `Bookings ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-                `${group.count} bookings for "${group.eventName}" have been ${status} (Venues: ${venueStr}).`,
+                `${group.count} bookings for "${group.eventName}" have been ${status === 'pending' ? 'moved to pending' : status} (Venues: ${venueStr}).`,
                 group.userId || null,
                 { eventName: group.eventName, status, clubId: group.clubId, count: group.count }
             );
@@ -159,7 +159,7 @@ export async function createBulkBookingStatusNotifications(
  */
 export async function createBulkEventStatusNotifications(
     events: { id: string; name: string; club_id: string; club_name?: string }[],
-    status: 'active' | 'rejected'
+    status: 'active' | 'rejected' | 'pending'
 ) {
     if (events.length === 0) return;
 
@@ -184,15 +184,15 @@ export async function createBulkEventStatusNotifications(
             const group = grouped[key];
             placeholders.push(`($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, false)`);
             
-            let message = `${group.count} events have been ${status === 'active' ? 'approved' : 'rejected'}.`;
+            let message = `${group.count} events have been ${status === 'active' ? 'approved' : status === 'rejected' ? 'rejected' : 'moved to pending'}.`;
             if (group.count === 1) {
                 const ev = events.find(e => e.club_id === group.clubId);
-                message = `"${ev?.name || 'Event'}" has been ${status === 'active' ? 'approved' : 'rejected'}.`;
+                message = `"${ev?.name || 'Event'}" has been ${status === 'active' ? 'approved' : status === 'rejected' ? 'rejected' : 'moved to pending'}.`;
             }
             
             values.push(
-                status === 'active' ? 'event_approved' : 'event_rejected',
-                `Event ${status === 'active' ? 'Approved' : 'Rejected'}`,
+                status === 'active' ? 'event_approved' : status === 'rejected' ? 'event_rejected' : 'event_pending',
+                `Event ${status === 'active' ? 'Approved' : status === 'rejected' ? 'Rejected' : 'Pending'}`,
                 message,
                 null, // user_id is null for broadcasting to club
                 { status, clubId: group.clubId, count: group.count }

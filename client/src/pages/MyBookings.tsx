@@ -1,9 +1,10 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
+import { cn, formatISTDate, getISTParts } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { AlertTriangle, Calendar, Clock, MapPin, Plus, RefreshCw } from 'lucide-react';
 import React, { useState } from 'react';
 import ExtraRoomDialog from '../components/ExtraRoomDialog';
+import EditTimingsDialog from '../components/EditTimingsDialog';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -22,9 +23,12 @@ const MyBookings: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'active' | 'past'>('active');
 
-  // Extra Room Dialog State
   const [isExtraRoomOpen, setIsExtraRoomOpen] = useState(false);
   const [selectedBookingForExtra, setSelectedBookingForExtra] = useState<GroupedBooking | null>(null);
+
+  // Edit Timings Dialog State
+  const [isEditTimingsOpen, setIsEditTimingsOpen] = useState(false);
+  const [selectedBookingForEdit, setSelectedBookingForEdit] = useState<GroupedBooking | null>(null);
 
   // Cancel Booking Dialog State
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -89,6 +93,11 @@ const MyBookings: React.FC = () => {
     setIsExtraRoomOpen(true);
   };
 
+  const openEditTimingsDialog = (booking: GroupedBooking) => {
+    setSelectedBookingForEdit(booking);
+    setIsEditTimingsOpen(true);
+  };
+
   const handleCancelClick = (booking: GroupedBooking) => {
     setBookingToCancel(booking);
     setCancelDialogOpen(true);
@@ -131,7 +140,7 @@ const MyBookings: React.FC = () => {
           onClick={() => setTab('active')}
           className={cn(
             "px-6 py-2.5 rounded-lg text-sm font-semibold transition-all",
-            tab === 'active' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary"
+            tab === 'active' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary hover:bg-hoverSoft cursor-pointer"
           )}
         >
           Active Bookings
@@ -140,7 +149,7 @@ const MyBookings: React.FC = () => {
           onClick={() => setTab('past')}
           className={cn(
             "px-6 py-2.5 rounded-lg text-sm font-semibold transition-all",
-            tab === 'past' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary"
+            tab === 'past' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary hover:bg-hoverSoft cursor-pointer"
           )}
         >
           Past Bookings
@@ -191,11 +200,9 @@ const MyBookings: React.FC = () => {
                   <CardContent className="p-6 sm:p-8">
                     <div className="flex flex-col md:flex-row gap-6 md:gap-8">
                       <div className={cn("w-full md:w-28 h-28 rounded-lg flex flex-col items-center justify-center shrink-0 border border-borderSoft", isPast ? 'bg-hoverSoft/40 text-textMuted' : 'bg-card text-brand')}>
-                        <span className="text-xs font-bold uppercase tracking-wider">{new Date(booking.date).toLocaleDateString('en-US', {
-                            timeZone: 'Asia/Kolkata',
-                            month: 'short' })}</span>
-                        <span className="text-3xl font-extrabold leading-none">{new Date(booking.date).getDate()}</span>
-                        <span className="text-xs mt-1 opacity-80">{new Date(booking.date).getFullYear()}</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">{formatISTDate(booking.date, { month: 'short' })}</span>
+                        <span className="text-3xl font-extrabold leading-none">{getISTParts(booking.date).date}</span>
+                        <span className="text-xs mt-1 opacity-80">{getISTParts(booking.date).year}</span>
                       </div>
 
                       <div className="flex-1">
@@ -210,11 +217,9 @@ const MyBookings: React.FC = () => {
                             <div className="flex items-center gap-2 text-sm mb-4 font-medium text-textSecondary">
                               <Clock size={16} className="text-brand" />
                               <span>
-                                {new Date(booking.date).toLocaleDateString('en-US', {
-                                    timeZone: 'Asia/Kolkata',
+                                {formatISTDate(booking.date, {
                                     month: 'short', day: 'numeric', year: 'numeric' })}, {booking.startTime} –{' '}
-                                {new Date(booking.endDate || booking.date).toLocaleDateString('en-US', {
-                                    timeZone: 'Asia/Kolkata',
+                                {formatISTDate(booking.endDate || booking.date, {
                                     month: 'short', day: 'numeric', year: 'numeric' })}, {booking.endTime}
                               </span>
                             </div>
@@ -272,6 +277,9 @@ const MyBookings: React.FC = () => {
                         <div className="mt-6 pt-6 border-t border-borderSoft/50 flex flex-wrap gap-3">
                           {!isPast && (booking.status === 'approved' || booking.status === 'pending' || booking.status === 'partial') && (
                             <>
+                              <Button variant="outline" size="sm" onClick={() => openEditTimingsDialog(booking)} className="gap-2 rounded-lg font-semibold bg-brand/5 text-brand border-brand/20 hover:bg-brand/10 shadow-sm">
+                                <Clock className="h-4 w-4" /> Edit Timings
+                              </Button>
                               <Button variant="outline" size="sm" onClick={() => openExtraRoomDialog(booking)} className="gap-2 rounded-lg font-semibold bg-brand/5 text-brand border-brand/20 hover:bg-brand/10 shadow-sm">
                                 <Plus className="h-4 w-4" /> Request Extra Room
                               </Button>
@@ -301,6 +309,12 @@ const MyBookings: React.FC = () => {
         open={isExtraRoomOpen}
         onOpenChange={setIsExtraRoomOpen}
         onSuccess={fetchBookings}
+      />
+      <EditTimingsDialog
+        booking={selectedBookingForEdit}
+        open={isEditTimingsOpen}
+        onOpenChange={setIsEditTimingsOpen}
+        onUpdated={fetchBookings}
       />
       {/* Cancel Confirmation Dialog */}
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>

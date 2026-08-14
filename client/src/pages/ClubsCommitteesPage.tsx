@@ -25,6 +25,7 @@ import {
 } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { apiRequest } from '../lib/api';
+import { formatISTDate } from '../lib/utils';
 import { toastError } from '../lib/toast';
 
 import { cn } from '@/lib/utils';
@@ -182,12 +183,10 @@ const ClubsCommitteesPage: React.FC = () => {
 
     const formatTenure = (start?: string | null, end?: string | null) => {
         if (!start && !end) return 'Not Specified';
-        const sStr = start ? new Date(start).toLocaleDateString(undefined, {
-            timeZone: 'Asia/Kolkata',
+        const sStr = start ? formatISTDate(start, {
             year: 'numeric', month: 'short'
         }) : 'N/A';
-        const eStr = end ? new Date(end).toLocaleDateString(undefined, {
-            timeZone: 'Asia/Kolkata',
+        const eStr = end ? formatISTDate(end, {
             year: 'numeric', month: 'short'
         }) : 'Present';
         return `${sStr} – ${eStr}`;
@@ -228,7 +227,7 @@ const ClubsCommitteesPage: React.FC = () => {
                                     onClick={() => { setActiveTab(tab); setSearchQuery(''); }}
                                     className={`
                                     relative px-3 sm:px-5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors flex-1 sm:flex-none sm:w-auto capitalize cursor-pointer min-w-max
-                                    ${activeTab === tab ? 'text-brand' : 'text-textMuted hover:text-textPrimary'}
+                                    ${activeTab === tab ? 'text-brand' : 'text-textMuted hover:text-textPrimary hover:bg-hoverSoft'}
                                 `}
                                 >
                                     {activeTab === tab && (

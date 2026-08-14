@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, ChevronRight, Download, MapPin, Pencil, Plus, RefreshCw, Settings, X, XCircle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, ChevronRight, Download, ExternalLink, MapPin, Pencil, Plus, RefreshCw, Settings, X, XCircle } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ import { Label } from '../components/ui/label';
 import { Skeleton } from '../components/ui/skeleton';
 import { apiRequest, groupBookings, mapBooking, splitGroupedBookingsByDay, type ApiBooking, type ApiVenue } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
+import { cn, getISTParts } from '../lib/utils';
 import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 import { toastError, toastSuccess } from '../lib/toast';
 import { GroupedBooking, Booking, AppEvent } from '../types';
@@ -253,18 +254,17 @@ const AdminDashboard: React.FC = () => {
 
   const getEventsForDate = (date: Date) => {
     return splitEvents.filter(e => {
-      const eDate = new Date(e.date);
-      return isSameDay(eDate, date) && (e.status === 'approved' || e.status === 'partial');
+      const ist = getISTParts(e.date);
+      return ist.year === date.getFullYear() && ist.month === date.getMonth() && ist.date === date.getDate() && (e.status === 'approved' || e.status === 'partial');
     });
   };
 
   const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : [];
 
-  // Normalize to local midnight so DayPicker's modifier matching works
   const eventDates = React.useMemo(() =>
     splitEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
-      const d = new Date(e.date);
-      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const ist = getISTParts(e.date);
+      return new Date(ist.year, ist.month, ist.date);
     }),
     [splitEvents]
   );
@@ -490,9 +490,17 @@ const AdminDashboard: React.FC = () => {
                             </div>
                             <div className="text-xs text-brand font-medium mt-0.5 mb-2">{event.clubName}</div>
                             {event.permissionsLink && (
-                              <a href={event.permissionsLink} target="_blank" rel="noopener noreferrer" className="text-[10px] text-brand hover:underline mb-2 inline-block font-medium">
-                                🔗 View Permissions
-                              </a>
+                              <div className="mt-2 mb-3">
+                                <a 
+                                  href={event.permissionsLink.match(/^https?:\/\//) ? event.permissionsLink : `https://${event.permissionsLink}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center justify-center gap-1 sm:gap-1.5 p-[1px] rounded-[2rem] border border-brand/30 bg-transparent text-[11px] sm:text-[13px] font-medium text-brand hover:bg-brand/10 transition-colors w-fit"
+                                >
+                                  <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                  View Permissions
+                                </a>
+                              </div>
                             )}
                             <div className="mt-2 text-xs text-textMuted">
                               {event.startTime} - {event.endTime}
@@ -697,26 +705,23 @@ const AdminDashboard: React.FC = () => {
                             {req.bookings.map(booking => (
                               <div key={booking.id} className="flex items-center justify-between bg-background border border-borderSoft rounded-md p-2 text-sm">
                                 <span className="font-medium text-foreground">{getVenueName(booking.venueId)}</span>
-                                <div className="flex items-center gap-1 sm:gap-2">
-                                  <Badge variant={booking.status === 'approved' ? 'success' : booking.status === 'rejected' ? 'destructive' : 'pending'} className="text-[10px] h-5 mr-1">
-                                    {booking.status.toUpperCase()}
-                                  </Badge>
+                                <div className="flex items-center gap-2 sm:gap-3">
                                   {booking.status !== 'rejected' && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-7 w-7 p-0 text-textMuted hover:text-error"
+                                      className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-textMuted hover:text-error"
                                       onClick={() => handleAction([booking.id], 'rejected')}
                                       title="Reject this venue"
                                       disabled={isProcessingAction}
                                     >
-                                      <X size={14} />
+                                      <X size={16} className="sm:w-3.5 sm:h-3.5" />
                                     </Button>
                                   )}
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-7 w-7 p-0 text-textMuted hover:text-primary"
+                                    className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-textMuted hover:text-primary"
                                     onClick={() => {
                                       setEditingBooking(booking);
                                       setIsEditDialogOpen(true);
@@ -724,18 +729,18 @@ const AdminDashboard: React.FC = () => {
                                     title="Edit booking timings"
                                     disabled={isProcessingAction}
                                   >
-                                    <Pencil size={14} />
+                                    <Pencil size={14} className="sm:w-3.5 sm:h-3.5" />
                                   </Button>
                                   {booking.status !== 'approved' && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-7 w-7 p-0 text-primary hover:text-primary/80"
+                                      className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-primary hover:text-primary/80"
                                       onClick={() => handleAction([booking.id], 'approved')}
                                       title="Approve this venue"
                                       disabled={isProcessingAction}
                                     >
-                                      <Check size={14} />
+                                      <Check size={16} className="sm:w-3.5 sm:h-3.5" />
                                     </Button>
                                   )}
                                 </div>
@@ -744,9 +749,15 @@ const AdminDashboard: React.FC = () => {
                           </div>
                         </div>
                         {req.permissionsLink && (
-                          <div className="mt-1">
-                            <a href={req.permissionsLink} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline font-medium">
-                              🔗 View Permissions
+                          <div className="mt-3">
+                            <a 
+                              href={req.permissionsLink.match(/^https?:\/\//) ? req.permissionsLink : `https://${req.permissionsLink}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center gap-1 sm:gap-1.5 p-[1px] px-1.5 rounded-[2rem] border border-brand/30 bg-transparent text-[11px] sm:text-[13px] font-medium text-brand hover:bg-brand/10 transition-colors w-fit"
+                            >
+                              <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                              View Permissions
                             </a>
                           </div>
                         )}

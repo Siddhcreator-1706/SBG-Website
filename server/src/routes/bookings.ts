@@ -1,7 +1,7 @@
 import express from 'express';
 // 1. Swap Supabase for your new database pool
 import NodeCache from 'node-cache';
-import { checkConflict, createBooking } from '../controllers/bookingController';
+import { checkConflict, createBooking, updateBookingTimings } from '../controllers/bookingController';
 import { db } from '../db';
 import authMiddleware from '../middleware/auth';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
@@ -238,6 +238,8 @@ router.delete('/my-bookings/:id', authMiddleware, async (req, res) => {
     return res.status(500).json({ error: 'Failed to delete booking' });
   }
 });
+
+router.patch('/my-bookings/:batchId/timings', authMiddleware, updateBookingTimings);
 
 router.get('/bookings/check-conflict', checkConflict);
 
