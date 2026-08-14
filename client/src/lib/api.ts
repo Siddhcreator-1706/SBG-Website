@@ -118,6 +118,7 @@ export type ApiBooking = {
   issue_flag?: string | null;
   event_id?: string;
   permissions_link?: string | null;
+  booking_name?: string;
 };
 
 export const mapBooking = (booking: ApiBooking) => {
@@ -127,6 +128,7 @@ export const mapBooking = (booking: ApiBooking) => {
   return {
     id: booking.id,
     eventName: booking.event_name,
+    bookingName: booking.booking_name || booking.event_name,
     venueId: booking.venue_id,
     venueName: booking.venues?.name || booking.venue_id,
     clubName: booking.clubs?.name || booking.club_id,

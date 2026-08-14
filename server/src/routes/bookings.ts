@@ -15,6 +15,7 @@ router.get('/venues', async (_req, res) => {
     if (cachedVenues) return res.json(cachedVenues);
 
     const { rows } = await db.query('SELECT * FROM venues');
+    cache.set('venues', rows);
     return res.json(rows);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -23,7 +24,11 @@ router.get('/venues', async (_req, res) => {
 
 router.get('/clubs', async (_req, res) => {
   try {
-    const { rows } = await db.query('SELECT * FROM clubs');
+    const cachedClubs = cache.get('clubs');
+    if (cachedClubs) return res.json(cachedClubs);
+
+    const { rows } = await db.query('SELECT id, name, organization_type, group_category, logo_url, member_tag, logo_bg, description, key_activities, linkedin_url, instagram_url, youtube_url, website_url, email FROM clubs ORDER BY name ASC');
+    cache.set('clubs', rows);
     return res.json(rows);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -148,6 +153,8 @@ router.patch('/clubs/my-club', authMiddleware, async (req, res) => {
       `UPDATE clubs SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
       values
     );
+
+    cache.del('clubs');
 
     return res.json(rows[0]);
   } catch (error: any) {

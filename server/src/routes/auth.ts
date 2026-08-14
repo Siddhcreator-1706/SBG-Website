@@ -347,7 +347,7 @@ router.get('/profile', async (req, res) => {
 
         // 2. If Club, fetch Club details
         if (profile.role === 'club') {
-            const clubRes = await db.query('SELECT * FROM clubs WHERE email = $1', [profile.email]);
+            const clubRes = await db.query('SELECT id, name, group_category, logo_url, logo_bg, organization_type FROM clubs WHERE email = $1 LIMIT 1', [profile.email]);
             clubData = clubRes.rows[0];
         }
 

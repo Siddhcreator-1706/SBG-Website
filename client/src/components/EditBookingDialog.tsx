@@ -101,7 +101,7 @@ const EditBookingDialog: React.FC<EditBookingDialogProps> = ({ open, onOpenChang
         <DialogHeader>
           <DialogTitle>Edit Booking Timings</DialogTitle>
           <DialogDescription>
-            {booking ? `Editing timings for "${booking.eventName}"` : 'Loading...'}
+            {booking ? `Editing timings for "${booking.bookingName || booking.eventName}"` : 'Loading...'}
           </DialogDescription>
         </DialogHeader>
 

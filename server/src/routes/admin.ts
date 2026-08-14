@@ -494,7 +494,7 @@ router.delete('/bookings/:id', async (req, res) => {
 });
 
 router.post('/bookings', async (req, res) => {
-  const { club_id, venue_ids, start_time: singleStartTime, end_time: singleEndTime, timeSlots: reqTimeSlots, expected_attendees, event_id } = req.body;
+  const { club_id, venue_ids, start_time: singleStartTime, end_time: singleEndTime, timeSlots: reqTimeSlots, expected_attendees, event_id, bookingName } = req.body;
 
   let timeSlots = reqTimeSlots;
   if (!timeSlots) {
@@ -503,8 +503,8 @@ router.post('/bookings', async (req, res) => {
     }
   }
 
-  if (!club_id || !venue_ids || !Array.isArray(venue_ids) || venue_ids.length === 0 || !timeSlots || timeSlots.length === 0 || !event_id) {
-    return res.status(400).json({ error: 'Missing required fields. Event selection is mandatory.' });
+  if (!club_id || !venue_ids || !Array.isArray(venue_ids) || venue_ids.length === 0 || !timeSlots || timeSlots.length === 0 || !event_id || !bookingName || bookingName.trim().length === 0) {
+    return res.status(400).json({ error: 'Missing required fields. Event selection and Booking Name are mandatory.' });
   }
 
   try {
@@ -530,8 +530,8 @@ router.post('/bookings', async (req, res) => {
       for (const venueId of venue_ids) {
         const { rows } = await db.query(`
           WITH inserted AS (
-            INSERT INTO bookings (club_id, venue_id, start_time, end_time, expected_attendees, status, batch_id, event_id)
-            VALUES ($1, $2, $3, $4, $5, 'approved', $6, $7)
+            INSERT INTO bookings (club_id, venue_id, start_time, end_time, expected_attendees, status, batch_id, event_id, booking_name)
+            VALUES ($1, $2, $3, $4, $5, 'approved', $6, $7, $8)
             RETURNING *
           )
           SELECT i.*,
@@ -543,7 +543,7 @@ router.post('/bookings', async (req, res) => {
           LEFT JOIN clubs c ON i.club_id = c.id
           LEFT JOIN venues v ON i.venue_id = v.id
           LEFT JOIN events e ON i.event_id = e.id
-        `, [club_id, venueId, slot.startTime, slot.endTime, expected_attendees || 0, batchId, event_id]);
+        `, [club_id, venueId, slot.startTime, slot.endTime, expected_attendees || 0, batchId, event_id, bookingName.trim()]);
         
         createdBookings.push(rows[0]);
       }
@@ -598,7 +598,7 @@ router.get('/stats', async (_req, res) => {
 
 router.get('/clubs', async (_req, res) => {
   try {
-    const { rows } = await db.query('SELECT * FROM clubs ORDER BY name ASC');
+    const { rows } = await db.query('SELECT id, name, email, group_category, organization_type, member_tag FROM clubs ORDER BY name ASC');
     return res.json(rows);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -646,7 +646,7 @@ router.delete('/clubs/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const clubRes = await db.query('SELECT * FROM clubs WHERE id = $1', [id]);
+    const clubRes = await db.query('SELECT id, email FROM clubs WHERE id = $1 LIMIT 1', [id]);
     const club = clubRes.rows[0];
     if (!club) return res.status(404).json({ error: 'Club not found' });
 

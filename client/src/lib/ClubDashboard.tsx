@@ -92,8 +92,9 @@ const ScheduleCalendarCard = ({
           <div className="min-w-0 border-t border-borderSoft pt-5 xl:min-h-[460px] xl:border-l xl:border-t-0 xl:pl-6 xl:pt-1">
             <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
               {selectedDate ? selectedDate.toLocaleDateString('en-US', {
-                  timeZone: 'Asia/Kolkata',
-                weekday: 'long', month: 'short', day: 'numeric' }) : 'Select a date'}
+                timeZone: 'Asia/Kolkata',
+                weekday: 'long', month: 'short', day: 'numeric'
+              }) : 'Select a date'}
             </h4>
 
             <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 xl:max-h-[410px]">
@@ -191,7 +192,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
     member_tag: '',
   });
 
-  const entityType = user.organization_type 
+  const entityType = user.organization_type
     ? (user.organization_type === 'other' ? 'Club' : user.organization_type.charAt(0).toUpperCase() + user.organization_type.slice(1))
     : (user.name.toLowerCase().includes('committee') ? 'Committee' : 'Club');
 
@@ -318,6 +319,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
         : (e.venueName || getVenueName(e.venueId || e.venueIds?.[0]));
       return {
         eventName: e.eventName,
+        bookingName: e.bookingName,
         clubName: e.clubName,
         date: e.date,
         startTime: e.startTime,
@@ -537,7 +539,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                     className="p-4 hover:bg-hoverSoft transition-colors"
                   >
-                    <div className="font-semibold text-foreground text-sm"><span className="text-xs text-muted-foreground font-normal mr-1.5">Booking Name:</span>{event.eventName}</div>
+                    <div className="font-semibold text-foreground text-sm"><span className="text-xs text-muted-foreground font-normal mr-1.5">Booking Name:</span>{event.bookingName || event.eventName}</div>
                     <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
                       <CalendarPlus size={12} />
                       {new Date(event.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}
@@ -606,25 +608,26 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                         <div className="font-semibold text-foreground text-sm truncate">{event.name}</div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">
                           Date: {new Date(event.date).toLocaleDateString(undefined, {
-                              timeZone: 'Asia/Kolkata',
-                            year: 'numeric', month: 'short', day: 'numeric' })}
+                            timeZone: 'Asia/Kolkata',
+                            year: 'numeric', month: 'short', day: 'numeric'
+                          })}
                         </div>
                       </div>
                       {(() => {
                         const eventEndDate = event.dynamic_end_date ? new Date(event.dynamic_end_date) : new Date(event.date);
                         const isPast = eventEndDate < new Date();
-                        
+
                         return !isPast ? (
                           <Button
-                            onClick={() => navigate('/book', { 
-                              state: { 
-                                prefill: { 
+                            onClick={() => navigate('/book', {
+                              state: {
+                                prefill: {
                                   event_id: event.id,
                                   eventName: event.name,
                                   date: event.date ? toLocalISOString(new Date(event.date)) : '',
                                   venueName: event.venue || ''
-                                } 
-                              } 
+                                }
+                              }
                             })}
                             size="sm"
                             variant="outline"
@@ -693,11 +696,13 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                               <CalendarPlus size={12} className="text-primary/60 shrink-0" />
                               <span>
                                 {startDate.toLocaleDateString('en-US', {
-                                    timeZone: 'Asia/Kolkata',
-                                    weekday: 'short', month: 'short', day: 'numeric' })}
+                                  timeZone: 'Asia/Kolkata',
+                                  weekday: 'short', month: 'short', day: 'numeric'
+                                })}
                                 {isMultiDay && ` – ${endDate.toLocaleDateString('en-US', {
-                                    timeZone: 'Asia/Kolkata',
-                                    weekday: 'short', month: 'short', day: 'numeric' })}`}
+                                  timeZone: 'Asia/Kolkata',
+                                  weekday: 'short', month: 'short', day: 'numeric'
+                                })}`}
                               </span>
                             </div>
                             {event.venue && (
@@ -917,9 +922,9 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
           </div>
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" onClick={() => setIsEditAboutOpen(false)} className="rounded-xl border-borderSoft text-textSecondary hover:bg-hoverSoft font-semibold">Cancel</Button>
-            <Button 
+            <Button
               type="button"
-              onClick={handleSaveAbout} 
+              onClick={handleSaveAbout}
               disabled={isSavingAbout}
               className="rounded-xl bg-brand hover:bg-brand/90 text-white font-semibold"
             >

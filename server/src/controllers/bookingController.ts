@@ -17,6 +17,7 @@ type BookingRequestBody = {
   expectedAttendees?: number;
   event_id: string;
   permissionsLink?: string;
+  bookingName?: string;
 };
 
 const MIN_DAYS_BY_EVENT: Record<EventType, number> = {
@@ -125,6 +126,7 @@ export const createBooking = async (req: Request, res: Response) => {
     expectedAttendees,
     event_id,
     permissionsLink,
+    bookingName,
   } = req.body as Partial<BookingRequestBody & { venueIds: string[]; timeSlots?: {startTime: string, endTime: string}[] }>;
 
   let timeSlots = reqTimeSlots;
@@ -134,8 +136,8 @@ export const createBooking = async (req: Request, res: Response) => {
     }
   }
 
-  if (!clubId || !venueIds || !Array.isArray(venueIds) || venueIds.length === 0 || !timeSlots || timeSlots.length === 0 || !event_id) {
-    return res.status(400).json({ error: 'Missing required fields. Event selection is mandatory.' });
+  if (!clubId || !venueIds || !Array.isArray(venueIds) || venueIds.length === 0 || !timeSlots || timeSlots.length === 0 || !event_id || !bookingName || bookingName.trim().length === 0) {
+    return res.status(400).json({ error: 'Missing required fields. Event selection and Booking Name are mandatory.' });
   }
 
   // Fetch event name, type, and status
@@ -274,8 +276,8 @@ export const createBooking = async (req: Request, res: Response) => {
         }
 
         const { rows: insertRows } = await db.query(`
-          INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link, booking_name)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           RETURNING *
         `, [
           clubId,
@@ -288,7 +290,8 @@ export const createBooking = async (req: Request, res: Response) => {
           batchId,
           event_id,
           issueFlag,
-          permissionsLink || null
+          permissionsLink || null,
+          bookingName!.trim()
         ]);
 
         if (insertRows.length === 0) {

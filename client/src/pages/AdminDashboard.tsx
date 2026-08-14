@@ -44,7 +44,7 @@ const AdminDashboard: React.FC = () => {
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [registerDialogOpen, setRegisterDialogOpen] = React.useState(false);
   const [isProcessingAction, setIsProcessingAction] = React.useState(false);
-  
+
   const [editingBooking, setEditingBooking] = React.useState<Booking | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
@@ -124,24 +124,26 @@ const AdminDashboard: React.FC = () => {
           'Club Name': e.club_name || e.club_id || '',
           'Start Date': startDate ? startDate.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' }) : '',
           'Start Time': startDate ? startDate.toLocaleTimeString([], {
-              timeZone: 'Asia/Kolkata',
-            hour: '2-digit', minute:'2-digit'}) : '',
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit', minute: '2-digit'
+          }) : '',
           'End Date': endDate ? endDate.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' }) : '',
           'End Time': endDate ? endDate.toLocaleTimeString([], {
-              timeZone: 'Asia/Kolkata',
-            hour: '2-digit', minute:'2-digit'}) : '',
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit', minute: '2-digit'
+          }) : '',
           'Venue': e.venue || '',
           'Status': e.status || '',
           'Event Type': e.event_type || ''
         };
       });
-      
+
       const worksheet = XLSX.utils.json_to_sheet(rows);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Events');
-      
+
       XLSX.writeFile(workbook, `all-events-${new Date().toISOString().slice(0, 10)}.xlsx`);
-      
+
       toastSuccess('Events exported successfully');
     } catch (err) {
       toastError(err, 'Failed to export events');
@@ -277,6 +279,7 @@ const AdminDashboard: React.FC = () => {
         : (e.venueName || e.venueIds.map(getVenueName).sort((a, b) => a.localeCompare(b)).join(', '));
       return {
         eventName: e.eventName,
+        bookingName: e.bookingName,
         clubName: e.clubName,
         date: e.date,
         startTime: e.startTime,
@@ -467,8 +470,9 @@ const AdminDashboard: React.FC = () => {
               <div className="flex-1 border-t lg:border-t-0 lg:border-l border-borderSoft lg:pl-6 pt-4 lg:pt-0 flex flex-col min-w-0">
                 <h4 className="text-sm font-semibold text-textMuted uppercase tracking-wider mb-4">
                   {selectedDate ? selectedDate.toLocaleDateString('en-US', {
-                      timeZone: 'Asia/Kolkata',
-                    weekday: 'long', month: 'short', day: 'numeric' }) : 'Select a date'}
+                    timeZone: 'Asia/Kolkata',
+                    weekday: 'long', month: 'short', day: 'numeric'
+                  }) : 'Select a date'}
                 </h4>
 
                 <div className="flex-1 overflow-y-auto space-y-3 max-h-[350px]">
@@ -483,7 +487,7 @@ const AdminDashboard: React.FC = () => {
                         <Card className="rounded-xl hover:border-brand/30 transition-colors">
                           <CardContent className="p-3">
                             <div className="flex justify-between items-start">
-                              <div className="font-semibold text-textPrimary text-sm mb-1">{event.eventName}</div>
+                              <div className="font-semibold text-textPrimary text-sm mb-1">{event.bookingName || event.eventName}</div>
                               <Badge variant={event.status === 'approved' ? 'success' : event.status === 'pending' ? 'pending' : 'destructive'} className="text-[10px] px-1.5 py-0 h-5">
                                 {event.status}
                               </Badge>
@@ -491,9 +495,9 @@ const AdminDashboard: React.FC = () => {
                             <div className="text-xs text-brand font-medium mt-0.5 mb-2">{event.clubName}</div>
                             {event.permissionsLink && (
                               <div className="mt-2 mb-3">
-                                <a 
-                                  href={event.permissionsLink.match(/^https?:\/\//) ? event.permissionsLink : `https://${event.permissionsLink}`} 
-                                  target="_blank" 
+                                <a
+                                  href={event.permissionsLink.match(/^https?:\/\//) ? event.permissionsLink : `https://${event.permissionsLink}`}
+                                  target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center justify-center gap-1 sm:gap-1.5 p-[1px] rounded-[2rem] border border-brand/30 bg-transparent text-[11px] sm:text-[13px] font-medium text-brand hover:bg-brand/10 transition-colors w-fit"
                                 >
@@ -706,7 +710,7 @@ const AdminDashboard: React.FC = () => {
                               <div key={booking.id} className="flex items-center justify-between bg-background border border-borderSoft rounded-md p-2 text-sm">
                                 <span className="font-medium text-foreground">{getVenueName(booking.venueId)}</span>
                                 <div className="flex items-center gap-2 sm:gap-3">
-                                  {booking.status !== 'rejected' && (
+                                  {booking.status !== 'rejected' && req.bookings.length > 1 && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -731,7 +735,7 @@ const AdminDashboard: React.FC = () => {
                                   >
                                     <Pencil size={14} className="sm:w-3.5 sm:h-3.5" />
                                   </Button>
-                                  {booking.status !== 'approved' && (
+                                  {booking.status !== 'approved' && req.bookings.length > 1 && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -750,9 +754,9 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         {req.permissionsLink && (
                           <div className="mt-3">
-                            <a 
-                              href={req.permissionsLink.match(/^https?:\/\//) ? req.permissionsLink : `https://${req.permissionsLink}`} 
-                              target="_blank" 
+                            <a
+                              href={req.permissionsLink.match(/^https?:\/\//) ? req.permissionsLink : `https://${req.permissionsLink}`}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center justify-center gap-1 sm:gap-1.5 p-[1px] px-1.5 rounded-[2rem] border border-brand/30 bg-transparent text-[11px] sm:text-[13px] font-medium text-brand hover:bg-brand/10 transition-colors w-fit"
                             >
@@ -790,7 +794,7 @@ const AdminDashboard: React.FC = () => {
                           disabled={isProcessingAction}
                         >
                           <XCircle size={16} />
-                          <span className="hidden sm:inline">Reject</span>
+                          <span className="hidden sm:inline">{req.bookings.length > 1 ? 'Reject All' : 'Reject'}</span>
                         </Button>
                         <Button
                           size="sm"
@@ -799,7 +803,7 @@ const AdminDashboard: React.FC = () => {
                           disabled={isProcessingAction}
                         >
                           <CheckCircle size={16} />
-                          <span className="hidden sm:inline">Approve</span>
+                          <span className="hidden sm:inline">{req.bookings.length > 1 ? 'Approve All' : 'Approve'}</span>
                         </Button>
                       </div>
                     </div>
@@ -865,7 +869,7 @@ const AdminDashboard: React.FC = () => {
                           </Badge>
                         </div>
                         <h4 className="text-base sm:text-lg font-medium text-foreground"><span className="text-sm text-textMuted font-normal mr-2">Event Name:</span>{evt.name}</h4>
-                        
+
                         <div className="mt-2 flex flex-col gap-2 text-xs mb-2">
                           <div className="flex items-center gap-1.5 text-textMuted text-sm">
                             <span className="font-medium mr-1 text-textPrimary">Event Time:</span>

@@ -50,7 +50,8 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     endTime: '13:00',
     venueIds: [] as string[],
     event_id: '',
-    permissionsLink: ''
+    permissionsLink: '',
+    bookingName: ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,7 +116,8 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         startTime: prefill.startTime || '',
         endTime: prefill.endTime || '',
         clubName: prefill.clubName || prev.clubName,
-        event_id: prefill.event_id ? String(prefill.event_id) : ''
+        event_id: prefill.event_id ? String(prefill.event_id) : '',
+        bookingName: prefill.bookingName || prefill.eventName || ''
       }));
 
       if (prefill.date) {
@@ -149,7 +151,8 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
       if (selectedEvent) {
         setFormData(prev => ({
           ...prev,
-          eventName: selectedEvent.name
+          eventName: selectedEvent.name,
+          bookingName: prev.bookingName || selectedEvent.name
         }));
       }
     }
@@ -473,6 +476,11 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         return;
       }
 
+      if (!formData.bookingName || formData.bookingName.trim().length === 0) {
+        toastError('Please provide a Booking Name.');
+        return;
+      }
+
       const timeSlots = generateTimeSlots();
 
       await apiRequest('/api/bookings', {
@@ -498,7 +506,8 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         endTime: '13:00',
         venueIds: [],
         event_id: '',
-        permissionsLink: ''
+        permissionsLink: '',
+        bookingName: ''
       });
       setSelectedDate(undefined);
       setSelectedEndDate(undefined);
@@ -738,6 +747,19 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                         This event is still awaiting admin approval — bookings linked to it stay pending until it is approved.
                       </p>
                     )}
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <Label htmlFor="bookingName" className="text-textSecondary font-semibold text-sm">Booking Name *</Label>
+                    <Input
+                      id="bookingName"
+                      value={formData.bookingName}
+                      onChange={(e) => handleChange('bookingName', e.target.value)}
+                      placeholder="e.g. Workshop Session 1 / Rehearsal"
+                      required
+                      className="h-11 border-borderSoft focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl"
+                    />
+                    <p className="text-xs text-textMuted">Give this specific venue booking a name (defaults to the selected event name).</p>
                   </div>
 
 
