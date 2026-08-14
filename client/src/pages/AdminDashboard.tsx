@@ -261,7 +261,9 @@ const AdminDashboard: React.FC = () => {
     });
   };
 
-  const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : [];
+  const selectedDateEvents = selectedDate 
+    ? getEventsForDate(selectedDate).sort((a, b) => new Date(a.startTimeISO || a.date).getTime() - new Date(b.startTimeISO || b.date).getTime()) 
+    : [];
 
   const eventDates = React.useMemo(() =>
     splitEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
@@ -284,6 +286,7 @@ const AdminDashboard: React.FC = () => {
         date: e.date,
         startTime: e.startTime,
         endTime: e.endTime,
+        startTimeISO: e.startTimeISO,
         venueName: approvedVenueName || e.venueName || e.venueIds.map(getVenueName).sort((a, b) => a.localeCompare(b)).join(', '),
         status: e.status,
       };
@@ -577,7 +580,10 @@ const AdminDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
-                    {calendarEvents.slice(0, 5).map((evt, index) => (
+                    {[...calendarEvents]
+                      .sort((a, b) => new Date(a.startTimeISO || a.date).getTime() - new Date(b.startTimeISO || b.date).getTime())
+                      .slice(0, 5)
+                      .map((evt, index) => (
                       <motion.tr
                         key={evt.batchId || evt.ids[0]}
                         initial={{ opacity: 0, x: -20 }}

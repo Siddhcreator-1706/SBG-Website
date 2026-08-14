@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion"
 import {
-    ChevronDownIcon,
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    Clock,
-    MapPin,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  Clock,
+  MapPin,
 } from "lucide-react"
 import * as React from "react"
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
@@ -20,6 +20,7 @@ interface CalendarEvent {
   date: string
   startTime: string
   endTime: string
+  startTimeISO?: string
   venueName?: string
   status?: string
   eventType?: string
@@ -125,8 +126,9 @@ function Calendar({
           formatters={{
             formatMonthDropdown: (date) =>
               date.toLocaleString("default", {
-                  timeZone: 'Asia/Kolkata',
-                month: "short" }),
+                timeZone: 'Asia/Kolkata',
+                month: "short"
+              }),
             ...formatters,
           }}
           classNames={{
@@ -367,6 +369,18 @@ function EventHoverCard({
       const events = eventsByDate.get(key) || []
       if (events.length === 0) { setCard(null); return }
 
+      const sortedEvents = [...events].sort((a, b) => {
+        if (a.startTimeISO && b.startTimeISO) {
+          return new Date(a.startTimeISO).getTime() - new Date(b.startTimeISO).getTime()
+        }
+        const parseTime = (timeStr: string) => {
+          const parts = timeStr.split(',')
+          const t = parts[parts.length - 1].trim()
+          return new Date(`1970/01/01 ${t} GMT+0530`).getTime()
+        }
+        return parseTime(a.startTime) - parseTime(b.startTime)
+      })
+
       showTimer.current = setTimeout(() => {
         const rect = hit.getBoundingClientRect()
         const above = rect.top > 280
@@ -375,13 +389,14 @@ function EventHoverCard({
 
         setCard({
           dateKey: key,
-          events,
+          events: sortedEvents,
           x: Math.max(160, Math.min(window.innerWidth - 160, rect.left + rect.width / 2)),
           y: above ? rect.top - 10 : rect.bottom + 10,
           above,
           dateLabel: date.toLocaleDateString("en-US", {
-              timeZone: 'Asia/Kolkata',
-            weekday: "long", month: "short", day: "numeric" }),
+            timeZone: 'Asia/Kolkata',
+            weekday: "long", month: "short", day: "numeric"
+          }),
         })
       }, 200)
     }
@@ -498,7 +513,7 @@ function EventHoverCard({
                 ))}
                 {card.events.length > 4 && (
                   <div className="text-center text-[11px] text-muted-foreground py-2 font-medium">
-                    +{card.events.length - 4} more event{card.events.length - 4 !== 1 ? "s" : ""}
+                    Click the date to view {card.events.length - 4} more event{card.events.length - 4 !== 1 ? "s" : ""}
                   </div>
                 )}
               </div>

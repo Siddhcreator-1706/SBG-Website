@@ -80,7 +80,8 @@ const performVenueConflictCheck = async (
   venueIds: string[],
   startTime: string,
   endTime: string,
-  excludeIds?: string[]
+  excludeIds?: string[],
+  client?: any
 ) => {
   if (!venueIds || venueIds.length === 0) return { conflict: false, message: '' };
 
@@ -101,8 +102,8 @@ const performVenueConflictCheck = async (
     params.push(excludeIds);
   }
 
-  // Check for ANY booking that overlaps with the requested time for ANY of the requested venues
-  const { rows: conflicts } = await db.query(query, params);
+  const dbClient = client || db;
+  const { rows: conflicts } = await dbClient.query(query, params);
 
   if (conflicts.length > 0) {
     // Get unique venue names that have conflicts
@@ -209,54 +210,65 @@ export const createBooking = async (req: Request, res: Response) => {
     }
   }
 
+  const client = await db.connect();
   try {
-    const { rows: venues } = await db.query(
-      'SELECT id, category, capacity, name FROM venues WHERE id = ANY($1::uuid[])',
+    await client.query('BEGIN');
+
+    // Lock target venue rows to serialize concurrent booking requests for the same venue(s)
+    const { rows: venues } = await client.query(
+      'SELECT id, category, capacity, name FROM venues WHERE id = ANY($1::uuid[]) FOR UPDATE',
       [venueIds]
     );
 
     if (venues.length !== venueIds.length) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'One or more venues not found' });
     }
 
-    const { rows: clubRows } = await db.query(
+    const { rows: clubRows } = await client.query(
       'SELECT id, group_category, name FROM clubs WHERE id = $1',
       [clubId]
     );
     const club = clubRows[0];
 
     if (!club) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Club not found' });
     }
 
     const { blocked, message: blockMessage } = await checkPendingEventReports(clubId);
     if (blocked) {
+      await client.query('ROLLBACK');
       return res.status(403).json({ error: blockMessage });
     }
 
     if (!req.user) {
+      await client.query('ROLLBACK');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     if (req.user.role !== 'admin') {
-      const { rows: requesterRows } = await db.query(
+      const { rows: requesterRows } = await client.query(
         'SELECT id FROM clubs WHERE email = $1',
         [req.user.email]
       );
       const requesterClub = requesterRows[0];
 
       if (!requesterClub) {
+        await client.query('ROLLBACK');
         return res.status(403).json({ error: 'Unable to resolve your club ownership' });
       }
 
       if (requesterClub.id !== clubId) {
+        await client.query('ROLLBACK');
         return res.status(403).json({ error: 'You are not allowed to create bookings for another club' });
       }
     }
 
     for (const slot of timeSlots) {
-      const { conflict: venueConflict, message: venueMessage } = await performVenueConflictCheck(venueIds, slot.startTime, slot.endTime);
+      const { conflict: venueConflict, message: venueMessage } = await performVenueConflictCheck(venueIds, slot.startTime, slot.endTime, undefined, client);
       if (venueConflict) {
+        await client.query('ROLLBACK');
         return res.status(409).json({ error: venueMessage });
       }
     }
@@ -275,7 +287,7 @@ export const createBooking = async (req: Request, res: Response) => {
           status = 'pending';
         }
 
-        const { rows: insertRows } = await db.query(`
+        const { rows: insertRows } = await client.query(`
           INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link, booking_name)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           RETURNING *
@@ -302,10 +314,11 @@ export const createBooking = async (req: Request, res: Response) => {
       }
     }
 
+    await client.query('COMMIT');
+
     const pendingForEmail = createdBookings.filter((b) => b.status === 'pending');
     if (pendingForEmail.length > 0) {
       const formatTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
-
 
       const itemsForNotification = pendingForEmail.map((b) => {
         const venue = venues.find((v) => v.id === b.venue_id);
@@ -319,23 +332,18 @@ export const createBooking = async (req: Request, res: Response) => {
         };
       });
 
-
-
       // Also persist as in-app notifications
       await createBookingPendingNotifications(itemsForNotification);
 
       // Send the email to the admin
       const adminEmail = process.env.APPROVAL_SMTP_USER;
       if (adminEmail) {
-        const { sendPendingBookingEmailToAdmin } = await import('../services/email/index');
+        const { sendPendingBookingEmailToAdmin } = await import('../services/email');
         await sendPendingBookingEmailToAdmin(adminEmail, itemsForNotification);
       }
-    }
 
-    // Emit real-time event so admin sees the new booking immediately
-    const pendingBookings = createdBookings.filter((b) => b.status === 'pending');
-    if (pendingBookings.length > 0) {
-      io.to('admin').emit('booking:new', {
+      // Socket notification to admins
+      io.to('admin').emit('booking:pending', {
         eventName,
         clubName: club.name,
         venueNames: venues.map(v => v.name).join(', '),
@@ -387,8 +395,11 @@ export const createBooking = async (req: Request, res: Response) => {
 
     return res.status(201).json(createdBookings);
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Create booking failed:', err);
     return res.status(500).json({ error: (err as Error).message });
+  } finally {
+    client.release();
   }
 };
 
