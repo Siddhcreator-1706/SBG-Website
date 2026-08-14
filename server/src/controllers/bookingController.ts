@@ -1,32 +1,3 @@
-Pasted code.ts
-TypeScript
-can you give me ready and just leave the only short and important comments and just check finals before as this the main college websitre  
-
-Yes. I checked the code as a final/production version for the main college website.
-
-I made these final cleanup changes:
-
-Removed long/explanatory comments.
-Kept only short, useful comments.
-Removed unnecessary debug console.log() statements.
-Kept the important transaction/locking logic for preventing double-booking.
-Kept validation, permissions, event rules, notifications, email, Socket.IO updates, and conflict checking.
-I did not change the actual booking logic/rules. The source already contains the event notice requirements and restricted weekday hours.
-The transaction + venue row locking is retained, which is important for a real college website handling simultaneous bookings.
-Final file
-
-Download the final cleaned booking_controller.ts
-
-One important thing: don't change the booking rules just before submission. The current implementation correctly validates event status, dates, booking ownership, venue conflicts, and required fields.
-
-So yes — this is the cleaned version I'd use as the final code, assuming your existing database schema, authentication middleware, and imported services match this controller.
-
-final_booking_controller.ts
-Code
-
-Library
-/
-final_booking_controller.ts
 import type { Request, Response } from 'express';
 // Swap Supabase for your database pool
 import { db } from '../db';
