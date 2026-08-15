@@ -59,4 +59,31 @@ export const startCronJobs = () => {
       console.error('Error cleaning up old notifications:', error);
     }
   });
+  // Run every 15 minutes to auto-reject pending past events and bookings
+  cron.schedule('*/15 * * * *', async () => {
+    console.log('Running auto-reject for past pending requests...');
+    try {
+      // Reject pending bookings whose start_time has passed
+      const bookingResult = await db.query(`
+        UPDATE bookings
+        SET status = 'rejected'
+        WHERE status = 'pending' AND start_time < CURRENT_TIMESTAMP
+      `);
+      if (bookingResult.rowCount && bookingResult.rowCount > 0) {
+        console.log(`Auto-rejected ${bookingResult.rowCount} past pending bookings.`);
+      }
+
+      // Reject pending events whose date has passed
+      const eventResult = await db.query(`
+        UPDATE events
+        SET status = 'rejected'
+        WHERE status = 'pending' AND date < CURRENT_DATE
+      `);
+      if (eventResult.rowCount && eventResult.rowCount > 0) {
+        console.log(`Auto-rejected ${eventResult.rowCount} past pending events.`);
+      }
+    } catch (error) {
+      console.error('Error running auto-reject cron:', error);
+    }
+  });
 };

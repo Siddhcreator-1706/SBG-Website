@@ -1,8 +1,7 @@
 // @ts-nocheck
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import * as React from 'react';
-import { type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
