@@ -291,7 +291,7 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
               <Calendar size={14} className="shrink-0" />
               <span>{new Date(ev.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: 'numeric' })}</span>
               <Clock size={14} className="shrink-0 ml-1" />
-              <span>{new Date(ev.date).toLocaleTimeString([], { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}</span>
+              <span>{new Date(ev.date).toLocaleTimeString([], { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true })}</span>
             </div>
           </div>
           <div className="flex flex-col gap-0.5 text-xs">
@@ -300,7 +300,7 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
               <Calendar size={14} className="shrink-0" />
               <span>{ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'short', day: 'numeric' }) : '?'}</span>
               <Clock size={14} className="shrink-0 ml-1" />
-              <span>{ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' }) : '?'}</span>
+              <span>{ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true }) : '?'}</span>
             </div>
           </div>
         </div>
