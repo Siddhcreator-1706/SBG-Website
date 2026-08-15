@@ -17,8 +17,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 const AdminEventRequests: React.FC = () => {
   const [events, setEvents] = useState<(AppEvent & { clubName: string })[]>([]);
-  const [searchParams] = useSearchParams();
-  const [filterStatus, setFilterStatus] = useState<string>(searchParams.get('status') || 'all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filterStatus, setFilterStatusInternal] = useState<string>(searchParams.get('status') || 'all');
+  
+  const setFilterStatus = (status: string) => {
+    setFilterStatusInternal(status);
+    const newParams = new URLSearchParams(searchParams);
+    if (status === 'all') {
+      newParams.delete('status');
+    } else {
+      newParams.set('status', status);
+    }
+    setSearchParams(newParams, { replace: true });
+  };
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [filterClub, setFilterClub] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
@@ -293,11 +305,11 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
           </div>
         </div>
       </td>
-        <td className="px-4 sm:px-6 py-4">
-          <Badge variant={getStatusVariant(safeStatus)}>
-            {String(safeStatus).charAt(0).toUpperCase() + String(safeStatus).slice(1)}
-          </Badge>
-        </td>
+      <td className="px-4 sm:px-6 py-4">
+        <Badge variant={getStatusVariant(safeStatus)}>
+          {String(safeStatus).charAt(0).toUpperCase() + String(safeStatus).slice(1)}
+        </Badge>
+      </td>
       <td className="px-4 sm:px-6 py-4 text-right">
         <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
           {!isStarted && (

@@ -20,8 +20,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 const AdminRequests: React.FC = () => {
   const [requests, setRequests] = useState<GroupedBooking[]>([]);
   const [venues, setVenues] = useState<ApiVenue[]>([]);
-  const [searchParams] = useSearchParams();
-  const [filterStatus, setFilterStatus] = useState<string>(searchParams.get('status') || 'all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filterStatus, setFilterStatusInternal] = useState<string>(searchParams.get('status') || 'all');
+  
+  const setFilterStatus = (status: string) => {
+    setFilterStatusInternal(status);
+    const newParams = new URLSearchParams(searchParams);
+    if (status === 'all') {
+      newParams.delete('status');
+    } else {
+      newParams.set('status', status);
+    }
+    setSearchParams(newParams, { replace: true });
+  };
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [filterClub, setFilterClub] = useState<string>('all');
   const [filterVenue, setFilterVenue] = useState<string>('all');
@@ -122,7 +134,7 @@ const AdminRequests: React.FC = () => {
     const matchesSearch = String(req.eventName || '').toLowerCase().includes(searchTerm.toLowerCase()) || String(req.bookingName || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesClub = filterClub === 'all' || req.clubName === filterClub;
     const matchesVenue = filterVenue === 'all' || safeBookings.some(b => b.venueId === filterVenue);
-    
+
     let matchesStatus = true;
     if (filterStatus === 'pending') {
       matchesStatus = isPending && !isStarted;
@@ -330,10 +342,10 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
               <div className="text-xs text-textMuted mt-0.5">{req.clubName}</div>
               {req.permissionsLink && (
                 <div className="mt-3 mb-1">
-                  <a 
-                    href={req.permissionsLink.match(/^https?:\/\//) ? req.permissionsLink : `https://${req.permissionsLink}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                  <a
+                    href={req.permissionsLink.match(/^https?:\/\//) ? req.permissionsLink : `https://${req.permissionsLink}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
                     className="inline-flex items-center justify-center gap-1 sm:gap-1.5 p-[1px] px-1.5 rounded-[2rem] border border-brand/30 bg-transparent text-[11px] sm:text-[13px] font-medium text-brand hover:bg-brand/10 transition-colors w-fit"
                   >
@@ -377,7 +389,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
               title="Send an email to the club with the current status of all venues in this booking"
               disabled={isProcessingAction}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
               Send Mail
             </Button>
             {!isStarted && (
@@ -513,56 +525,56 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                         {booking.status.toUpperCase()}
                       </Badge>
                     </div>
-                      <div className="flex items-center gap-2">
-                        {!isStarted && booking.status !== 'rejected' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleAction([booking.id], 'rejected')}
-                            className="h-8 w-8 p-0 text-textMuted hover:text-error"
-                            title="Reject this venue"
-                            disabled={isProcessingAction}
-                          >
-                            <X size={16} />
-                          </Button>
-                        )}
-                        {!isStarted && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onEdit(booking)}
-                            className="h-8 w-8 p-0 text-textMuted hover:text-primary"
-                            title="Edit booking timings"
-                            disabled={isProcessingAction}
-                          >
-                            <Pencil size={14} />
-                          </Button>
-                        )}
-                        {!isStarted && booking.status !== 'approved' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleAction([booking.id], 'approved')}
-                            className="h-8 w-8 p-0 text-primary hover:text-primary/80"
-                            title="Approve this venue"
-                            disabled={isProcessingAction}
-                          >
-                            <Check size={16} />
-                          </Button>
-                        )}
-                        {!isStarted && booking.status !== 'pending' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleAction([booking.id], 'pending')}
-                            className="h-8 w-8 p-0 text-textMuted hover:text-warning"
-                            title="Move to pending"
-                            disabled={isProcessingAction}
-                          >
-                            <RotateCcw size={16} />
-                          </Button>
-                        )}
-                      </div>
+                    <div className="flex items-center gap-2">
+                      {!isStarted && booking.status !== 'rejected' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAction([booking.id], 'rejected')}
+                          className="h-8 w-8 p-0 text-textMuted hover:text-error"
+                          title="Reject this venue"
+                          disabled={isProcessingAction}
+                        >
+                          <X size={16} />
+                        </Button>
+                      )}
+                      {!isStarted && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onEdit(booking)}
+                          className="h-8 w-8 p-0 text-textMuted hover:text-primary"
+                          title="Edit booking timings"
+                          disabled={isProcessingAction}
+                        >
+                          <Pencil size={14} />
+                        </Button>
+                      )}
+                      {!isStarted && booking.status !== 'approved' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAction([booking.id], 'approved')}
+                          className="h-8 w-8 p-0 text-primary hover:text-primary/80"
+                          title="Approve this venue"
+                          disabled={isProcessingAction}
+                        >
+                          <Check size={16} />
+                        </Button>
+                      )}
+                      {!isStarted && booking.status !== 'pending' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAction([booking.id], 'pending')}
+                          className="h-8 w-8 p-0 text-textMuted hover:text-warning"
+                          title="Move to pending"
+                          disabled={isProcessingAction}
+                        >
+                          <RotateCcw size={16} />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
