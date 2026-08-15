@@ -1,19 +1,49 @@
 -- 019_standalone_bookings.sql
--- Add title and booking_type columns to support standalone club meets
+-- Add booking_name and booking_type columns to support standalone club meets
+-- booking_name replaces the old 'title' concept; booking_type tracks 'event' vs 'meet'
 
 DO $$
 BEGIN
+  -- Add booking_name (replaces 'title') if it doesn't exist
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'bookings' AND column_name = 'title'
+    WHERE table_name = 'bookings' AND column_name = 'booking_name'
   ) THEN
-    ALTER TABLE bookings ADD COLUMN title VARCHAR(255);
+    -- Add nullable first for safe migration
+    ALTER TABLE bookings ADD COLUMN booking_name VARCHAR(255);
+
+    -- Backfill from linked event name
+    UPDATE bookings b
+    SET booking_name = e.name
+    FROM events e
+    WHERE b.event_id = e.id
+      AND b.booking_name IS NULL;
+
+    -- Fallback for orphan bookings
+    UPDATE bookings
+    SET booking_name = 'Untitled Booking'
+    WHERE booking_name IS NULL;
+
+    -- Apply NOT NULL + default for future inserts
+    ALTER TABLE bookings
+      ALTER COLUMN booking_name SET NOT NULL,
+      ALTER COLUMN booking_name SET DEFAULT '';
   END IF;
 
+  -- Drop old 'title' column if it accidentally exists from a previous migration attempt
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'bookings' AND column_name = 'title'
+  ) THEN
+    ALTER TABLE bookings DROP COLUMN title;
+  END IF;
+
+  -- Add booking_type to distinguish 'event' vs 'meet'
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
     WHERE table_name = 'bookings' AND column_name = 'booking_type'
   ) THEN
-    ALTER TABLE bookings ADD COLUMN booking_type VARCHAR(50) DEFAULT 'event';
+    ALTER TABLE bookings ADD COLUMN booking_type VARCHAR(50) NOT NULL DEFAULT 'event';
   END IF;
 END $$;
+
