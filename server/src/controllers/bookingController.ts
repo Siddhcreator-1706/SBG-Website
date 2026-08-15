@@ -7,6 +7,8 @@ import { io } from '../server';
 import { checkPendingEventReports } from '../services/eventReportService';
 import { createBookingPendingNotifications } from '../services/notification';
 
+
+
 type EventType = 'co_curricular' | 'open_all' | 'closed_club';
 
 type BookingRequestBody = {
@@ -60,7 +62,7 @@ const violatesRestrictedWeekdayHours = (startUtc: Date, endUtc: Date) => {
       if (segmentEnd > segmentStart) {
         const segmentStartMinutes = (segmentStart.getTime() - dayStart.getTime()) / 60000;
         const segmentEndMinutes = (segmentEnd.getTime() - dayStart.getTime()) / 60000;
-        
+
         const overlapsRestrictedHours =
           segmentStartMinutes < RESTRICTED_END_MINUTES &&
           segmentEndMinutes > RESTRICTED_START_MINUTES;
@@ -75,6 +77,13 @@ const violatesRestrictedWeekdayHours = (startUtc: Date, endUtc: Date) => {
 
   return false;
 };
+
+
+// NOTE: `queryable` defaults to the shared pool (`db`) for backwards
+// compatibility with existing callers (e.g. checkConflict, getBusyVenues),
+// but createBooking and updateBookingTimings now pass in a transaction
+// client so the conflict check participates in the same transaction as
+// the row lock + insert/update, closing the race condition.
 
 const performVenueConflictCheck = async (
   venueIds: string[],
@@ -102,6 +111,7 @@ const performVenueConflictCheck = async (
     params.push(excludeIds);
   }
 
+  // Check for ANY booking that overlaps with the requested time for ANY of the requested venues
   const dbClient = client || db;
   const { rows: conflicts } = await dbClient.query(query, params);
 
@@ -193,7 +203,7 @@ export const createBooking = async (req: Request, res: Response) => {
 
   const earliestStart = new Date(Math.min(...timeSlots.map(s => new Date(s.startTime).getTime())));
   let issueFlag: string | null = null;
-  
+
   const violatesRestricted = timeSlots.some(slot => violatesRestrictedWeekdayHours(new Date(slot.startTime), new Date(slot.endTime)));
   if (violatesRestricted) {
     issueFlag = 'Violates restricted weekday hours (8:00 AM - 7:00 PM IST)';
@@ -273,7 +283,7 @@ export const createBooking = async (req: Request, res: Response) => {
       }
     }
 
-    const createdBookings = [];
+    const createdBookings: any[] = [];
     const batchId = (req.body as any).batchId || randomUUID();
 
     for (const slot of timeSlots) {
@@ -320,6 +330,7 @@ export const createBooking = async (req: Request, res: Response) => {
     if (pendingForEmail.length > 0) {
       const formatTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
 
+
       const itemsForNotification = pendingForEmail.map((b) => {
         const venue = venues.find((v) => v.id === b.venue_id);
         return {
@@ -332,13 +343,15 @@ export const createBooking = async (req: Request, res: Response) => {
         };
       });
 
+
+
       // Also persist as in-app notifications
       await createBookingPendingNotifications(itemsForNotification);
 
       // Send the email to the admin
       const adminEmail = process.env.APPROVAL_SMTP_USER;
       if (adminEmail) {
-        const { sendPendingBookingEmailToAdmin } = await import('../services/email');
+        const { sendPendingBookingEmailToAdmin } = await import('../services/email/index');
         await sendPendingBookingEmailToAdmin(adminEmail, itemsForNotification);
       }
 
@@ -452,6 +465,7 @@ export const checkConflict = async (req: Request, res: Response) => {
   }
 };
 
+
 export const getBusyVenues = async (req: Request, res: Response) => {
   const startTime = req.query.startTime as string;
   const endTime = req.query.endTime as string;
@@ -536,7 +550,7 @@ export const updateBookingTimings = async (req: Request, res: Response) => {
     // Constraint evaluation
     const earliestStart = new Date(startTime);
     let issueFlag: string | null = null;
-    
+
     const violatesRestricted = violatesRestrictedWeekdayHours(new Date(startTime), new Date(endTime));
     if (violatesRestricted) {
       issueFlag = 'Violates restricted weekday hours (8:00 AM - 7:00 PM IST)';
@@ -553,32 +567,62 @@ export const updateBookingTimings = async (req: Request, res: Response) => {
       }
     }
 
-    const { conflict, message } = await performVenueConflictCheck(venueIds, startTime, endTime, bookingIds);
-    if (conflict) {
-      return res.status(409).json({ error: message });
+    // Same fix applied here: this endpoint has the identical check-then-write
+    // shape (performVenueConflictCheck, then separate UPDATE queries), so it
+    // gets the same transaction + row-lock treatment to avoid a concurrent
+    // update racing past the conflict check.
+    const client = await db.connect();
+    try {
+      await client.query('BEGIN');
+
+      // IMPORTANT: performVenueConflictCheck() must always run AFTER this lock,
+      // never before — see the same note in createBooking().
+      await client.query(
+        'SELECT id FROM venues WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE',
+        [venueIds]
+      );
+
+      const { conflict, message } = await performVenueConflictCheck(
+        venueIds,
+        startTime,
+        endTime,
+        bookingIds,
+        client
+      );
+      if (conflict) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: message });
+      }
+
+      const { rows: venues } = await client.query('SELECT id, category FROM venues WHERE id = ANY($1::uuid[])', [venueIds]);
+
+      for (const booking of bookingRes.rows) {
+        let newStatus = 'pending';
+        const venue = venues.find((v: any) => v.id === booking.venue_id);
+
+        if (issueFlag) {
+          newStatus = 'pending';
+        } else if (venue && venue.category === 'auto_approval') {
+          newStatus = 'approved';
+        } else {
+          newStatus = 'pending';
+        }
+
+        await client.query(`
+          UPDATE bookings
+          SET start_time = $1, end_time = $2, status = $3, issue_flag = $4
+          WHERE id = $5
+        `, [startTime, endTime, newStatus, issueFlag, booking.id]);
+      }
+
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
     }
 
-    const { rows: venues } = await db.query('SELECT id, category FROM venues WHERE id = ANY($1::uuid[])', [venueIds]);
-    
-    for (const booking of bookingRes.rows) {
-      let newStatus = 'pending';
-      const venue = venues.find((v: any) => v.id === booking.venue_id);
-      
-      if (issueFlag) {
-        newStatus = 'pending';
-      } else if (venue && venue.category === 'auto_approval') {
-        newStatus = 'approved';
-      } else {
-        newStatus = 'pending';
-      }
-      
-      await db.query(`
-        UPDATE bookings 
-        SET start_time = $1, end_time = $2, status = $3, issue_flag = $4
-        WHERE id = $5
-      `, [startTime, endTime, newStatus, issueFlag, booking.id]);
-    }
-    
     io.emit('events:updated');
 
     return res.json({ success: true });
