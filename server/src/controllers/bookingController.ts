@@ -78,7 +78,7 @@ const violatesRestrictedWeekdayHours = (startUtc: Date, endUtc: Date) => {
 };
 
 
-//  `queryable` defaults to the shared pool (`db`) for backwards
+// NOTE: `queryable` defaults to the shared pool (`db`) for backwards
 // compatibility with existing callers (e.g. checkConflict, getBusyVenues),
 // but createBooking and updateBookingTimings now pass in a transaction
 // client so the conflict check participates in the same transaction as
@@ -262,6 +262,18 @@ export const createBooking = async (req: Request, res: Response) => {
         return res.status(403).json({ error: 'You are not allowed to create bookings for another club' });
       }
     }
+
+    // --- Conflict check + insert must happen atomically to prevent a race ---
+    // Previously, the conflict check (SELECT) and the booking insert ran as
+    // two separate, unguarded queries. Two concurrent requests for the same
+    // venue/time could both pass the check before either booking was saved,
+    // resulting in the same venue being double-booked.
+    //
+    // Fix: take a client from the pool, open a transaction, and lock the
+    // relevant venue rows with `FOR UPDATE`. A second concurrent request for
+    // the same venue(s) will block on that lock until the first transaction
+    // commits or rolls back, so by the time it re-runs the conflict check it
+    // will correctly see the first request's booking(s).
     const client = await db.connect();
     const createdBookings: any[] = [];
     const batchId = (req.body as any).batchId || randomUUID();
@@ -269,7 +281,11 @@ export const createBooking = async (req: Request, res: Response) => {
     try {
       await client.query('BEGIN');
 
-     await client.query(
+      // IMPORTANT: performVenueConflictCheck() must always run AFTER this lock,
+      // never before. The lock is what forces concurrent requests to wait, so
+      // moving the conflict check earlier would silently reopen the race
+      // condition this fix is meant to close.
+      await client.query(
         'SELECT id FROM venues WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE',
         [venueIds]
       );
@@ -338,6 +354,7 @@ export const createBooking = async (req: Request, res: Response) => {
     if (pendingForEmail.length > 0) {
       const formatTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
 
+
       const itemsForNotification = pendingForEmail.map((b) => {
         const venue = venues.find((v) => v.id === b.venue_id);
         return {
@@ -349,6 +366,8 @@ export const createBooking = async (req: Request, res: Response) => {
           eventType,
         };
       });
+
+
 
       // Also persist as in-app notifications
       await createBookingPendingNotifications(itemsForNotification);
@@ -470,9 +489,12 @@ export const checkConflict = async (req: Request, res: Response) => {
   }
 };
 
+
 export const getBusyVenues = async (req: Request, res: Response) => {
   const startTime = req.query.startTime as string;
   const endTime = req.query.endTime as string;
+
+  console.log('[getBusyVenues] Request:', { startTime, endTime });
 
   if (!startTime || !endTime) {
     return res.status(400).json({ error: 'startTime and endTime are required' });
@@ -488,6 +510,7 @@ export const getBusyVenues = async (req: Request, res: Response) => {
     `, [endTime, startTime]);
 
     const busyVenueIds = conflicts.map((c: any) => c.venue_id);
+    console.log('[getBusyVenues] Results:', busyVenueIds);
 
     return res.json(busyVenueIds);
   } catch (err) {
@@ -568,12 +591,16 @@ export const updateBookingTimings = async (req: Request, res: Response) => {
       }
     }
 
-// Lock venues and check conflicts atomically to prevent double-booking.
-
+    // Same fix applied here: this endpoint has the identical check-then-write
+    // shape (performVenueConflictCheck, then separate UPDATE queries), so it
+    // gets the same transaction + row-lock treatment to avoid a concurrent
+    // update racing past the conflict check.
     const client = await db.connect();
     try {
       await client.query('BEGIN');
 
+      // IMPORTANT: performVenueConflictCheck() must always run AFTER this lock,
+      // never before — see the same note in createBooking().
       await client.query(
         'SELECT id FROM venues WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE',
         [venueIds]
