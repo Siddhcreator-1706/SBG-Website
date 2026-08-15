@@ -2,4 +2,4 @@
 # Enforces mandatory review approvals from both designated owners for all PRs
 
 # Require reviews from both owners on all files in the repository
-* @sbg-siddh-coder @gdg-da
+* @sbg-core-coder @gdg-da
