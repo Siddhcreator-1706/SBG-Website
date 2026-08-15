@@ -178,7 +178,7 @@ export default function EventReports() {
             onClick={() => setTab('pending')}
             className={cn(
               "px-6 py-2.5 rounded-lg text-sm font-semibold transition-all",
-              tab === 'pending' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary"
+              tab === 'pending' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary hover:bg-hoverSoft cursor-pointer"
             )}
           >
             Pending Reports ({pending.length})
@@ -187,7 +187,7 @@ export default function EventReports() {
             onClick={() => setTab('submitted')}
             className={cn(
               "px-6 py-2.5 rounded-lg text-sm font-semibold transition-all",
-              tab === 'submitted' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary"
+              tab === 'submitted' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary hover:bg-hoverSoft cursor-pointer"
             )}
           >
             Submitted Reports

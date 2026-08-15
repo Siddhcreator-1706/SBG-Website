@@ -99,7 +99,7 @@ export const getEvents = async (req: Request, res: Response) => {
       clubId = club.id;
     }
 
-    let query = `SELECT e.*, c.name as club_name, COALESCE(MAX(b.end_time), e.end_date, e.date) as dynamic_end_date
+    let query = `SELECT e.*, c.name as club_name, COALESCE(e.end_date, e.date) as dynamic_end_date
        FROM events e
        LEFT JOIN clubs c ON e.club_id = c.id
        LEFT JOIN bookings b ON e.id = b.event_id AND b.status != 'rejected'
@@ -112,7 +112,7 @@ export const getEvents = async (req: Request, res: Response) => {
     }
 
     if (req.query.futureOnly === 'true') {
-      query += ` GROUP BY e.id, c.name HAVING COALESCE(MAX(b.end_time), e.end_date, e.date) >= CURRENT_DATE ORDER BY e.date DESC, e.created_at DESC`;
+      query += ` GROUP BY e.id, c.name HAVING COALESCE(e.end_date, e.date) >= CURRENT_TIMESTAMP ORDER BY e.date DESC, e.created_at DESC`;
     } else {
       query += ` GROUP BY e.id, c.name ORDER BY e.date DESC, e.created_at DESC`;
     }

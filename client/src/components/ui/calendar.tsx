@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 
 interface CalendarEvent {
   eventName: string
+  bookingName?: string
   clubName: string
   date: string
   startTime: string
@@ -35,6 +36,46 @@ function formatEventType(type?: string) {
 
 function makeDateKey(d: Date) {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+
+const CalendarRoot = ({ className, rootRef, ...props }: any) => {
+  return (
+    <motion.div
+      data-slot="calendar"
+      ref={rootRef}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className={cn(className)}
+      {...props}
+    />
+  )
+}
+
+const CalendarChevron = ({ className, orientation, ...props }: any) => {
+  const Icon = orientation === "left" ? ChevronLeftIcon
+    : orientation === "right" ? ChevronRightIcon
+      : ChevronDownIcon
+  return (
+    <motion.span
+      whileHover={{ scale: 1.2 }}
+      whileTap={{ scale: 0.85 }}
+      transition={{ type: "spring", stiffness: 500, damping: 25 }}
+      className="inline-flex"
+    >
+      <Icon className={cn("size-4", className)} {...props} />
+    </motion.span>
+  )
+}
+
+const CalendarWeekNumber = ({ children, ...props }: any) => {
+  return (
+    <td {...props}>
+      <div className="flex size-[--cell-size] items-center justify-center text-center">
+        {children}
+      </div>
+    </td>
+  )
 }
 
 function Calendar({
@@ -173,44 +214,10 @@ function Calendar({
             ...classNames,
           }}
           components={{
-            Root: ({ className, rootRef, ...props }) => {
-              return (
-                <motion.div
-                  data-slot="calendar"
-                  ref={rootRef}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className={cn(className)}
-                  {...(props as any)}
-                />
-              )
-            },
-            Chevron: ({ className, orientation, ...props }) => {
-              const Icon = orientation === "left" ? ChevronLeftIcon
-                : orientation === "right" ? ChevronRightIcon
-                  : ChevronDownIcon
-              return (
-                <motion.span
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.85 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                  className="inline-flex"
-                >
-                  <Icon className={cn("size-4", className)} {...props} />
-                </motion.span>
-              )
-            },
+            Root: CalendarRoot,
+            Chevron: CalendarChevron,
             DayButton: CalendarDayButton,
-            WeekNumber: ({ children, ...props }) => {
-              return (
-                <td {...props}>
-                  <div className="flex size-[--cell-size] items-center justify-center text-center">
-                    {children}
-                  </div>
-                </td>
-              )
-            },
+            WeekNumber: CalendarWeekNumber,
             ...components,
           }}
           {...props}
@@ -271,6 +278,7 @@ function CalendarDayButton({
       )}
     >
       <Button
+        type="button"
         ref={ref}
         variant="ghost"
         size="icon"
@@ -453,7 +461,7 @@ function EventHoverCard({
                     <div className="w-[3px] shrink-0 rounded-full bg-primary my-0.5 group-hover:scale-y-110 transition-transform" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-[13px] text-foreground leading-snug truncate">
-                        {event.eventName}
+                        <span className="text-[11px] text-muted-foreground font-normal mr-1.5">Booking Name:</span>{event.bookingName || event.eventName}
                       </div>
                       <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-muted-foreground">
                         <Clock size={11} className="shrink-0 text-primary/50" />

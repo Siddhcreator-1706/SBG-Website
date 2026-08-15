@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { GdgFooterCredit } from '../components/GdgFooterCredit';
 import { Button } from '../components/ui/button';
 import { apiRequest, type ApiVenue } from '../lib/api';
+import { getISTNow, formatISTDate, formatISTTime } from '../lib/utils';
 import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 
 interface PublicEvent {
@@ -45,8 +46,7 @@ const MONTH_NAMES = [
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function formatTime(date: Date) {
-    return date.toLocaleTimeString('en-US', {
-        timeZone: 'Asia/Kolkata',
+    return formatISTTime(date, {
         hour: 'numeric', minute: '2-digit', hour12: true
     });
 }
@@ -57,12 +57,8 @@ function formatEventType(t?: string) {
 }
 
 function formatDayLabel(date: Date) {
-    return date.toLocaleDateString('en-US', {
-        timeZone: 'Asia/Kolkata',
-        weekday: 'long',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
+    return formatISTDate(date, {
+        weekday: 'short', day: 'numeric', month: 'short'
     });
 }
 
@@ -76,7 +72,7 @@ const LandingPage: React.FC = () => {
     const [publicMembers, setPublicMembers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentMonth, setCurrentMonth] = useState(() => {
-        const now = new Date();
+        const now = getISTNow();
         return new Date(now.getFullYear(), now.getMonth(), 1);
     });
     const [venues, setVenues] = useState<ApiVenue[]>([]);
@@ -276,13 +272,11 @@ const LandingPage: React.FC = () => {
 
     const formatTenure = (start?: string, end?: string) => {
         if (!start && !end) return 'Not Specified';
-        const sStr = start ? new Date(start).toLocaleDateString(undefined, {
-            timeZone: 'Asia/Kolkata',
-            year: 'numeric', month: 'short'
-        }) : 'N/A';
-        const eStr = end ? new Date(end).toLocaleDateString(undefined, {
-            timeZone: 'Asia/Kolkata',
-            year: 'numeric', month: 'short'
+        const sStr = start ? formatISTDate(start, {
+            month: 'short', day: 'numeric', year: 'numeric'
+        }) : '';
+        const eStr = end ? formatISTDate(end, {
+            month: 'short', day: 'numeric', year: 'numeric'
         }) : 'Present';
         return `${sStr} – ${eStr}`;
     };
@@ -295,7 +289,8 @@ const LandingPage: React.FC = () => {
         setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
     };
 
-    const goToToday = () => {
+    const goToday = () => {
+        const today = getISTNow();
         setCurrentMonth(new Date(today.getFullYear(), today.getMonth(), 1));
     };
 
@@ -374,7 +369,7 @@ const LandingPage: React.FC = () => {
                         {/* Calendar header */}
                         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-borderSoft bg-hoverSoft/30">
                             <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" onClick={goToToday} className="rounded-lg text-xs font-semibold h-8 bg-card shadow-sm">
+                                <Button variant="outline" size="sm" onClick={goToday} className="rounded-lg text-xs font-semibold h-8 bg-card shadow-sm">
                                     Today
                                 </Button>
                                 <div className="flex items-center">
@@ -701,19 +696,17 @@ const LandingPage: React.FC = () => {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-semibold text-textPrimary">
-                                                    {isSameDay(selectedEvent.startTime, selectedEvent.endTime)
-                                                        ? selectedEvent.startTime.toLocaleDateString('en-US', {
-                                                            timeZone: 'Asia/Kolkata',
-                                                            weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
-                                                        })
-                                                        : `${selectedEvent.startTime.toLocaleDateString('en-US', {
-                                                            timeZone: 'Asia/Kolkata',
-                                                            month: 'short', day: 'numeric'
-                                                        })} – ${selectedEvent.endTime.toLocaleDateString('en-US', {
-                                                            timeZone: 'Asia/Kolkata',
+                                                    <span className="truncate">
+                                                        {selectedEvent.startTime.toDateString() === selectedEvent.endTime.toDateString()
+                                                        ? formatISTDate(selectedEvent.startTime, {
                                                             month: 'short', day: 'numeric', year: 'numeric'
-                                                        })}`
-                                                    }
+                                                        })
+                                                        : `${formatISTDate(selectedEvent.startTime, {
+                                                            month: 'short', day: 'numeric', year: 'numeric'
+                                                        })} – ${formatISTDate(selectedEvent.endTime, {
+                                                            month: 'short', day: 'numeric', year: 'numeric'
+                                                        })}`}
+                                                    </span>
                                                 </p>
                                                 <p className="text-xs text-textSecondary">
                                                     {formatTime(selectedEvent.startTime)} – {formatTime(selectedEvent.endTime)}
@@ -773,9 +766,8 @@ const LandingPage: React.FC = () => {
                                 <div className="p-5 sm:p-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-lg font-bold text-textPrimary">
-                                            {selectedDayEvents[0]?.startTime.toLocaleDateString('en-US', {
-                                                timeZone: 'Asia/Kolkata',
-                                                weekday: 'long', month: 'short', day: 'numeric',
+                                            {formatISTDate(selectedDayEvents[0]?.startTime, {
+                                                weekday: 'long', month: 'short', day: 'numeric'
                                             })}
                                         </h3>
                                         <button
@@ -786,7 +778,7 @@ const LandingPage: React.FC = () => {
                                         </button>
                                     </div>
                                     <div className="space-y-2 max-h-[60dvh] overflow-y-auto">
-                                        {selectedDayEvents.map(event => {
+                                        {[...selectedDayEvents].sort((a, b) => a.startTime.getTime() - b.startTime.getTime()).map(event => {
                                             const c = getColor(event.eventType);
                                             return (
                                                 <button
@@ -817,7 +809,7 @@ const LandingPage: React.FC = () => {
                 {/* ====== Footer ====== */}
                 <footer className="relative z-10 px-4 py-10 text-center text-xs text-textMuted">
                     <p className="font-medium text-textSecondary">
-                        &copy; SBG {new Date().getFullYear()}
+                        &copy; SBG {getISTNow().getFullYear()}
                     </p>
                     <div className="mt-4 flex justify-center">
                         <GdgFooterCredit />

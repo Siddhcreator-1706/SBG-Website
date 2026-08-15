@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { AlertTriangle, Calendar, CheckCircle, Clock, Filter, RefreshCw, Search, XCircle } from 'lucide-react';
+import { AlertTriangle, Calendar, CheckCircle, Clock, Filter, RefreshCw, Search, XCircle, RotateCcw } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
@@ -60,7 +60,7 @@ const AdminEventRequests: React.FC = () => {
     };
   }, [fetchEvents]);
 
-  const handleEventAction = async (ids: string[], action: 'active' | 'rejected') => {
+  const handleEventAction = async (ids: string[], action: 'active' | 'rejected' | 'pending') => {
     if (isProcessingAction) return;
     setIsProcessingAction(true);
     try {
@@ -149,10 +149,10 @@ const AdminEventRequests: React.FC = () => {
                 <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
                   <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
                     <tr>
-                      <th className="px-4 sm:px-6 py-4">Club / Event</th>
-                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">Date</th>
-                      <th className="px-4 sm:px-6 py-4">Status</th>
-                      <th className="px-4 sm:px-6 py-4 text-right">Actions</th>
+                      <th className="px-4 sm:px-6 py-4 w-[40%] sm:w-[45%]">Event</th>
+                      <th className="px-4 sm:px-6 py-4 w-[25%]">Date & Time</th>
+                      <th className="px-4 sm:px-6 py-4 w-[20%] sm:w-[15%]">Status</th>
+                      <th className="px-4 sm:px-6 py-4 text-right w-[40%] sm:w-[15%]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
@@ -194,10 +194,10 @@ const AdminEventRequests: React.FC = () => {
                 <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
                   <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
                     <tr>
-                      <th className="px-4 sm:px-6 py-4">Club / Event</th>
-                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">Date</th>
-                      <th className="px-4 sm:px-6 py-4">Status</th>
-                      <th className="px-4 sm:px-6 py-4 text-right">Actions</th>
+                      <th className="px-4 sm:px-6 py-4 w-[40%] sm:w-[45%]">Event</th>
+                      <th className="px-4 sm:px-6 py-4 w-[25%]">Date & Time</th>
+                      <th className="px-4 sm:px-6 py-4 w-[20%] sm:w-[15%]">Status</th>
+                      <th className="px-4 sm:px-6 py-4 text-right w-[40%] sm:w-[15%]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
@@ -233,7 +233,7 @@ const AdminEventRequests: React.FC = () => {
 interface AdminEventRowProps {
   ev: AppEvent & { clubName: string };
   index: number;
-  handleAction: (ids: string[], action: 'active' | 'rejected') => Promise<void>;
+  handleAction: (ids: string[], action: 'active' | 'rejected' | 'pending') => Promise<void>;
   isHistoryTab: boolean;
   isProcessingAction: boolean;
 }
@@ -248,7 +248,11 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
     }
   };
 
-  const isStarted = new Date(ev.date) <= new Date();
+  const isStarted = (() => {
+    const d = new Date(ev.dynamic_end_date || ev.date);
+    d.setHours(23, 59, 59, 999);
+    return d <= new Date();
+  })();
 
   return (
     <motion.tr
@@ -272,20 +276,10 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
             <div className="text-xs text-textMuted mt-1">
               Type: {ev.event_type ? ev.event_type.replace('_', ' ') : 'N/A'}
             </div>
-            <div className="text-xs text-textMuted mt-1 sm:hidden flex flex-col gap-2">
-               <div className="flex flex-col gap-0.5">
-                 <span className="font-medium text-textPrimary">Start:</span>
-                 <div className="flex items-center gap-1"><Calendar size={12} /> {new Date(ev.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} <Clock size={12} className="ml-1" /> {new Date(ev.date).toLocaleTimeString([], { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}</div>
-               </div>
-               <div className="flex flex-col gap-0.5">
-                 <span className="font-medium text-textPrimary">End:</span>
-                 <div className="flex items-center gap-1"><Calendar size={12} /> {ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' }) : '?'} <Clock size={12} className="ml-1" /> {ev.dynamic_end_date ? new Date(ev.dynamic_end_date).toLocaleTimeString([], { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' }) : '?'}</div>
-               </div>
-            </div>
           </div>
         </div>
       </td>
-      <td className="px-4 sm:px-6 py-4 hidden sm:table-cell whitespace-nowrap">
+      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col gap-2">
           <div className="flex flex-col gap-0.5 text-xs">
             <span className="font-medium text-textPrimary">Start:</span>
@@ -340,6 +334,19 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
                   disabled={isProcessingAction}
                 >
                   <CheckCircle size={18} />
+                </Button>
+              )}
+              {ev.status !== 'pending' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Move to Pending"
+                  onClick={(e) => { e.stopPropagation(); handleAction([ev.id], 'pending'); }}
+                  className="text-textMuted hover:text-warning"
+                  title="Move to Pending"
+                  disabled={isProcessingAction}
+                >
+                  <RotateCcw size={18} />
                 </Button>
               )}
             </>

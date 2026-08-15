@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { ClubMember } from '../types';
+import { formatISTDate, getISTNow, toLocalISOString } from './utils';
 
 export interface ExportClubMember extends ClubMember {
   club_name: string;
@@ -43,13 +44,12 @@ export function exportRosterToExcel(members: ExportClubMember[]) {
   for (const [clubName, clubMembers] of Object.entries(grouped)) {
     // Format member data for the worksheet columns
     const sheetData = clubMembers.map(m => {
-      const isPast = m.tenure_end_date && new Date(m.tenure_end_date) < new Date(new Date().setHours(0, 0, 0, 0));
+      const now = getISTNow();
+      const isPast = m.tenure_end_date && new Date(m.tenure_end_date) < new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const statusText = isPast ? 'Past / Resigned' : 'Active';
-      const sDate = m.tenure_start_date ? new Date(m.tenure_start_date).toLocaleDateString(undefined, {
-          timeZone: 'Asia/Kolkata',
+      const sDate = m.tenure_start_date ? formatISTDate(m.tenure_start_date, {
         year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
-      const eDate = m.tenure_end_date ? new Date(m.tenure_end_date).toLocaleDateString(undefined, {
-          timeZone: 'Asia/Kolkata',
+      const eDate = m.tenure_end_date ? formatISTDate(m.tenure_end_date, {
         year: 'numeric', month: 'short', day: 'numeric' }) : 'Present';
       const historyText = m.promotion_history ? m.promotion_history.replace(/\n/g, ' | ') : 'No history';
 
@@ -98,5 +98,5 @@ export function exportRosterToExcel(members: ExportClubMember[]) {
   }
 
   // Download the true binary xlsx file
-  XLSX.writeFile(wb, `sbg_committee_rosters_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  XLSX.writeFile(wb, `sbg_committee_rosters_${toLocalISOString(getISTNow())}.xlsx`);
 }

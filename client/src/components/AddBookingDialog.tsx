@@ -55,6 +55,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
     
     const [clubEvents, setClubEvents] = useState<any[]>([]);
     const [selectedEventId, setSelectedEventId] = useState('');
+    const [bookingName, setBookingName] = useState('');
 
     const [venues, setVenues] = useState<ApiVenue[]>([]);
     const [saving, setSaving] = useState(false);
@@ -108,18 +109,20 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
             setEventType('');
             setExpectedAttendees('');
             setSelectedEventId('');
+            setBookingName('');
             setError(null);
             setCoCurricularWarning('');
             setBookingType('recurring');
         }
     }, [open]);
 
-    // Sync eventType with selected event
+    // Sync eventType and bookingName with selected event
     useEffect(() => {
         if (selectedEventId) {
             const evt = clubEvents.find(e => e.id === selectedEventId);
-            if (evt && evt.event_type) {
-                setEventType(evt.event_type);
+            if (evt) {
+                if (evt.event_type) setEventType(evt.event_type);
+                if (evt.name) setBookingName(prev => prev || evt.name);
             }
         }
     }, [selectedEventId, clubEvents]);
@@ -176,6 +179,10 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
             setError('Start Date, End Date, start time, and end time are required');
             return;
         }
+        if (!bookingName || bookingName.trim().length === 0) {
+            setError('Booking Name is required.');
+            return;
+        }
 
         setSaving(true);
         setError(null);
@@ -228,6 +235,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                     club_id: selectedClubId,
                     venue_ids: selectedVenues,
                     event_id: selectedEventId,
+                    bookingName: bookingName.trim(),
                     timeSlots,
                     expected_attendees: expectedAttendees
                         ? parseInt(expectedAttendees)
@@ -284,7 +292,25 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                                 <SelectValue placeholder="Select an event" />
                             </SelectTrigger>
                             <SelectContent>
-                                {clubEvents.map((evt) => (
+                                {clubEvents.filter(evt => {
+                                    const d = new Date(evt.dynamic_end_date || evt.end_date || evt.date);
+                                    if (isNaN(d.getTime())) return true;
+                                    const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' } as const;
+                                    const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(d);
+                                    const y = parseInt(parts.find(p => p.type === 'year')?.value || '0', 10);
+                                    const m = parseInt(parts.find(p => p.type === 'month')?.value || '0', 10) - 1;
+                                    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0', 10);
+                                    const eventMidnight = new Date(y, m, day).getTime();
+                                    
+                                    const today = new Date();
+                                    const todayParts = new Intl.DateTimeFormat('en-US', options).formatToParts(today);
+                                    const ty = parseInt(todayParts.find(p => p.type === 'year')?.value || '0', 10);
+                                    const tm = parseInt(todayParts.find(p => p.type === 'month')?.value || '0', 10) - 1;
+                                    const tday = parseInt(todayParts.find(p => p.type === 'day')?.value || '0', 10);
+                                    const todayMidnight = new Date(ty, tm, tday).getTime();
+                                    
+                                    return eventMidnight >= todayMidnight;
+                                }).map((evt) => (
                                     <SelectItem key={evt.id} value={evt.id}>
                                         {evt.name}
                                     </SelectItem>
@@ -294,6 +320,15 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                                 )}
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label>Booking Name</Label>
+                        <Input
+                            placeholder="e.g. Main Hall Session / Rehearsal"
+                            value={bookingName}
+                            onChange={(e) => setBookingName(e.target.value)}
+                        />
                     </div>
 
 

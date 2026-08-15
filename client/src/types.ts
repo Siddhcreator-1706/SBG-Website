@@ -67,6 +67,7 @@ export type BookingStatus = 'approved' | 'pending' | 'rejected';
 export interface Booking {
   id: string;
   eventName: string;
+  bookingName: string;
   venueId: string;
   clubName: string;
   date: string; // ISO Date string

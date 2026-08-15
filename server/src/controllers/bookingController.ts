@@ -18,7 +18,7 @@ type BookingRequestBody = {
   event_id?: string;
   permissionsLink?: string;
   bookingMode?: 'event' | 'meet';
-  title?: string;
+  bookingName?: string;
 };
 
 const MIN_DAYS_BY_EVENT: Record<EventType, number> = {
@@ -72,7 +72,6 @@ const violatesRestrictedWeekdayHours = (startUtc: Date, endUtc: Date) => {
         }
       }
     }
-
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
@@ -82,12 +81,12 @@ const violatesRestrictedWeekdayHours = (startUtc: Date, endUtc: Date) => {
 const performVenueConflictCheck = async (
   venueIds: string[],
   startTime: string,
-  endTime: string
+  endTime: string,
+  excludeIds?: string[]
 ) => {
   if (!venueIds || venueIds.length === 0) return { conflict: false, message: '' };
 
-  // Check for ANY booking that overlaps with the requested time for ANY of the requested venues
-  const { rows: conflicts } = await db.query(`
+  let query = `
     SELECT b.venue_id, v.name AS venue_name, c.name AS club_name
     FROM bookings b
     LEFT JOIN venues v ON b.venue_id = v.id
@@ -96,7 +95,16 @@ const performVenueConflictCheck = async (
       AND b.venue_id = ANY($1::uuid[])
       AND b.start_time < $2
       AND b.end_time > $3
-  `, [venueIds, endTime, startTime]);
+  `;
+  const params: any[] = [venueIds, endTime, startTime];
+
+  if (excludeIds && excludeIds.length > 0) {
+    query += ` AND b.id != ANY($4::uuid[])`;
+    params.push(excludeIds);
+  }
+
+  // Check for ANY booking that overlaps with the requested time for ANY of the requested venues
+  const { rows: conflicts } = await db.query(query, params);
 
   if (conflicts.length > 0) {
     // Get unique venue names that have conflicts
@@ -121,7 +129,7 @@ export const createBooking = async (req: Request, res: Response) => {
     event_id,
     permissionsLink,
     bookingMode = 'event',
-    title,
+    bookingName,
   } = req.body as Partial<BookingRequestBody & { venueIds: string[]; timeSlots?: {startTime: string, endTime: string}[] }>;
 
   let timeSlots = reqTimeSlots;
@@ -131,19 +139,15 @@ export const createBooking = async (req: Request, res: Response) => {
     }
   }
 
-  if (!clubId || !venueIds || !Array.isArray(venueIds) || venueIds.length === 0 || !timeSlots || timeSlots.length === 0) {
-    return res.status(400).json({ error: 'Missing required fields.' });
+  if (!clubId || !venueIds || !Array.isArray(venueIds) || venueIds.length === 0 || !timeSlots || timeSlots.length === 0 || !bookingName || bookingName.trim().length === 0) {
+    return res.status(400).json({ error: 'Missing required fields. Booking Name is mandatory.' });
   }
 
   if (bookingMode === 'event' && !event_id) {
     return res.status(400).json({ error: 'Event selection is mandatory for formal events.' });
   }
 
-  if (bookingMode === 'meet' && !title) {
-    return res.status(400).json({ error: 'Title is mandatory for club meets.' });
-  }
-
-  let eventName = title || '';
+  let eventName = bookingName.trim();
   let eventType: EventType = 'meet';
 
   if (bookingMode === 'event') {
@@ -269,8 +273,6 @@ export const createBooking = async (req: Request, res: Response) => {
       }
     }
 
-
-
     const createdBookings = [];
     const batchId = (req.body as any).batchId || randomUUID();
 
@@ -286,7 +288,7 @@ export const createBooking = async (req: Request, res: Response) => {
         }
 
         const { rows: insertRows } = await db.query(`
-          INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link, title, booking_type)
+          INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link, booking_name, booking_type)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
           RETURNING *
         `, [
@@ -301,7 +303,7 @@ export const createBooking = async (req: Request, res: Response) => {
           bookingMode === 'event' ? event_id : null,
           issueFlag,
           permissionsLink || null,
-          bookingMode === 'meet' ? title : null,
+          bookingName!.trim(),
           bookingMode
         ]);
 
@@ -478,5 +480,112 @@ export const getBusyVenues = async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[getBusyVenues] Unexpected Error:', err);
     return res.status(500).json({ error: (err as Error).message });
+  }
+};
+
+export const updateBookingTimings = async (req: Request, res: Response) => {
+  const { batchId } = req.params;
+  const { startTime, endTime } = req.body;
+
+  if (!startTime || !endTime) {
+    return res.status(400).json({ error: 'startTime and endTime are required' });
+  }
+  if (!isValidDate(startTime) || !isValidDate(endTime)) {
+    return res.status(400).json({ error: 'Invalid startTime or endTime' });
+  }
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  if (end <= start) {
+    return res.status(400).json({ error: 'endTime must be after startTime' });
+  }
+
+  try {
+    const clubResult = await db.query(
+      'SELECT id FROM clubs WHERE email = $1 LIMIT 1',
+      [req.user?.email]
+    );
+
+    if (clubResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Club not found for this account' });
+    }
+    const clubId = clubResult.rows[0].id;
+
+    const bookingRes = await db.query(
+      'SELECT id, venue_id, status, event_id FROM bookings WHERE (batch_id = $1 OR id = $1) AND club_id = $2',
+      [batchId, clubId]
+    );
+    if (bookingRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Bookings not found or not owned by you' });
+    }
+
+    const bookingIds = bookingRes.rows.map((b: any) => b.id);
+    const venueIds = bookingRes.rows.map((b: any) => b.venue_id);
+    const eventId = bookingRes.rows[0].event_id;
+
+    // Fetch event type
+    let eventType: EventType | null = null;
+    if (eventId) {
+      const { rows: eventRows } = await db.query('SELECT event_type FROM events WHERE id = $1', [eventId]);
+      if (eventRows.length > 0) {
+        eventType = eventRows[0].event_type as EventType;
+      }
+    }
+
+    if (!eventType || !Object.keys(MIN_DAYS_BY_EVENT).includes(eventType)) {
+      return res.status(400).json({ error: 'Invalid or missing event type for booking' });
+    }
+
+    // Constraint evaluation
+    const earliestStart = new Date(startTime);
+    let issueFlag: string | null = null;
+    
+    const violatesRestricted = violatesRestrictedWeekdayHours(new Date(startTime), new Date(endTime));
+    if (violatesRestricted) {
+      issueFlag = 'Violates restricted weekday hours (8:00 AM - 7:00 PM IST)';
+    }
+
+    const daysGap = (earliestStart.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+    const requiredDays = MIN_DAYS_BY_EVENT[eventType];
+    if (daysGap < requiredDays) {
+      const gapMsg = `Short notice booking (${Math.floor(daysGap)} days advance). Requires ${requiredDays} days advance notice.`;
+      if (!issueFlag) {
+        issueFlag = gapMsg;
+      } else {
+        issueFlag += ` | ${gapMsg}`;
+      }
+    }
+
+    const { conflict, message } = await performVenueConflictCheck(venueIds, startTime, endTime, bookingIds);
+    if (conflict) {
+      return res.status(409).json({ error: message });
+    }
+
+    const { rows: venues } = await db.query('SELECT id, category FROM venues WHERE id = ANY($1::uuid[])', [venueIds]);
+    
+    for (const booking of bookingRes.rows) {
+      let newStatus = 'pending';
+      const venue = venues.find((v: any) => v.id === booking.venue_id);
+      
+      if (issueFlag) {
+        newStatus = 'pending';
+      } else if (venue && venue.category === 'auto_approval') {
+        newStatus = 'approved';
+      } else {
+        newStatus = 'pending';
+      }
+      
+      await db.query(`
+        UPDATE bookings 
+        SET start_time = $1, end_time = $2, status = $3, issue_flag = $4
+        WHERE id = $5
+      `, [startTime, endTime, newStatus, issueFlag, booking.id]);
+    }
+    
+    io.emit('events:updated');
+
+    return res.json({ success: true });
+  } catch (err: any) {
+    console.error('Update timings failed:', err);
+    return res.status(500).json({ error: err.message });
   }
 };

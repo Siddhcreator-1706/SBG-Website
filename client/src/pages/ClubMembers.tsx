@@ -27,7 +27,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { Switch } from '../components/ui/switch';
 import { apiRequest } from '../lib/api';
 import { toastError, toastSuccess } from '../lib/toast';
-import { isValidPhoneNumber, toLocalISOString } from '../lib/utils';
+import { cn, formatISTDate, isValidPhoneNumber, toLocalISOString } from '../lib/utils';
 import { ClubMember, User } from '../types';
 
 interface ApiClub {
@@ -325,11 +325,9 @@ const ClubMembers: React.FC<ClubMembersProps> = ({ user }) => {
           {member.phone && <span>{member.phone}</span>}
           {(member.tenure_start_date || member.tenure_end_date) && (
             <span>
-              Tenure: {member.tenure_start_date ? new Date(member.tenure_start_date).toLocaleDateString(undefined, {
-                  timeZone: 'Asia/Kolkata',
+              Tenure: {member.tenure_start_date ? formatISTDate(member.tenure_start_date, {
                 year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'} –{' '}
-              {member.tenure_end_date ? new Date(member.tenure_end_date).toLocaleDateString(undefined, {
-                  timeZone: 'Asia/Kolkata',
+              {member.tenure_end_date ? formatISTDate(member.tenure_end_date, {
                 year: 'numeric', month: 'short', day: 'numeric' }) : 'Present'}
             </span>
           )}
