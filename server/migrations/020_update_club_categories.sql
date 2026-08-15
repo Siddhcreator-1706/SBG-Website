@@ -12,8 +12,13 @@ BEGIN
   -- Update known Committees and similar administrative bodies
   UPDATE clubs 
   SET organization_type = 'committee' 
-  WHERE name ILIKE '%Committee%' 
-     OR name ILIKE '%Commission%' 
-     OR name ILIKE '%Placement Cell%';
+  WHERE (name ILIKE '%Committee%' OR name ILIKE '%Placement Cell%')
+    AND name NOT ILIKE '%Election%';
+
+  -- Update 'other' types (Election Commission/Committee, SBG itself)
+  UPDATE clubs
+  SET organization_type = 'other'
+  WHERE name ILIKE '%Election%'
+     OR name ILIKE '%SBG%';
 
 END $$;
