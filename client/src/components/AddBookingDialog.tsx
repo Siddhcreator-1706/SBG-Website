@@ -325,7 +325,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                     <div className="grid gap-2">
                         <Label>Booking Name</Label>
                         <Input
-                            placeholder="e.g. Main Hall Session / Rehearsal"
+                            placeholder="e.g. Event Name / Committee Meet"
                             value={bookingName}
                             onChange={(e) => setBookingName(e.target.value)}
                         />
