@@ -534,7 +534,7 @@ export const updateBookingTimings = async (req: Request, res: Response) => {
     const clubId = clubResult.rows[0].id;
 
     const bookingRes = await db.query(
-      'SELECT id, venue_id, status, event_id FROM bookings WHERE (batch_id = $1 OR id = $1) AND club_id = $2',
+      'SELECT id, venue_id, status, event_id, booking_type FROM bookings WHERE (batch_id = $1 OR id = $1) AND club_id = $2',
       [batchId, clubId]
     );
     if (bookingRes.rows.length === 0) {
@@ -544,10 +544,13 @@ export const updateBookingTimings = async (req: Request, res: Response) => {
     const bookingIds = bookingRes.rows.map((b: any) => b.id);
     const venueIds = bookingRes.rows.map((b: any) => b.venue_id);
     const eventId = bookingRes.rows[0].event_id;
+    const bookingTypeFromRow = bookingRes.rows[0].booking_type as string | undefined;
 
-    // Fetch event type
+    // Fetch event type — for meets (no event_id), use booking_type directly
     let eventType: EventType | null = null;
-    if (eventId) {
+    if (bookingTypeFromRow === 'meet') {
+      eventType = 'meet';
+    } else if (eventId) {
       const { rows: eventRows } = await db.query('SELECT event_type FROM events WHERE id = $1', [eventId]);
       if (eventRows.length > 0) {
         eventType = eventRows[0].event_type as EventType;
