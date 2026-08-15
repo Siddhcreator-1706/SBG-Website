@@ -50,7 +50,9 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     endTime: '13:00',
     venueIds: [] as string[],
     event_id: '',
-    permissionsLink: ''
+    permissionsLink: '',
+    bookingMode: 'event' as 'event' | 'meet',
+    title: ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -188,6 +190,10 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
   }, [selectedEndDate]);
 
   useEffect(() => {
+    if (formData.bookingMode === 'meet') {
+      setWarnings(prev => ({ ...prev, timeline: '' }));
+      return;
+    }
     if (!formData.date || !formData.event_id) {
       setWarnings(prev => ({ ...prev, timeline: '' }));
       return;
@@ -475,15 +481,23 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
 
       const timeSlots = generateTimeSlots();
 
+      const payload: any = {
+        ...formData,
+        clubId: selectedClub.id,
+        timeSlots,
+        expectedAttendees: parseInt(formData.expectedAttendees, 10) || 0
+      };
+
+      if (formData.bookingMode === 'meet') {
+        delete payload.event_id;
+      } else {
+        delete payload.title;
+      }
+
       await apiRequest('/api/bookings', {
         method: 'POST',
         auth: true,
-        body: {
-          ...formData,
-          clubId: selectedClub.id,
-          timeSlots,
-          expectedAttendees: parseInt(formData.expectedAttendees, 10) || 0
-        }
+        body: payload
       });
 
       toastSuccess('Booking request submitted successfully!');
@@ -498,7 +512,9 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         endTime: '13:00',
         venueIds: [],
         event_id: '',
-        permissionsLink: ''
+        permissionsLink: '',
+        bookingMode: 'event',
+        title: ''
       });
       setSelectedDate(undefined);
       setSelectedEndDate(undefined);
@@ -682,63 +698,101 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                   <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">Event Details</h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="event_id" className="text-textSecondary font-semibold text-sm">Link to Event</Label>
-                      <Button
-                        onClick={() => setIsAddEventOpen(true)}
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs text-brand hover:text-brand/80 hover:bg-brand/10 gap-1 rounded-lg font-semibold"
-                      >
-                        <Plus size={13} />
-                        Register Event
-                      </Button>
+                <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                  <Button
+                    type="button"
+                    variant={formData.bookingMode === 'event' ? 'default' : 'outline'}
+                    className={cn("flex-1 justify-start h-auto py-3 px-4", formData.bookingMode === 'event' ? "bg-brand text-white border-transparent" : "border-borderSoft")}
+                    onClick={() => handleChange('bookingMode', 'event')}
+                  >
+                    <div className="text-left whitespace-normal">
+                      <div className="font-bold text-sm md:text-base">Formal Event Registration</div>
+                      <div className="text-xs font-normal opacity-80 mt-1">Book venues for approved events</div>
                     </div>
-                    <Select
-                      value={formData.event_id}
-                      onValueChange={(v) => handleChange('event_id', v)}
-                    >
-                      <SelectTrigger id="event_id" className="h-11 border-borderSoft hover:bg-hoverSoft/50 focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl">
-                        <SelectValue placeholder={selectableEvents.length > 0 ? "Select an event…" : "No events registered yet"} />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        {selectableEvents.length === 0 ? (
-                          <p className="px-3 py-6 text-center text-sm text-textMuted">
-                            No upcoming events.<br />
-                            <span className="text-xs">Use “Register Event” to create one.</span>
-                          </p>
-                        ) : (
-                          selectableEvents.map(e => (
-                            <SelectItem
-                              key={e.id}
-                              value={String(e.id)}
-                              textValue={e.name}
-                              className="cursor-pointer"
-                              trailing={e.status === 'pending' ? (
-                                <span className="text-[10px] font-bold uppercase tracking-wide text-warning bg-warning/10 border border-warning/30 px-1.5 py-0.5 rounded">
-                                  Awaiting approval
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={formData.bookingMode === 'meet' ? 'default' : 'outline'}
+                    className={cn("flex-1 justify-start h-auto py-3 px-4", formData.bookingMode === 'meet' ? "bg-brand text-white border-transparent" : "border-borderSoft")}
+                    onClick={() => handleChange('bookingMode', 'meet')}
+                  >
+                    <div className="text-left whitespace-normal">
+                      <div className="font-bold text-sm md:text-base">Routine Club Meet</div>
+                      <div className="text-xs font-normal opacity-80 mt-1">Standalone venue booking (no formal event)</div>
+                    </div>
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6">
+                  {formData.bookingMode === 'event' ? (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="event_id" className="text-textSecondary font-semibold text-sm">Link to Event</Label>
+                        <Button
+                          onClick={() => setIsAddEventOpen(true)}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-brand hover:text-brand/80 hover:bg-brand/10 gap-1 rounded-lg font-semibold"
+                        >
+                          <Plus size={13} />
+                          Register Event
+                        </Button>
+                      </div>
+                      <Select
+                        value={formData.event_id}
+                        onValueChange={(v) => handleChange('event_id', v)}
+                      >
+                        <SelectTrigger id="event_id" className="h-11 border-borderSoft hover:bg-hoverSoft/50 focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl">
+                          <SelectValue placeholder={selectableEvents.length > 0 ? "Select an event…" : "No events registered yet"} />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          {selectableEvents.length === 0 ? (
+                            <p className="px-3 py-6 text-center text-sm text-textMuted">
+                              No upcoming events.<br />
+                              <span className="text-xs">Use “Register Event” to create one.</span>
+                            </p>
+                          ) : (
+                            selectableEvents.map(e => (
+                              <SelectItem
+                                key={e.id}
+                                value={String(e.id)}
+                                textValue={e.name}
+                                className="cursor-pointer"
+                                trailing={e.status === 'pending' ? (
+                                  <span className="text-[10px] font-bold uppercase tracking-wide text-warning bg-warning/10 border border-warning/30 px-1.5 py-0.5 rounded">
+                                    Awaiting approval
+                                  </span>
+                                ) : undefined}
+                              >
+                                <span className="font-semibold">{e.name}</span>{' '}
+                                <span className="text-textMuted text-xs">
+                                  ({new Date(e.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })})
                                 </span>
-                              ) : undefined}
-                            >
-                              <span className="font-semibold">{e.name}</span>{' '}
-                              <span className="text-textMuted text-xs">
-                                ({new Date(e.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })})
-                              </span>
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {selectedEvent?.status === 'pending' && (
-                      <p className="text-xs text-warning font-medium flex items-start gap-1.5">
-                        <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-                        This event is still awaiting admin approval — bookings linked to it stay pending until it is approved.
-                      </p>
-                    )}
-                  </div>
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {selectedEvent?.status === 'pending' && (
+                        <p className="text-xs text-warning font-medium flex items-start gap-1.5">
+                          <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                          This event is still awaiting admin approval — bookings linked to it stay pending until it is approved.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      <Label htmlFor="title" className="text-textSecondary font-semibold text-sm">Meet Title *</Label>
+                      <Input
+                        id="title"
+                        placeholder="e.g. Weekly Sync, Core Team Meeting..."
+                        value={formData.title}
+                        onChange={(e) => handleChange('title', e.target.value)}
+                        className="h-11 border-borderSoft focus-visible:ring-brand focus-visible:border-brand rounded-xl shadow-sm"
+                      />
+                    </div>
+                  )}
 
 
                   <div className="space-y-2.5">
@@ -1155,10 +1209,10 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
               <div className="pt-8 border-t border-borderSoft/40">
                 <Button
                   type="submit"
-                  disabled={hasErrors || isSubmitting || !formData.event_id || !formData.date || !formData.startTime || !formData.endTime || formData.venueIds.length === 0}
+                  disabled={hasErrors || isSubmitting || !formData.date || !formData.startTime || !formData.endTime || formData.venueIds.length === 0 || (formData.bookingMode === 'event' ? !formData.event_id : !formData.title)}
                   className={cn(
                     "w-full h-12 text-base font-bold rounded-lg shadow-sm transition-transform flex items-center justify-center gap-2",
-                    hasErrors || isSubmitting || !formData.event_id || !formData.date || !formData.startTime || !formData.endTime || formData.venueIds.length === 0
+                    hasErrors || isSubmitting || !formData.date || !formData.startTime || !formData.endTime || formData.venueIds.length === 0 || (formData.bookingMode === 'event' ? !formData.event_id : !formData.title)
                       ? "bg-borderSoft text-textMuted cursor-not-allowed"
                       : "bg-brand text-bgMain hover:scale-[1.02] active:scale-[0.98]"
                   )}
@@ -1180,7 +1234,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                     ⚠️ Please resolve the warnings above to proceed.
                   </p>
                 )}
-                {!formData.event_id || !formData.date || !formData.startTime || !formData.endTime || formData.venueIds.length === 0 ? (
+                {!formData.date || !formData.startTime || !formData.endTime || formData.venueIds.length === 0 || (formData.bookingMode === 'event' ? !formData.event_id : !formData.title) ? (
                   <p className="text-center text-textMuted text-sm mt-4 font-medium">
                     📝 Please fill in all required fields to submit.
                   </p>

@@ -7,7 +7,7 @@ import { io } from '../server';
 import { checkPendingEventReports } from '../services/eventReportService';
 import { createBookingPendingNotifications } from '../services/notification';
 
-type EventType = 'co_curricular' | 'open_all' | 'closed_club';
+type EventType = 'co_curricular' | 'open_all' | 'closed_club' | 'meet';
 
 type BookingRequestBody = {
   clubId: string;
@@ -15,14 +15,17 @@ type BookingRequestBody = {
   startTime: string;
   endTime: string;
   expectedAttendees?: number;
-  event_id: string;
+  event_id?: string;
   permissionsLink?: string;
+  bookingMode?: 'event' | 'meet';
+  title?: string;
 };
 
 const MIN_DAYS_BY_EVENT: Record<EventType, number> = {
   co_curricular: 14,
   open_all: 20,
   closed_club: 0,
+  meet: 0,
 };
 
 const isValidDate = (value: string) => {
@@ -117,6 +120,8 @@ export const createBooking = async (req: Request, res: Response) => {
     expectedAttendees,
     event_id,
     permissionsLink,
+    bookingMode = 'event',
+    title,
   } = req.body as Partial<BookingRequestBody & { venueIds: string[]; timeSlots?: {startTime: string, endTime: string}[] }>;
 
   let timeSlots = reqTimeSlots;
@@ -126,26 +131,39 @@ export const createBooking = async (req: Request, res: Response) => {
     }
   }
 
-  if (!clubId || !venueIds || !Array.isArray(venueIds) || venueIds.length === 0 || !timeSlots || timeSlots.length === 0 || !event_id) {
-    return res.status(400).json({ error: 'Missing required fields. Event selection is mandatory.' });
+  if (!clubId || !venueIds || !Array.isArray(venueIds) || venueIds.length === 0 || !timeSlots || timeSlots.length === 0) {
+    return res.status(400).json({ error: 'Missing required fields.' });
   }
 
-  // Fetch event name, type, and status
-  const { rows: fetchedEventRows } = await db.query(
-    'SELECT name, event_type, status FROM events WHERE id = $1',
-    [event_id]
-  );
-
-  if (fetchedEventRows.length === 0) {
-    return res.status(404).json({ error: 'Selected event not found.' });
+  if (bookingMode === 'event' && !event_id) {
+    return res.status(400).json({ error: 'Event selection is mandatory for formal events.' });
   }
 
-  if (fetchedEventRows[0].status !== 'active') {
-    return res.status(400).json({ error: 'Cannot link a booking to an unapproved event.' });
+  if (bookingMode === 'meet' && !title) {
+    return res.status(400).json({ error: 'Title is mandatory for club meets.' });
   }
 
-  const eventName = fetchedEventRows[0].name;
-  const eventType = fetchedEventRows[0].event_type as EventType;
+  let eventName = title || '';
+  let eventType: EventType = 'meet';
+
+  if (bookingMode === 'event') {
+    // Fetch event name, type, and status
+    const { rows: fetchedEventRows } = await db.query(
+      'SELECT name, event_type, status FROM events WHERE id = $1',
+      [event_id]
+    );
+
+    if (fetchedEventRows.length === 0) {
+      return res.status(404).json({ error: 'Selected event not found.' });
+    }
+
+    if (fetchedEventRows[0].status !== 'active') {
+      return res.status(400).json({ error: 'Cannot link a booking to an unapproved event.' });
+    }
+
+    eventName = fetchedEventRows[0].name;
+    eventType = fetchedEventRows[0].event_type as EventType;
+  }
 
   if (!Object.keys(MIN_DAYS_BY_EVENT).includes(eventType)) {
     return res.status(400).json({ error: 'Invalid eventType' });
@@ -162,7 +180,7 @@ export const createBooking = async (req: Request, res: Response) => {
     }
   }
 
-  if (event_id) {
+  if (bookingMode === 'event' && event_id) {
     const { rows: eventRows } = await db.query(
       `SELECT COALESCE(e.end_date, e.date) as dynamic_end_date
        FROM events e
@@ -268,8 +286,8 @@ export const createBooking = async (req: Request, res: Response) => {
         }
 
         const { rows: insertRows } = await db.query(`
-          INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link, title, booking_type)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
           RETURNING *
         `, [
           clubId,
@@ -280,9 +298,11 @@ export const createBooking = async (req: Request, res: Response) => {
           req.user?.id || null,
           expectedAttendees || null,
           batchId,
-          event_id,
+          bookingMode === 'event' ? event_id : null,
           issueFlag,
-          permissionsLink || null
+          permissionsLink || null,
+          bookingMode === 'meet' ? title : null,
+          bookingMode
         ]);
 
         if (insertRows.length === 0) {

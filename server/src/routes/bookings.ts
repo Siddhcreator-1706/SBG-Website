@@ -167,8 +167,8 @@ router.get('/my-bookings', authMiddleware, async (req, res) => {
 
     const queryStr = `
       SELECT b.*, 
-             e.name AS event_name,
-             e.event_type,
+             COALESCE(b.title, e.name) AS event_name,
+             COALESCE(b.booking_type, e.event_type) AS event_type,
              json_build_object('name', c.name) AS clubs,
              json_build_object('name', v.name) AS venues
       FROM bookings b
@@ -256,8 +256,8 @@ router.get('/public-bookings', async (_req, res) => {
 
     const { rows } = await db.query(`
       SELECT b.*, 
-             e.name AS event_name,
-             e.event_type,
+             COALESCE(b.title, e.name) AS event_name,
+             COALESCE(b.booking_type, e.event_type) AS event_type,
              json_build_object('name', c.name) AS clubs,
              json_build_object('name', v.name) AS venues
       FROM bookings b
@@ -281,8 +281,8 @@ router.get('/campus-bookings', authMiddleware, async (_req, res) => {
   try {
     const { rows } = await db.query(`
       SELECT b.*, 
-             e.name AS event_name,
-             e.event_type,
+             COALESCE(b.title, e.name) AS event_name,
+             COALESCE(b.booking_type, e.event_type) AS event_type,
              json_build_object('name', c.name) AS clubs,
              json_build_object('name', v.name) AS venues
       FROM bookings b
