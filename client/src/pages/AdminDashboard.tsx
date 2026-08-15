@@ -261,7 +261,9 @@ const AdminDashboard: React.FC = () => {
     });
   };
 
-  const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : [];
+  const selectedDateEvents = selectedDate 
+    ? getEventsForDate(selectedDate).sort((a, b) => new Date(a.startTimeISO || a.date).getTime() - new Date(b.startTimeISO || b.date).getTime()) 
+    : [];
 
   const eventDates = React.useMemo(() =>
     splitEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
@@ -284,6 +286,7 @@ const AdminDashboard: React.FC = () => {
         date: e.date,
         startTime: e.startTime,
         endTime: e.endTime,
+        startTimeISO: e.startTimeISO,
         venueName: approvedVenueName || e.venueName || e.venueIds.map(getVenueName).sort((a, b) => a.localeCompare(b)).join(', '),
         status: e.status,
       };
@@ -392,7 +395,7 @@ const AdminDashboard: React.FC = () => {
         className="px-1 sm:px-4"
       >
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3 w-full">
-          <Link to="/admin/requests" className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer">
+          <Link to="/admin/requests?status=pending" className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer">
             <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group">
               <div className="p-1.5 sm:p-2 bg-warning/10 text-warning rounded-lg shrink-0 group-hover:scale-110 transition-transform">
                 <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -404,7 +407,7 @@ const AdminDashboard: React.FC = () => {
             </div>
           </Link>
 
-          <Link to="/admin/event-requests" className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer">
+          <Link to="/admin/event-requests?status=pending" className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer">
             <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group">
               <div className="p-1.5 sm:p-2 bg-warning/10 text-warning rounded-lg shrink-0 group-hover:scale-110 transition-transform">
                 <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -543,13 +546,13 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild className="hidden sm:flex whitespace-nowrap border-[1.5px]">
-                  <Link to="/admin/requests">View All</Link>
+                  <Link to="/admin/requests?status=pending">View All</Link>
                 </Button>
               </div>
             </div>
             <div className="sm:hidden px-4 pt-4 pb-2">
               <Button variant="outline" size="sm" asChild className="w-full border-[1.5px]">
-                <Link to="/admin/requests">View All</Link>
+                <Link to="/admin/requests?status=pending">View All</Link>
               </Button>
             </div>
           </CardHeader>
@@ -577,7 +580,10 @@ const AdminDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
-                    {calendarEvents.slice(0, 5).map((evt, index) => (
+                    {[...calendarEvents]
+                      .sort((a, b) => new Date(a.startTimeISO || a.date).getTime() - new Date(b.startTimeISO || b.date).getTime())
+                      .slice(0, 5)
+                      .map((evt, index) => (
                       <motion.tr
                         key={evt.batchId || evt.ids[0]}
                         initial={{ opacity: 0, x: -20 }}
@@ -659,13 +665,13 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild className="hidden sm:flex whitespace-nowrap border-[1.5px]">
-                  <Link to="/admin/requests">View All</Link>
+                  <Link to="/admin/requests?status=pending">View All</Link>
                 </Button>
               </div>
             </div>
             <div className="sm:hidden px-4 pt-4 pb-2">
               <Button variant="outline" size="sm" asChild className="w-full border-[1.5px]">
-                <Link to="/admin/requests">View All</Link>
+                <Link to="/admin/requests?status=pending">View All</Link>
               </Button>
             </div>
           </CardHeader>
@@ -696,7 +702,10 @@ const AdminDashboard: React.FC = () => {
                             {req.clubName}
                           </Badge>
                         </div>
-                        <h4 className="text-base sm:text-lg font-medium text-foreground">{req.eventName}</h4>
+                        <h4 className="text-base sm:text-lg font-medium text-foreground">{req.bookingName || req.eventName}</h4>
+                        {req.bookingName && req.bookingName !== req.eventName && (
+                          <div className="text-xs text-textMuted mt-0.5 font-medium">Event: {req.eventName}</div>
+                        )}
                         <div className="mt-2 text-sm text-textMuted">
                           <div className="mb-2 flex items-center gap-1.5">
                             {/* <span className="font-medium mr-1 text-textPrimary">Booking Time:</span> */}
@@ -831,13 +840,13 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild className="hidden sm:flex whitespace-nowrap border-[1.5px]">
-                  <Link to="/admin/event-requests">View All</Link>
+                  <Link to="/admin/event-requests?status=pending">View All</Link>
                 </Button>
               </div>
             </div>
             <div className="sm:hidden px-4 pt-4 pb-2">
               <Button variant="outline" size="sm" asChild className="w-full border-[1.5px]">
-                <Link to="/admin/event-requests">View All</Link>
+                <Link to="/admin/event-requests?status=pending">View All</Link>
               </Button>
             </div>
           </CardHeader>

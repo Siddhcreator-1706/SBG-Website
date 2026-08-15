@@ -1,7 +1,7 @@
 import express from 'express';
 // 1. Swap Supabase for your new database pool
 import NodeCache from 'node-cache';
-import { checkConflict, createBooking, updateBookingTimings } from '../controllers/bookingController';
+import { checkConflict, createBooking, updateBookingTimings, getBusyVenues } from '../controllers/bookingController';
 import { db } from '../db';
 import authMiddleware from '../middleware/auth';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
@@ -250,7 +250,7 @@ router.patch('/my-bookings/:batchId/timings', authMiddleware, updateBookingTimin
 
 router.get('/bookings/check-conflict', checkConflict);
 
-import { getBusyVenues } from '../controllers/bookingController';
+
 router.get('/busy-venues', getBusyVenues);
 
 router.post('/bookings', authMiddleware, createBooking);
