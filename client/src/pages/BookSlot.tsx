@@ -488,6 +488,11 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         return;
       }
 
+      if (!formData.event_id && !isMeeting) {
+        toastError('Standalone bookings must be marked as a club meeting.');
+        return;
+      }
+
       const timeSlots = generateTimeSlots();
 
       const bookingMode = isMeeting ? 'meet' : 'event';
@@ -794,7 +799,6 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                       required
                       className="h-11 border-borderSoft focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl"
                     />
-                    <p className="text-xs text-textMuted">Give this booking a name (auto-fills when an event is linked — editable).</p>
                   </div>
 
                   {/* ── Link to Event ── always visible, optional */}
@@ -802,7 +806,6 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                     <div className="flex items-center justify-between">
                       <Label htmlFor="event_id" className="text-textSecondary font-semibold text-sm">
                         Link to Event{' '}
-                        <span className="font-normal text-textMuted">(Optional)</span>
                       </Label>
                       <Button
                         onClick={() => setIsAddEventOpen(true)}
@@ -818,6 +821,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                     <Select
                       value={formData.event_id}
                       onValueChange={(v) => handleChange('event_id', v)}
+                      disabled={isMeeting}
                     >
                       <SelectTrigger id="event_id" className="h-11 border-borderSoft hover:bg-hoverSoft/50 focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl">
                         <SelectValue placeholder={selectableEvents.length > 0 ? 'Select an event… (optional)' : 'No events registered yet'} />
@@ -873,13 +877,16 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                       'p-4 rounded-xl border-2 transition-all cursor-pointer select-none',
                       isMeeting
                         ? 'bg-brand/5 border-brand/30'
-                        : 'bg-hoverSoft/30 border-borderSoft hover:border-brand/20'
+                        : formData.event_id
+                          ? 'bg-hoverSoft/10 border-borderSoft opacity-50 cursor-not-allowed'
+                          : 'bg-hoverSoft/30 border-borderSoft hover:border-brand/20'
                     )}
-                    onClick={() => setIsMeeting(prev => !prev)}
+                    onClick={() => { if (!formData.event_id) setIsMeeting(prev => !prev) }}
                     role="checkbox"
                     aria-checked={isMeeting}
-                    tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setIsMeeting(prev => !prev); } }}
+                    aria-disabled={!!formData.event_id}
+                    tabIndex={formData.event_id ? -1 : 0}
+                    onKeyDown={(e) => { if (!formData.event_id && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); setIsMeeting(prev => !prev); } }}
                   >
                     <div className="flex items-center gap-3">
                       <div className={cn(

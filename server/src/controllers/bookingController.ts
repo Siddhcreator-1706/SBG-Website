@@ -308,8 +308,8 @@ export const createBooking = async (req: Request, res: Response) => {
         }
 
         const { rows: insertRows } = await client.query(`
-          INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link, booking_name, booking_type)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link, booking_name)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           RETURNING *
         `, [
           clubId,
@@ -323,8 +323,7 @@ export const createBooking = async (req: Request, res: Response) => {
           bookingMode === 'event' ? event_id : null,
           issueFlag,
           permissionsLink || null,
-          bookingName!.trim(),
-          bookingMode
+          bookingName!.trim()
         ]);
 
         if (insertRows.length === 0) {
@@ -534,7 +533,7 @@ export const updateBookingTimings = async (req: Request, res: Response) => {
     const clubId = clubResult.rows[0].id;
 
     const bookingRes = await db.query(
-      'SELECT id, venue_id, status, event_id, booking_type FROM bookings WHERE (batch_id = $1 OR id = $1) AND club_id = $2',
+      'SELECT id, venue_id, status, event_id FROM bookings WHERE (batch_id = $1 OR id = $1) AND club_id = $2',
       [batchId, clubId]
     );
     if (bookingRes.rows.length === 0) {
@@ -544,12 +543,11 @@ export const updateBookingTimings = async (req: Request, res: Response) => {
     const bookingIds = bookingRes.rows.map((b: any) => b.id);
     const venueIds = bookingRes.rows.map((b: any) => b.venue_id);
     const eventId = bookingRes.rows[0].event_id;
-    const bookingTypeFromRow = bookingRes.rows[0].booking_type as string | undefined;
 
-    // Fetch event type — for meets (no event_id), use booking_type directly
+    // Fetch event type — for meets (no event_id), it's implicitly closed_club
     let eventType: EventType | null = null;
-    if (bookingTypeFromRow === 'meet') {
-      eventType = 'meet';
+    if (!eventId) {
+      eventType = 'closed_club';
     } else if (eventId) {
       const { rows: eventRows } = await db.query('SELECT event_type FROM events WHERE id = $1', [eventId]);
       if (eventRows.length > 0) {

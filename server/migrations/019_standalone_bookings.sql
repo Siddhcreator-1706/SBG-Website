@@ -1,6 +1,6 @@
 -- 019_standalone_bookings.sql
--- Add booking_name and booking_type columns to support standalone club meets
--- booking_name replaces the old 'title' concept; booking_type tracks 'event' vs 'meet'
+-- Add booking_name column to support standalone club meets
+-- booking_name replaces the old 'title' concept
 
 DO $$
 BEGIN
@@ -36,14 +36,6 @@ BEGIN
     WHERE table_name = 'bookings' AND column_name = 'title'
   ) THEN
     ALTER TABLE bookings DROP COLUMN title;
-  END IF;
-
-  -- Add booking_type to distinguish 'event' vs 'meet'
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'bookings' AND column_name = 'booking_type'
-  ) THEN
-    ALTER TABLE bookings ADD COLUMN booking_type VARCHAR(50) NOT NULL DEFAULT 'event';
   END IF;
 END $$;
 
