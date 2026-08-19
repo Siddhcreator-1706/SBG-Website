@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion"
 import {
-    ChevronDownIcon,
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    Clock,
-    MapPin,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  Clock,
+  MapPin,
 } from "lucide-react"
 import * as React from "react"
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
@@ -15,10 +15,12 @@ import { cn } from "@/lib/utils"
 
 interface CalendarEvent {
   eventName: string
+  bookingName?: string
   clubName: string
   date: string
   startTime: string
   endTime: string
+  startTimeISO?: string
   venueName?: string
   status?: string
   eventType?: string
@@ -35,6 +37,46 @@ function formatEventType(type?: string) {
 
 function makeDateKey(d: Date) {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+
+const CalendarRoot = ({ className, rootRef, ...props }: any) => {
+  return (
+    <motion.div
+      data-slot="calendar"
+      ref={rootRef}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className={cn(className)}
+      {...props}
+    />
+  )
+}
+
+const CalendarChevron = ({ className, orientation, ...props }: any) => {
+  const Icon = orientation === "left" ? ChevronLeftIcon
+    : orientation === "right" ? ChevronRightIcon
+      : ChevronDownIcon
+  return (
+    <motion.span
+      whileHover={{ scale: 1.2 }}
+      whileTap={{ scale: 0.85 }}
+      transition={{ type: "spring", stiffness: 500, damping: 25 }}
+      className="inline-flex"
+    >
+      <Icon className={cn("size-4", className)} {...props} />
+    </motion.span>
+  )
+}
+
+const CalendarWeekNumber = ({ children, ...props }: any) => {
+  return (
+    <td {...props}>
+      <div className="flex size-[--cell-size] items-center justify-center text-center">
+        {children}
+      </div>
+    </td>
+  )
 }
 
 function Calendar({
@@ -84,8 +126,9 @@ function Calendar({
           formatters={{
             formatMonthDropdown: (date) =>
               date.toLocaleString("default", {
-                  timeZone: 'Asia/Kolkata',
-                month: "short" }),
+                timeZone: 'Asia/Kolkata',
+                month: "short"
+              }),
             ...formatters,
           }}
           classNames={{
@@ -173,44 +216,10 @@ function Calendar({
             ...classNames,
           }}
           components={{
-            Root: ({ className, rootRef, ...props }) => {
-              return (
-                <motion.div
-                  data-slot="calendar"
-                  ref={rootRef}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className={cn(className)}
-                  {...(props as any)}
-                />
-              )
-            },
-            Chevron: ({ className, orientation, ...props }) => {
-              const Icon = orientation === "left" ? ChevronLeftIcon
-                : orientation === "right" ? ChevronRightIcon
-                  : ChevronDownIcon
-              return (
-                <motion.span
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.85 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                  className="inline-flex"
-                >
-                  <Icon className={cn("size-4", className)} {...props} />
-                </motion.span>
-              )
-            },
+            Root: CalendarRoot,
+            Chevron: CalendarChevron,
             DayButton: CalendarDayButton,
-            WeekNumber: ({ children, ...props }) => {
-              return (
-                <td {...props}>
-                  <div className="flex size-[--cell-size] items-center justify-center text-center">
-                    {children}
-                  </div>
-                </td>
-              )
-            },
+            WeekNumber: CalendarWeekNumber,
             ...components,
           }}
           {...props}
@@ -271,6 +280,7 @@ function CalendarDayButton({
       )}
     >
       <Button
+        type="button"
         ref={ref}
         variant="ghost"
         size="icon"
@@ -359,6 +369,18 @@ function EventHoverCard({
       const events = eventsByDate.get(key) || []
       if (events.length === 0) { setCard(null); return }
 
+      const sortedEvents = [...events].sort((a, b) => {
+        if (a.startTimeISO && b.startTimeISO) {
+          return new Date(a.startTimeISO).getTime() - new Date(b.startTimeISO).getTime()
+        }
+        const parseTime = (timeStr: string) => {
+          const parts = timeStr.split(',')
+          const t = parts[parts.length - 1].trim()
+          return new Date(`1970/01/01 ${t} GMT+0530`).getTime()
+        }
+        return parseTime(a.startTime) - parseTime(b.startTime)
+      })
+
       showTimer.current = setTimeout(() => {
         const rect = hit.getBoundingClientRect()
         const above = rect.top > 280
@@ -367,13 +389,14 @@ function EventHoverCard({
 
         setCard({
           dateKey: key,
-          events,
+          events: sortedEvents,
           x: Math.max(160, Math.min(window.innerWidth - 160, rect.left + rect.width / 2)),
           y: above ? rect.top - 10 : rect.bottom + 10,
           above,
           dateLabel: date.toLocaleDateString("en-US", {
-              timeZone: 'Asia/Kolkata',
-            weekday: "long", month: "short", day: "numeric" }),
+            timeZone: 'Asia/Kolkata',
+            weekday: "long", month: "short", day: "numeric"
+          }),
         })
       }, 200)
     }
@@ -453,7 +476,7 @@ function EventHoverCard({
                     <div className="w-[3px] shrink-0 rounded-full bg-primary my-0.5 group-hover:scale-y-110 transition-transform" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-[13px] text-foreground leading-snug truncate">
-                        {event.eventName}
+                        <span className="text-[11px] text-muted-foreground font-normal mr-1.5">Booking Name:</span>{event.bookingName || event.eventName}
                       </div>
                       <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-muted-foreground">
                         <Clock size={11} className="shrink-0 text-primary/50" />
@@ -475,12 +498,12 @@ function EventHoverCard({
                           {event.clubName}
                         </span>
                         {event.status === 'pending' && (
-                          <span className="rounded-md border border-orange-500/20 bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-400">
+                          <span className="rounded-md border border-yellow-500/20 bg-yellow-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-600 dark:text-yellow-400">
                             PENDING
                           </span>
                         )}
                         {event.status === 'partial' && (
-                          <span className="rounded-md border border-yellow-500/20 bg-yellow-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-600 dark:text-yellow-400">
+                          <span className="rounded-md border border-orange-500/20 bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-400">
                             PARTIAL
                           </span>
                         )}
@@ -490,7 +513,7 @@ function EventHoverCard({
                 ))}
                 {card.events.length > 4 && (
                   <div className="text-center text-[11px] text-muted-foreground py-2 font-medium">
-                    +{card.events.length - 4} more event{card.events.length - 4 !== 1 ? "s" : ""}
+                    Click the date to view {card.events.length - 4} more event{card.events.length - 4 !== 1 ? "s" : ""}
                   </div>
                 )}
               </div>

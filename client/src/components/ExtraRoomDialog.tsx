@@ -84,6 +84,7 @@ const ExtraRoomDialog: React.FC<ExtraRoomDialogProps> = ({ booking, open, onOpen
                 venueIds: [selectedVenueId],
                 eventType: booking.eventType,
                 eventName: booking.eventName,
+                bookingName: booking.bookingName || booking.eventName,
                 startTime,
                 endTime,
                 expectedAttendees: booking.expectedAttendees,

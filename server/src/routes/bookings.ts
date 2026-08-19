@@ -1,7 +1,7 @@
 import express from 'express';
 // 1. Swap Supabase for your new database pool
 import NodeCache from 'node-cache';
-import { checkConflict, createBooking } from '../controllers/bookingController';
+import { checkConflict, createBooking, updateBookingTimings, getBusyVenues } from '../controllers/bookingController';
 import { db } from '../db';
 import authMiddleware from '../middleware/auth';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
@@ -15,6 +15,7 @@ router.get('/venues', async (_req, res) => {
     if (cachedVenues) return res.json(cachedVenues);
 
     const { rows } = await db.query('SELECT * FROM venues');
+    cache.set('venues', rows);
     return res.json(rows);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -23,7 +24,11 @@ router.get('/venues', async (_req, res) => {
 
 router.get('/clubs', async (_req, res) => {
   try {
-    const { rows } = await db.query('SELECT * FROM clubs');
+    const cachedClubs = cache.get('clubs');
+    if (cachedClubs) return res.json(cachedClubs);
+
+    const { rows } = await db.query('SELECT id, name, organization_type, group_category, logo_url, member_tag, logo_bg, description, key_activities, linkedin_url, instagram_url, youtube_url, website_url, email FROM clubs ORDER BY name ASC');
+    cache.set('clubs', rows);
     return res.json(rows);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -149,6 +154,8 @@ router.patch('/clubs/my-club', authMiddleware, async (req, res) => {
       values
     );
 
+    cache.del('clubs');
+
     return res.json(rows[0]);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -239,9 +246,11 @@ router.delete('/my-bookings/:id', authMiddleware, async (req, res) => {
   }
 });
 
+router.patch('/my-bookings/:batchId/timings', authMiddleware, updateBookingTimings);
+
 router.get('/bookings/check-conflict', checkConflict);
 
-import { getBusyVenues } from '../controllers/bookingController';
+
 router.get('/busy-venues', getBusyVenues);
 
 router.post('/bookings', authMiddleware, createBooking);

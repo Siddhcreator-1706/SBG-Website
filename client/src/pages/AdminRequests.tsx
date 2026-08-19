@@ -1,26 +1,42 @@
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Calendar, Check, CheckCircle, ChevronDown, ChevronRight, Clock, Filter, Pencil, RefreshCw, Search, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Calendar, Check, CheckCircle, ChevronDown, ChevronRight, Clock, Filter, MapPin, Pencil, RefreshCw, Search, X, XCircle, RotateCcw, ExternalLink } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { getSocket } from '../lib/socket';
 import { toastError, toastSuccess } from '../lib/toast';
 import { GroupedBooking, Booking } from '../types';
 import EditBookingDialog from '../components/EditBookingDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 const AdminRequests: React.FC = () => {
   const [requests, setRequests] = useState<GroupedBooking[]>([]);
   const [venues, setVenues] = useState<ApiVenue[]>([]);
-  const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filterStatus, setFilterStatusInternal] = useState<string>(searchParams.get('status') || 'all');
+  
+  const setFilterStatus = (status: string) => {
+    setFilterStatusInternal(status);
+    const newParams = new URLSearchParams(searchParams);
+    if (status === 'all') {
+      newParams.delete('status');
+    } else {
+      newParams.set('status', status);
+    }
+    setSearchParams(newParams, { replace: true });
+  };
+  
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterClub, setFilterClub] = useState<string>('all');
+  const [filterVenue, setFilterVenue] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
@@ -74,7 +90,7 @@ const AdminRequests: React.FC = () => {
     };
   }, [fetchRequests]);
 
-  const handleAction = async (ids: string[], action: 'approved' | 'rejected') => {
+  const handleAction = async (ids: string[], action: 'approved' | 'rejected' | 'pending') => {
     if (isProcessingAction) return;
     setIsProcessingAction(true);
     try {
@@ -109,31 +125,25 @@ const AdminRequests: React.FC = () => {
 
   const getVenueName = React.useCallback((id: string) => venues.find(v => v.id === id)?.name || id, [venues]);
 
-  const pendingRequests = requests.filter(req => {
-    const isStarted = new Date(req.bookings[0].startTimeISO!) <= new Date();
-    const isPending = req.status === 'pending' || (req.status === 'partial' && req.bookings.some(b => b.status === 'pending'));
-    const matchesSearch = req.clubName.toLowerCase().includes(searchTerm.toLowerCase()) || req.eventName.toLowerCase().includes(searchTerm.toLowerCase());
-    return isPending && !isStarted && matchesSearch;
+  const uniqueClubs = Array.from(new Set(requests.map(req => req.clubName))).sort();
+
+  const filteredRequests = requests.filter(req => {
+    const safeBookings = req.bookings || [];
+    const isStarted = safeBookings[0]?.startTimeISO ? new Date(safeBookings[0].startTimeISO) <= new Date() : false;
+    const isPending = req.status === 'pending' || (req.status === 'partial' && safeBookings.some(b => b.status === 'pending'));
+    const matchesSearch = String(req.eventName || '').toLowerCase().includes(searchTerm.toLowerCase()) || String(req.bookingName || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesClub = filterClub === 'all' || req.clubName === filterClub;
+    const matchesVenue = filterVenue === 'all' || safeBookings.some(b => b.venueId === filterVenue);
+
+    let matchesStatus = true;
+    if (filterStatus === 'pending') {
+      matchesStatus = isPending && !isStarted;
+    } else if (filterStatus !== 'all') {
+      matchesStatus = req.status === filterStatus;
+    }
+
+    return matchesSearch && matchesClub && matchesVenue && matchesStatus;
   });
-
-  const historyRequests = requests.filter(req => {
-    const isStarted = new Date(req.bookings[0].startTimeISO!) <= new Date();
-    const isPending = req.status === 'pending' || (req.status === 'partial' && req.bookings.some(b => b.status === 'pending'));
-    const matchesSearch = req.clubName.toLowerCase().includes(searchTerm.toLowerCase()) || req.eventName.toLowerCase().includes(searchTerm.toLowerCase());
-    return (!isPending || isStarted) && matchesSearch;
-  });
-
-  const pendingCount = requests.filter(req => {
-    const isStarted = new Date(req.bookings[0].startTimeISO!) <= new Date();
-    const isPending = req.status === 'pending' || (req.status === 'partial' && req.bookings.some(b => b.status === 'pending'));
-    return isPending && !isStarted;
-  }).reduce((acc, req) => acc + req.bookings.filter(b => b.status === 'pending').length, 0);
-
-  const historyCount = requests.filter(req => {
-    const isStarted = new Date(req.bookings[0].startTimeISO!) <= new Date();
-    const isPending = req.status === 'pending' || (req.status === 'partial' && req.bookings.some(b => b.status === 'pending'));
-    return !isPending || isStarted;
-  }).length;
 
   return (
     <motion.div
@@ -142,21 +152,60 @@ const AdminRequests: React.FC = () => {
       transition={{ duration: 0.4 }}
       className="space-y-6"
     >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-textPrimary tracking-tight leading-tight">Request Management</h1>
           <p className="text-textMuted mt-2 text-sm sm:text-base font-medium">Review and take action on venue bookings.</p>
         </div>
 
-        <div className="relative w-full sm:w-64 shrink-0">
-          <Search className="absolute left-3 top-2.5 text-textMuted pointer-events-none" size={18} />
-          <Input
-            type="text"
-            placeholder="Search requests..."
-            className="pl-10 w-full rounded-xl"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-3 w-full xl:w-auto mt-4 xl:mt-0">
+          <Select value={filterClub} onValueChange={setFilterClub}>
+            <SelectTrigger className="w-full sm:w-[140px] rounded-xl">
+              <SelectValue placeholder="All Clubs" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Clubs</SelectItem>
+              {uniqueClubs.map(club => (
+                <SelectItem key={club} value={club}>{club}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterVenue} onValueChange={setFilterVenue}>
+            <SelectTrigger className="w-full sm:w-[140px] rounded-xl">
+              <SelectValue placeholder="All Venues" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Venues</SelectItem>
+              {venues.map(v => (
+                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-full sm:w-[140px] rounded-xl">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="partial">Partial</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="relative w-full sm:w-64 shrink-0">
+            <Search className="absolute left-3 top-2.5 text-textMuted pointer-events-none" size={18} />
+            <Input
+              type="text"
+              placeholder="Search requests..."
+              className="pl-10 w-full rounded-xl"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -172,122 +221,56 @@ const AdminRequests: React.FC = () => {
         </Alert>
       )}
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pending' | 'history')} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-hoverSoft border-borderSoft rounded-xl p-1">
-          <TabsTrigger value="pending" className="data-[state=active]:bg-background">
-            Pending Review ({pendingCount})
-          </TabsTrigger>
-          <TabsTrigger value="history" className="data-[state=active]:bg-background">
-            History ({historyCount})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="pending" className="mt-6">
-          <Card className="rounded-xl overflow-hidden">
-            {isLoading ? (
-              <CardContent className="p-6">
-                <Skeleton className="h-12 w-full mb-4" />
-                <Skeleton className="h-12 w-full mb-4" />
-                <Skeleton className="h-12 w-full" />
-              </CardContent>
-            ) : pendingRequests.length > 0 ? (
-              <div className="overflow-x-auto w-full">
-                <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
-                  <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-4">Club / Event</th>
-                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">Venue & Time</th>
-                      <th className="px-4 sm:px-6 py-4">Date</th>
-                      <th className="px-4 sm:px-6 py-4">Status</th>
-                      <th className="px-4 sm:px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40">
-                    {pendingRequests.map((req, index) => (
-                      <AdminRequestRow
-                        key={req.batchId || req.ids[0]}
-                        req={req}
-                        index={index}
-                        venues={venues}
-                        handleAction={handleAction}
-                        handleSendEmail={handleSendEmail}
-                        getVenueName={getVenueName}
-                        isHistoryTab={false}
-                        isProcessingAction={isProcessingAction}
-                        onEdit={(booking) => {
-                          setEditingBooking(booking);
-                          setIsEditDialogOpen(true);
-                        }}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <CardContent className="p-8 sm:p-12 text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-hoverSoft text-textMuted mb-4">
-                  <Filter size={24} />
-                </div>
-                <h3 className="text-lg font-medium text-textPrimary">No requests found</h3>
-                <p className="text-textMuted mt-1">Try adjusting your search or tab filter.</p>
-              </CardContent>
-            )}
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="history" className="mt-6">
-          <Card className="rounded-xl overflow-hidden">
-            {isLoading ? (
-              <CardContent className="p-6">
-                <Skeleton className="h-12 w-full mb-4" />
-                <Skeleton className="h-12 w-full mb-4" />
-                <Skeleton className="h-12 w-full" />
-              </CardContent>
-            ) : historyRequests.length > 0 ? (
-              <div className="overflow-x-auto w-full">
-                <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
-                  <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
-                    <tr>
-                      <th className="px-4 sm:px-6 py-4">Club / Event</th>
-                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">Venue & Time</th>
-                      <th className="px-4 sm:px-6 py-4">Date</th>
-                      <th className="px-4 sm:px-6 py-4">Status</th>
-                      <th className="px-4 sm:px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40">
-                    {historyRequests.map((req, index) => (
-                      <AdminRequestRow
-                        key={req.batchId || req.ids[0]}
-                        req={req}
-                        index={index}
-                        venues={venues}
-                        handleAction={handleAction}
-                        handleSendEmail={handleSendEmail}
-                        getVenueName={getVenueName}
-                        isHistoryTab={true}
-                        isProcessingAction={isProcessingAction}
-                        onEdit={(booking) => {
-                          setEditingBooking(booking);
-                          setIsEditDialogOpen(true);
-                        }}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <CardContent className="p-8 sm:p-12 text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-hoverSoft text-textMuted mb-4">
-                  <Filter size={24} />
-                </div>
-                <h3 className="text-lg font-medium text-textPrimary">No history found</h3>
-                <p className="text-textMuted mt-1">Try adjusting your search filter.</p>
-              </CardContent>
-            )}
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Card className="rounded-xl overflow-hidden mt-6">
+        {isLoading ? (
+          <CardContent className="p-6">
+            <Skeleton className="h-12 w-full mb-4" />
+            <Skeleton className="h-12 w-full mb-4" />
+            <Skeleton className="h-12 w-full" />
+          </CardContent>
+        ) : filteredRequests.length > 0 ? (
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
+              <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
+                <tr>
+                  <th className="px-4 sm:px-6 py-4 w-[40%] sm:w-[35%]">Booking</th>
+                  <th className="px-4 sm:px-6 py-4 w-[15%]">Venue</th>
+                  <th className="px-4 sm:px-6 py-4 w-[35%] sm:w-[25%]">Date & Time</th>
+                  <th className="px-4 sm:px-6 py-4 w-[10%]">Status</th>
+                  <th className="px-4 sm:px-6 py-4 text-right w-[15%]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {filteredRequests.map((req, index) => (
+                  <AdminRequestRow
+                    key={req.batchId || req.ids[0]}
+                    req={req}
+                    index={index}
+                    venues={venues}
+                    handleAction={handleAction}
+                    handleSendEmail={handleSendEmail}
+                    getVenueName={getVenueName}
+                    isHistoryTab={false}
+                    isProcessingAction={isProcessingAction}
+                    onEdit={(booking) => {
+                      setEditingBooking(booking);
+                      setIsEditDialogOpen(true);
+                    }}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <CardContent className="p-8 sm:p-12 text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-hoverSoft text-textMuted mb-4">
+              <Filter size={24} />
+            </div>
+            <h3 className="text-lg font-medium text-textPrimary">No requests found</h3>
+            <p className="text-textMuted mt-1">Try adjusting your search or filters.</p>
+          </CardContent>
+        )}
+      </Card>
 
       <EditBookingDialog
         open={isEditDialogOpen}
@@ -303,7 +286,7 @@ interface AdminRequestRowProps {
   req: GroupedBooking;
   index: number;
   venues: ApiVenue[];
-  handleAction: (ids: string[], action: 'approved' | 'rejected') => Promise<void>;
+  handleAction: (ids: string[], action: 'approved' | 'rejected' | 'pending') => Promise<void>;
   handleSendEmail: (batchId: string | undefined, eventId: string | undefined) => Promise<void>;
   getVenueName: (id: string) => string;
   isHistoryTab: boolean;
@@ -313,7 +296,8 @@ interface AdminRequestRowProps {
 
 const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, handleAction, handleSendEmail, getVenueName, isHistoryTab, isProcessingAction, onEdit }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isMultiVenue = req.bookings.length > 1;
+  const safeBookings = req.bookings || [];
+  const isMultiVenue = safeBookings.length > 1;
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -324,7 +308,8 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
     }
   };
 
-  const isStarted = new Date(req.bookings[0].startTimeISO!) <= new Date();
+  const safeStatus = req.status || 'pending';
+  const isStarted = safeBookings[0]?.startTimeISO ? new Date(safeBookings[0].startTimeISO) <= new Date() : false;
 
   return (
     <>
@@ -356,46 +341,42 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
               </div>
               <div className="text-xs text-textMuted mt-0.5">{req.clubName}</div>
               {req.permissionsLink && (
-                <a href={req.permissionsLink} target="_blank" rel="noopener noreferrer" className="text-[10px] text-brand hover:underline mt-1 inline-block font-medium" onClick={(e) => e.stopPropagation()}>
-                  🔗 View Permissions
-                </a>
-              )}
-              <div className="text-xs text-textMuted mt-1 sm:hidden">
-                <div className="flex items-center gap-1">
-                  <Clock size={12} /> {req.startTime} - {req.endTime}
+                <div className="mt-3 mb-1">
+                  <a
+                    href={req.permissionsLink.match(/^https?:\/\//) ? req.permissionsLink : `https://${req.permissionsLink}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center justify-center gap-1 sm:gap-1.5 p-[1px] px-1.5 rounded-[2rem] border border-brand/30 bg-transparent text-[11px] sm:text-[13px] font-medium text-brand hover:bg-brand/10 transition-colors w-fit"
+                  >
+                    <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    View Permissions
+                  </a>
                 </div>
-                <div>{req.venueName}</div>
-              </div>
+              )}
             </div>
           </div>
         </td>
-        <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
+        <td className="px-4 sm:px-6 py-4">
           <div className="flex items-center gap-1.5 text-textPrimary">
             {req.venueName}
-          </div>
-          <div className="text-xs text-textMuted mt-0.5 flex items-center gap-1">
-            <Clock size={12} /> {req.startTime} - {req.endTime}
           </div>
         </td>
         <td className="px-4 sm:px-6 py-4">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
               <Calendar size={14} className="text-textMuted shrink-0" />
-              {req.endDate && new Date(req.date).toDateString() !== new Date(req.endDate).toDateString() ? (
-                <div className="flex flex-col text-xs space-y-0.5">
-                  <span className="whitespace-nowrap">{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} {req.startTime}</span>
-                  <span className="text-textMuted text-[10px]">to</span>
-                  <span className="whitespace-nowrap">{new Date(req.endDate).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })} {req.endTime}</span>
-                </div>
-              ) : (
-                <span>{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</span>
-              )}
+              <div className="flex flex-col text-xs space-y-0.5">
+                <span className="whitespace-nowrap">{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {req.startTime}</span>
+                <span className="text-textMuted text-[10px]">to</span>
+                <span className="whitespace-nowrap">{new Date(req.endDate || req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {req.endTime}</span>
+              </div>
             </div>
           </div>
         </td>
         <td className="px-4 sm:px-6 py-4">
-          <Badge variant={getStatusVariant(req.status)}>
-            {req.status === 'partial' ? 'Partial' : req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+          <Badge variant={getStatusVariant(safeStatus)}>
+            {safeStatus === 'partial' ? 'Partial' : String(safeStatus).charAt(0).toUpperCase() + String(safeStatus).slice(1)}
           </Badge>
         </td>
         <td className="px-4 sm:px-6 py-4 text-right">
@@ -403,23 +384,23 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
             <Button
               variant="outline"
               size="sm"
-              onClick={(e) => { e.stopPropagation(); handleSendEmail(req.batchId, req.bookings[0]?.event_id); }}
+              onClick={(e) => { e.stopPropagation(); handleSendEmail(req.batchId, safeBookings[0]?.event_id); }}
               className="text-xs"
               title="Send an email to the club with the current status of all venues in this booking"
               disabled={isProcessingAction}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
               Send Mail
             </Button>
-            {!isHistoryTab && !isStarted && (
+            {!isStarted && (
               <>
                 {/* Single-venue: show individual approve/reject directly on the row */}
-                {!isMultiVenue && req.bookings[0]?.status !== 'rejected' && (
+                {!isMultiVenue && safeBookings[0]?.status !== 'rejected' && (
                   <Button
                     variant="ghost"
                     size="icon"
                     aria-label="Reject venue"
-                    onClick={(e) => { e.stopPropagation(); handleAction([req.bookings[0].id], 'rejected'); }}
+                    onClick={(e) => { e.stopPropagation(); handleAction([safeBookings[0].id], 'rejected'); }}
                     className="text-textMuted hover:text-error"
                     title="Reject this venue"
                     disabled={isProcessingAction}
@@ -432,7 +413,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                     variant="ghost"
                     size="icon"
                     aria-label="Edit booking"
-                    onClick={(e) => { e.stopPropagation(); onEdit(req.bookings[0]); }}
+                    onClick={(e) => { e.stopPropagation(); onEdit(safeBookings[0]); }}
                     className="text-textMuted hover:text-primary"
                     title="Edit booking timings"
                     disabled={isProcessingAction}
@@ -440,17 +421,30 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                     <Pencil size={16} />
                   </Button>
                 )}
-                {!isMultiVenue && req.bookings[0]?.status !== 'approved' && (
+                {!isMultiVenue && safeBookings[0]?.status !== 'approved' && (
                   <Button
                     variant="ghost"
                     size="icon"
                     aria-label="Approve venue"
-                    onClick={(e) => { e.stopPropagation(); handleAction([req.bookings[0].id], 'approved'); }}
+                    onClick={(e) => { e.stopPropagation(); handleAction([safeBookings[0].id], 'approved'); }}
                     className="text-primary hover:text-primary/80"
                     title="Approve this venue"
                     disabled={isProcessingAction}
                   >
                     <CheckCircle size={18} />
+                  </Button>
+                )}
+                {!isMultiVenue && safeBookings[0]?.status !== 'pending' && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Move to pending"
+                    onClick={(e) => { e.stopPropagation(); handleAction([safeBookings[0].id], 'pending'); }}
+                    className="text-textMuted hover:text-warning"
+                    title="Move to pending"
+                    disabled={isProcessingAction}
+                  >
+                    <RotateCcw size={18} />
                   </Button>
                 )}
                 {/* Multi-venue: show bulk Reject All / Approve All; individual controls are in the expanded panel */}
@@ -480,6 +474,19 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                     <span className="hidden sm:inline">Approve All</span>
                   </Button>
                 )}
+                {isMultiVenue && req.status !== 'pending' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handleAction(req.ids, 'pending'); }}
+                    className="text-textMuted hover:text-warning text-xs"
+                    title="Move all to pending"
+                    disabled={isProcessingAction}
+                  >
+                    <RotateCcw size={15} className="mr-1" />
+                    <span className="hidden sm:inline">Pending All</span>
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -498,12 +505,16 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
             <td colSpan={5} className="px-6 py-4">
               <div className="space-y-3">
                 <div className="text-xs font-bold text-textMuted uppercase tracking-wider mb-2">Individual Venue Statuses</div>
-                {req.bookings.map((booking) => (
+                {safeBookings.map((booking) => (
                   <div key={booking.id} className="flex items-center justify-between p-3 bg-background rounded-lg border border-borderSoft shadow-sm">
                     <div className="flex items-center gap-4">
                       <div className="flex flex-col">
                         <span className="font-semibold text-sm">{getVenueName(booking.venueId)}</span>
-                        <span className="text-xs text-textMuted">{booking.startTime} - {booking.endTime}</span>
+                        <div className="flex flex-col text-xs text-textMuted mt-0.5 space-y-0.5">
+                          <span className="whitespace-nowrap">{new Date(booking.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {booking.startTime}</span>
+                          <span className="text-[10px]">to</span>
+                          <span className="whitespace-nowrap">{new Date(booking.endDate || booking.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {booking.endTime}</span>
+                        </div>
                         {booking.issueFlag && (
                           <span className="text-[10px] font-medium text-warning mt-0.5 flex items-center gap-1">
                             <AlertTriangle size={10} /> {booking.issueFlag}
@@ -514,44 +525,56 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                         {booking.status.toUpperCase()}
                       </Badge>
                     </div>
-                      <div className="flex items-center gap-2">
-                        {!isStarted && booking.status !== 'rejected' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleAction([booking.id], 'rejected')}
-                            className="h-8 w-8 p-0 text-textMuted hover:text-error"
-                            title="Reject this venue"
-                            disabled={isProcessingAction}
-                          >
-                            <X size={16} />
-                          </Button>
-                        )}
-                        {!isStarted && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onEdit(booking)}
-                            className="h-8 w-8 p-0 text-textMuted hover:text-primary"
-                            title="Edit booking timings"
-                            disabled={isProcessingAction}
-                          >
-                            <Pencil size={14} />
-                          </Button>
-                        )}
-                        {!isStarted && booking.status !== 'approved' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleAction([booking.id], 'approved')}
-                            className="h-8 w-8 p-0 text-primary hover:text-primary/80"
-                            title="Approve this venue"
-                            disabled={isProcessingAction}
-                          >
-                            <Check size={16} />
-                          </Button>
-                        )}
-                      </div>
+                    <div className="flex items-center gap-2">
+                      {!isStarted && booking.status !== 'rejected' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAction([booking.id], 'rejected')}
+                          className="h-8 w-8 p-0 text-textMuted hover:text-error"
+                          title="Reject this venue"
+                          disabled={isProcessingAction}
+                        >
+                          <X size={16} />
+                        </Button>
+                      )}
+                      {!isStarted && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onEdit(booking)}
+                          className="h-8 w-8 p-0 text-textMuted hover:text-primary"
+                          title="Edit booking timings"
+                          disabled={isProcessingAction}
+                        >
+                          <Pencil size={14} />
+                        </Button>
+                      )}
+                      {!isStarted && booking.status !== 'approved' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAction([booking.id], 'approved')}
+                          className="h-8 w-8 p-0 text-primary hover:text-primary/80"
+                          title="Approve this venue"
+                          disabled={isProcessingAction}
+                        >
+                          <Check size={16} />
+                        </Button>
+                      )}
+                      {!isStarted && booking.status !== 'pending' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAction([booking.id], 'pending')}
+                          className="h-8 w-8 p-0 text-textMuted hover:text-warning"
+                          title="Move to pending"
+                          disabled={isProcessingAction}
+                        >
+                          <RotateCcw size={16} />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

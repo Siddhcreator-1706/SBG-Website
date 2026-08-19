@@ -14,16 +14,16 @@ import {
 } from './ui/dialog';
 import { Label } from './ui/label';
 import { TimePicker } from './ui/time-picker';
-import { Booking } from '../types';
+import { GroupedBooking } from '../types';
 
-type EditBookingDialogProps = {
+type EditTimingsDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdated: () => void;
-  booking: Booking | null;
+  booking: GroupedBooking | null;
 };
 
-const EditBookingDialog: React.FC<EditBookingDialogProps> = ({ open, onOpenChange, onUpdated, booking }) => {
+const EditTimingsDialog: React.FC<EditTimingsDialogProps> = ({ open, onOpenChange, onUpdated, booking }) => {
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [startTime, setStartTime] = useState('12:00');
@@ -74,22 +74,24 @@ const EditBookingDialog: React.FC<EditBookingDialogProps> = ({ open, onOpenChang
       const newStartTime = new Date(`${sDateString}T${startTime}:00`).toISOString();
       const newEndTime = new Date(`${eDateString}T${endTime}:00`).toISOString();
 
-      await apiRequest(`/api/admin/bookings/${booking.id}`, {
-        method: 'PUT',
+      const batchIdOrId = booking.batchId || booking.ids[0];
+
+      await apiRequest(`/api/my-bookings/${batchIdOrId}/timings`, {
+        method: 'PATCH',
         auth: true,
         body: {
-          start_time: newStartTime,
-          end_time: newEndTime,
+          startTime: newStartTime,
+          endTime: newEndTime,
         }
       });
 
-      toastSuccess('Booking updated successfully');
+      toastSuccess('Booking timings updated successfully');
       onUpdated();
       onOpenChange(false);
     } catch (err: any) {
-      console.error('Failed to update booking:', err);
-      setError(err.message || 'Failed to update booking. Please try again.');
-      toastError(err, 'Failed to update booking');
+      console.error('Failed to update timings:', err);
+      setError(err.message || 'Failed to update timings. Please try again.');
+      toastError(err, 'Failed to update timings');
     } finally {
       setSaving(false);
     }
@@ -101,18 +103,14 @@ const EditBookingDialog: React.FC<EditBookingDialogProps> = ({ open, onOpenChang
         <DialogHeader>
           <DialogTitle>Edit Booking Timings</DialogTitle>
           <DialogDescription>
-            {booking ? `Editing timings for "${booking.bookingName || booking.eventName}"` : 'Loading...'}
+            Update the date and time for this booking. If it is already approved, it will be reset to pending for re-approval.
           </DialogDescription>
         </DialogHeader>
 
-        {error && (
-          <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg flex items-center justify-between border border-destructive/20">
-            {error}
-          </div>
-        )}
-
-        <div className="space-y-4 py-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-4 my-4">
+          {error && <div className="text-sm font-medium text-destructive">{error}</div>}
+          
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Start Date</Label>
               <DatePicker date={startDate} setDate={setStartDate} />
@@ -123,7 +121,7 @@ const EditBookingDialog: React.FC<EditBookingDialogProps> = ({ open, onOpenChang
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>End Date</Label>
               <DatePicker date={endDate} setDate={setEndDate} />
@@ -140,7 +138,7 @@ const EditBookingDialog: React.FC<EditBookingDialogProps> = ({ open, onOpenChang
             Cancel
           </Button>
           <Button onClick={handleUpdate} disabled={saving}>
-            {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save Changes'}
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -148,4 +146,4 @@ const EditBookingDialog: React.FC<EditBookingDialogProps> = ({ open, onOpenChang
   );
 };
 
-export default EditBookingDialog;
+export default EditTimingsDialog;

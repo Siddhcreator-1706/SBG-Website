@@ -27,24 +27,26 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ onGoToLogin }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isMobileMenuOpen]);
 
-    // Close menu on scroll
-    useEffect(() => {
-        const handleScroll = () => {
-            if (isMobileMenuOpen) setIsMobileMenuOpen(false);
-        };
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [isMobileMenuOpen]);
 
-    // Lock body scroll while mobile menu is open
+
+    // Close menu if user actively scrolls (using touch or wheel)
+    // We use touchmove/wheel instead of 'scroll' because expanding the sticky 
+    // header triggers browser scroll-anchoring which fires false scroll events.
     useEffect(() => {
-        if (isMobileMenuOpen) {
-            const original = document.body.style.overflow;
-            document.body.style.overflow = 'hidden';
-            return () => {
-                document.body.style.overflow = original;
-            };
-        }
+        if (!isMobileMenuOpen) return;
+        
+        const handleUserScroll = () => {
+            setIsMobileMenuOpen(false);
+        };
+        
+        // Use passive listeners for better performance
+        window.addEventListener('touchmove', handleUserScroll, { passive: true });
+        window.addEventListener('wheel', handleUserScroll, { passive: true });
+        
+        return () => {
+            window.removeEventListener('touchmove', handleUserScroll);
+            window.removeEventListener('wheel', handleUserScroll);
+        };
     }, [isMobileMenuOpen]);
 
     // Close menu on escape key

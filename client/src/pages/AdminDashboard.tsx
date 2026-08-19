@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, ChevronRight, Download, Pencil, Plus, RefreshCw, Settings, X, XCircle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, ChevronRight, Download, ExternalLink, MapPin, Pencil, Plus, RefreshCw, Settings, X, XCircle } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -17,8 +17,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Skeleton } from '../components/ui/skeleton';
-import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue } from '../lib/api';
+import { apiRequest, groupBookings, mapBooking, splitGroupedBookingsByDay, type ApiBooking, type ApiVenue } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
+import { cn, getISTParts } from '../lib/utils';
 import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 import { toastError, toastSuccess } from '../lib/toast';
 import { GroupedBooking, Booking, AppEvent } from '../types';
@@ -43,7 +44,7 @@ const AdminDashboard: React.FC = () => {
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [registerDialogOpen, setRegisterDialogOpen] = React.useState(false);
   const [isProcessingAction, setIsProcessingAction] = React.useState(false);
-  
+
   const [editingBooking, setEditingBooking] = React.useState<Booking | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
@@ -123,24 +124,26 @@ const AdminDashboard: React.FC = () => {
           'Club Name': e.club_name || e.club_id || '',
           'Start Date': startDate ? startDate.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' }) : '',
           'Start Time': startDate ? startDate.toLocaleTimeString([], {
-              timeZone: 'Asia/Kolkata',
-            hour: '2-digit', minute:'2-digit'}) : '',
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit', minute: '2-digit'
+          }) : '',
           'End Date': endDate ? endDate.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' }) : '',
           'End Time': endDate ? endDate.toLocaleTimeString([], {
-              timeZone: 'Asia/Kolkata',
-            hour: '2-digit', minute:'2-digit'}) : '',
+            timeZone: 'Asia/Kolkata',
+            hour: '2-digit', minute: '2-digit'
+          }) : '',
           'Venue': e.venue || '',
           'Status': e.status || '',
           'Event Type': e.event_type || ''
         };
       });
-      
+
       const worksheet = XLSX.utils.json_to_sheet(rows);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Events');
-      
+
       XLSX.writeFile(workbook, `all-events-${new Date().toISOString().slice(0, 10)}.xlsx`);
-      
+
       toastSuccess('Events exported successfully');
     } catch (err) {
       toastError(err, 'Failed to export events');
@@ -249,41 +252,46 @@ const AdminDashboard: React.FC = () => {
       d1.getDate() === d2.getDate();
   };
 
+  const splitEvents = React.useMemo(() => splitGroupedBookingsByDay(calendarEvents), [calendarEvents]);
+
   const getEventsForDate = (date: Date) => {
-    return calendarEvents.filter(e => {
-      const eDate = new Date(e.date);
-      return isSameDay(eDate, date) && (e.status === 'approved' || e.status === 'partial');
+    return splitEvents.filter(e => {
+      const ist = getISTParts(e.date);
+      return ist.year === date.getFullYear() && ist.month === date.getMonth() && ist.date === date.getDate() && (e.status === 'approved' || e.status === 'partial');
     });
   };
 
-  const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : [];
+  const selectedDateEvents = selectedDate 
+    ? getEventsForDate(selectedDate).sort((a, b) => new Date(a.startTimeISO || a.date).getTime() - new Date(b.startTimeISO || b.date).getTime()) 
+    : [];
 
-  // Normalize to local midnight so DayPicker's modifier matching works
   const eventDates = React.useMemo(() =>
-    calendarEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
-      const d = new Date(e.date);
-      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    splitEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
+      const ist = getISTParts(e.date);
+      return new Date(ist.year, ist.month, ist.date);
     }),
-    [calendarEvents]
+    [splitEvents]
   );
 
   const calendarEventsWithVenue: CalendarEvent[] = React.useMemo(() =>
-    calendarEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
+    splitEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
       // For partial bookings, only show the names of approved venues
       const approvedVenueName = e.status === 'partial'
-        ? e.bookings.filter(b => b.status === 'approved').map(b => getVenueName(b.venueId)).join(', ')
-        : (e.venueName || e.venueIds.map(getVenueName).join(', '));
+        ? e.bookings.filter(b => b.status === 'approved').map(b => getVenueName(b.venueId)).sort((a, b) => a.localeCompare(b)).join(', ')
+        : (e.venueName || e.venueIds.map(getVenueName).sort((a, b) => a.localeCompare(b)).join(', '));
       return {
         eventName: e.eventName,
+        bookingName: e.bookingName,
         clubName: e.clubName,
         date: e.date,
         startTime: e.startTime,
         endTime: e.endTime,
-        venueName: approvedVenueName || e.venueName || e.venueIds.map(getVenueName).join(', '),
+        startTimeISO: e.startTimeISO,
+        venueName: approvedVenueName || e.venueName || e.venueIds.map(getVenueName).sort((a, b) => a.localeCompare(b)).join(', '),
         status: e.status,
       };
     }),
-    [calendarEvents, venues]
+    [splitEvents, venues]
   );
 
   if (error) {
@@ -387,7 +395,7 @@ const AdminDashboard: React.FC = () => {
         className="px-1 sm:px-4"
       >
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3 w-full">
-          <Link to="/admin/requests" className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer">
+          <Link to="/admin/requests?status=pending" className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer">
             <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group">
               <div className="p-1.5 sm:p-2 bg-warning/10 text-warning rounded-lg shrink-0 group-hover:scale-110 transition-transform">
                 <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -399,7 +407,7 @@ const AdminDashboard: React.FC = () => {
             </div>
           </Link>
 
-          <Link to="/admin/event-requests" className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer">
+          <Link to="/admin/event-requests?status=pending" className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer">
             <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group">
               <div className="p-1.5 sm:p-2 bg-warning/10 text-warning rounded-lg shrink-0 group-hover:scale-110 transition-transform">
                 <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -465,8 +473,9 @@ const AdminDashboard: React.FC = () => {
               <div className="flex-1 border-t lg:border-t-0 lg:border-l border-borderSoft lg:pl-6 pt-4 lg:pt-0 flex flex-col min-w-0">
                 <h4 className="text-sm font-semibold text-textMuted uppercase tracking-wider mb-4">
                   {selectedDate ? selectedDate.toLocaleDateString('en-US', {
-                      timeZone: 'Asia/Kolkata',
-                    weekday: 'long', month: 'short', day: 'numeric' }) : 'Select a date'}
+                    timeZone: 'Asia/Kolkata',
+                    weekday: 'long', month: 'short', day: 'numeric'
+                  }) : 'Select a date'}
                 </h4>
 
                 <div className="flex-1 overflow-y-auto space-y-3 max-h-[350px]">
@@ -481,16 +490,24 @@ const AdminDashboard: React.FC = () => {
                         <Card className="rounded-xl hover:border-brand/30 transition-colors">
                           <CardContent className="p-3">
                             <div className="flex justify-between items-start">
-                              <div className="font-semibold text-textPrimary text-sm mb-1">{event.eventName}</div>
+                              <div className="font-semibold text-textPrimary text-sm mb-1">{event.bookingName || event.eventName}</div>
                               <Badge variant={event.status === 'approved' ? 'success' : event.status === 'pending' ? 'pending' : 'destructive'} className="text-[10px] px-1.5 py-0 h-5">
                                 {event.status}
                               </Badge>
                             </div>
                             <div className="text-xs text-brand font-medium mt-0.5 mb-2">{event.clubName}</div>
                             {event.permissionsLink && (
-                              <a href={event.permissionsLink} target="_blank" rel="noopener noreferrer" className="text-[10px] text-brand hover:underline mb-2 inline-block font-medium">
-                                🔗 View Permissions
-                              </a>
+                              <div className="mt-2 mb-3">
+                                <a
+                                  href={event.permissionsLink.match(/^https?:\/\//) ? event.permissionsLink : `https://${event.permissionsLink}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center justify-center gap-1 sm:gap-1.5 p-[1px] rounded-[2rem] border border-brand/30 bg-transparent text-[11px] sm:text-[13px] font-medium text-brand hover:bg-brand/10 transition-colors w-fit"
+                                >
+                                  <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                  View Permissions
+                                </a>
+                              </div>
                             )}
                             <div className="mt-2 text-xs text-textMuted">
                               {event.startTime} - {event.endTime}
@@ -529,13 +546,13 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild className="hidden sm:flex whitespace-nowrap border-[1.5px]">
-                  <Link to="/admin/requests">View All</Link>
+                  <Link to="/admin/requests?status=pending">View All</Link>
                 </Button>
               </div>
             </div>
             <div className="sm:hidden px-4 pt-4 pb-2">
               <Button variant="outline" size="sm" asChild className="w-full border-[1.5px]">
-                <Link to="/admin/requests">View All</Link>
+                <Link to="/admin/requests?status=pending">View All</Link>
               </Button>
             </div>
           </CardHeader>
@@ -557,13 +574,16 @@ const AdminDashboard: React.FC = () => {
                   <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
                     <tr>
                       <th className="px-4 sm:px-6 py-4">Club / Event</th>
-                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">Venue & Time</th>
-                      <th className="px-4 sm:px-6 py-4">Date</th>
+                      <th className="px-4 sm:px-6 py-4 hidden sm:table-cell">Venue</th>
+                      <th className="px-4 sm:px-6 py-4">Date & Time</th>
                       <th className="px-4 sm:px-6 py-4">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
-                    {calendarEvents.slice(0, 5).map((evt, index) => (
+                    {[...calendarEvents]
+                      .sort((a, b) => new Date(a.startTimeISO || a.date).getTime() - new Date(b.startTimeISO || b.date).getTime())
+                      .slice(0, 5)
+                      .map((evt, index) => (
                       <motion.tr
                         key={evt.batchId || evt.ids[0]}
                         initial={{ opacity: 0, x: -20 }}
@@ -579,25 +599,34 @@ const AdminDashboard: React.FC = () => {
                               🔗 View Permissions
                             </a>
                           )}
-                          <div className="text-xs text-textMuted mt-1 sm:hidden">
+                          <div className="text-xs text-textMuted mt-1 sm:hidden flex flex-col gap-1">
                             <div className="flex items-center gap-1">
-                              <CalendarIcon size={12} /> {evt.startTime} - {evt.endTime}
+                              <CalendarIcon size={12} className="shrink-0" />
+                              <div className="flex flex-col">
+                                <span className="whitespace-nowrap">{new Date(evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' })} {evt.startTime}</span>
+                                <span className="text-[10px] text-textMuted">to</span>
+                                <span className="whitespace-nowrap">{new Date(evt.endDate || evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' })} {evt.endTime}</span>
+                              </div>
                             </div>
-                            <div>{evt.venueName}</div>
+                            <div className="flex items-center gap-1">
+                              <MapPin size={12} className="shrink-0" />
+                              <span>{evt.venueName}</span>
+                            </div>
                           </div>
                         </td>
                         <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
                           <div className="flex items-center gap-1.5 text-textPrimary">
                             {evt.venueName}
                           </div>
-                          <div className="text-xs text-textMuted mt-0.5 flex items-center gap-1">
-                            <CalendarIcon size={12} /> {evt.startTime} - {evt.endTime}
-                          </div>
                         </td>
                         <td className="px-4 sm:px-6 py-4">
-                          <div className="flex items-center gap-1.5">
-                            <CalendarIcon size={14} className="text-textMuted" />
-                            {new Date(evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}
+                          <div className="flex items-start gap-1.5">
+                            <CalendarIcon size={14} className="text-textMuted shrink-0 mt-0.5" />
+                            <div className="flex flex-col text-xs space-y-0.5">
+                              <span className="whitespace-nowrap">{new Date(evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {evt.startTime}</span>
+                              <span className="text-textMuted text-[10px]">to</span>
+                              <span className="whitespace-nowrap">{new Date(evt.endDate || evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {evt.endTime}</span>
+                            </div>
                           </div>
                         </td>
                         <td className="px-4 sm:px-6 py-4">
@@ -636,13 +665,13 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild className="hidden sm:flex whitespace-nowrap border-[1.5px]">
-                  <Link to="/admin/requests">View All</Link>
+                  <Link to="/admin/requests?status=pending">View All</Link>
                 </Button>
               </div>
             </div>
             <div className="sm:hidden px-4 pt-4 pb-2">
               <Button variant="outline" size="sm" asChild className="w-full border-[1.5px]">
-                <Link to="/admin/requests">View All</Link>
+                <Link to="/admin/requests?status=pending">View All</Link>
               </Button>
             </div>
           </CardHeader>
@@ -672,36 +701,37 @@ const AdminDashboard: React.FC = () => {
                           <Badge variant="secondary" className="text-xs">
                             {req.clubName}
                           </Badge>
-                          <span className="text-xs text-textMuted">•</span>
-                          <span className="text-sm text-textMuted">{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</span>
                         </div>
                         <h4 className="text-base sm:text-lg font-medium text-foreground">{req.eventName}</h4>
                         <div className="mt-2 text-sm text-textMuted">
-                          <div className="mb-2">Time: {req.startTime} - {req.endTime}</div>
+                          <div className="mb-2 flex items-center gap-1.5">
+                            {/* <span className="font-medium mr-1 text-textPrimary">Booking Time:</span> */}
+                            <CalendarIcon size={14} className="text-textMuted shrink-0" />
+                            <span>{new Date(req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {req.startTime}</span>
+                            <span className="text-[10px] mx-1">to</span>
+                            <span>{new Date(req.endDate || req.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {req.endTime}</span>
+                          </div>
                           <div className="flex flex-col gap-2">
                             {req.bookings.map(booking => (
                               <div key={booking.id} className="flex items-center justify-between bg-background border border-borderSoft rounded-md p-2 text-sm">
                                 <span className="font-medium text-foreground">{getVenueName(booking.venueId)}</span>
-                                <div className="flex items-center gap-1 sm:gap-2">
-                                  <Badge variant={booking.status === 'approved' ? 'success' : booking.status === 'rejected' ? 'destructive' : 'pending'} className="text-[10px] h-5 mr-1">
-                                    {booking.status.toUpperCase()}
-                                  </Badge>
-                                  {booking.status !== 'rejected' && (
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                  {booking.status !== 'rejected' && req.bookings.length > 1 && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-7 w-7 p-0 text-textMuted hover:text-error"
+                                      className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-textMuted hover:text-error"
                                       onClick={() => handleAction([booking.id], 'rejected')}
                                       title="Reject this venue"
                                       disabled={isProcessingAction}
                                     >
-                                      <X size={14} />
+                                      <X size={16} className="sm:w-3.5 sm:h-3.5" />
                                     </Button>
                                   )}
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-7 w-7 p-0 text-textMuted hover:text-primary"
+                                    className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-textMuted hover:text-primary"
                                     onClick={() => {
                                       setEditingBooking(booking);
                                       setIsEditDialogOpen(true);
@@ -709,18 +739,18 @@ const AdminDashboard: React.FC = () => {
                                     title="Edit booking timings"
                                     disabled={isProcessingAction}
                                   >
-                                    <Pencil size={14} />
+                                    <Pencil size={14} className="sm:w-3.5 sm:h-3.5" />
                                   </Button>
-                                  {booking.status !== 'approved' && (
+                                  {booking.status !== 'approved' && req.bookings.length > 1 && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-7 w-7 p-0 text-primary hover:text-primary/80"
+                                      className="h-8 w-8 sm:h-7 sm:w-7 p-0 text-primary hover:text-primary/80"
                                       onClick={() => handleAction([booking.id], 'approved')}
                                       title="Approve this venue"
                                       disabled={isProcessingAction}
                                     >
-                                      <Check size={14} />
+                                      <Check size={16} className="sm:w-3.5 sm:h-3.5" />
                                     </Button>
                                   )}
                                 </div>
@@ -729,9 +759,15 @@ const AdminDashboard: React.FC = () => {
                           </div>
                         </div>
                         {req.permissionsLink && (
-                          <div className="mt-1">
-                            <a href={req.permissionsLink} target="_blank" rel="noopener noreferrer" className="text-xs text-brand hover:underline font-medium">
-                              🔗 View Permissions
+                          <div className="mt-3">
+                            <a
+                              href={req.permissionsLink.match(/^https?:\/\//) ? req.permissionsLink : `https://${req.permissionsLink}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center gap-1 sm:gap-1.5 p-[1px] px-1.5 rounded-[2rem] border border-brand/30 bg-transparent text-[11px] sm:text-[13px] font-medium text-brand hover:bg-brand/10 transition-colors w-fit"
+                            >
+                              <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                              View Permissions
                             </a>
                           </div>
                         )}
@@ -764,7 +800,7 @@ const AdminDashboard: React.FC = () => {
                           disabled={isProcessingAction}
                         >
                           <XCircle size={16} />
-                          <span className="hidden sm:inline">Reject</span>
+                          <span className="hidden sm:inline">{req.bookings.length > 1 ? 'Reject All' : 'Reject'}</span>
                         </Button>
                         <Button
                           size="sm"
@@ -773,7 +809,7 @@ const AdminDashboard: React.FC = () => {
                           disabled={isProcessingAction}
                         >
                           <CheckCircle size={16} />
-                          <span className="hidden sm:inline">Approve</span>
+                          <span className="hidden sm:inline">{req.bookings.length > 1 ? 'Approve All' : 'Approve'}</span>
                         </Button>
                       </div>
                     </div>
@@ -801,13 +837,13 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild className="hidden sm:flex whitespace-nowrap border-[1.5px]">
-                  <Link to="/admin/event-requests">View All</Link>
+                  <Link to="/admin/event-requests?status=pending">View All</Link>
                 </Button>
               </div>
             </div>
             <div className="sm:hidden px-4 pt-4 pb-2">
               <Button variant="outline" size="sm" asChild className="w-full border-[1.5px]">
-                <Link to="/admin/event-requests">View All</Link>
+                <Link to="/admin/event-requests?status=pending">View All</Link>
               </Button>
             </div>
           </CardHeader>
@@ -837,12 +873,21 @@ const AdminDashboard: React.FC = () => {
                           <Badge variant="secondary" className="text-xs">
                             {evt.clubName}
                           </Badge>
-                          <span className="text-xs text-textMuted">•</span>
-                          <span className="text-sm text-textMuted">{new Date(evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</span>
                         </div>
-                        <h4 className="text-base sm:text-lg font-medium text-foreground">{evt.name}</h4>
-                        
-                        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        <h4 className="text-base sm:text-lg font-medium text-foreground"><span className="text-sm text-textMuted font-normal mr-2">Event Name:</span>{evt.name}</h4>
+
+                        <div className="mt-2 flex flex-col gap-2 text-xs mb-2">
+                          <div className="flex items-center gap-1.5 text-textMuted text-sm">
+                            <span className="font-medium mr-1 text-textPrimary">Event Time:</span>
+                            <CalendarIcon size={14} className="text-textMuted shrink-0" />
+                            <span>{new Date(evt.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {new Date(evt.date).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}</span>
+                            {evt.dynamic_end_date && (
+                              <>
+                                <span className="text-[10px] mx-1">to</span>
+                                <span>{new Date(evt.dynamic_end_date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })} {new Date(evt.dynamic_end_date).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}</span>
+                              </>
+                            )}
+                          </div>
                           {evt.event_type ? (
                             <Badge variant="outline" className="text-[10px] bg-brand/5 border-brand/20 text-brand">
                               {evt.event_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}

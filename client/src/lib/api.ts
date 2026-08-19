@@ -118,6 +118,7 @@ export type ApiBooking = {
   issue_flag?: string | null;
   event_id?: string;
   permissions_link?: string | null;
+  booking_name?: string;
 };
 
 export const mapBooking = (booking: ApiBooking) => {
@@ -127,6 +128,7 @@ export const mapBooking = (booking: ApiBooking) => {
   return {
     id: booking.id,
     eventName: booking.event_name,
+    bookingName: booking.booking_name || booking.event_name,
     venueId: booking.venue_id,
     venueName: booking.venues?.name || booking.venue_id,
     clubName: booking.clubs?.name || booking.club_id,
@@ -165,7 +167,12 @@ export const groupBookings = (bookings: Booking[], venues: ApiVenue[] = []): Gro
   const getVenueName = (id: string, booking: Booking) => {
     const venue = venues.find(v => v.id === id);
     if (venue) return venue.name;
-    return (booking as any).venueName || id;
+    
+    const fallback = (booking as any).venueName || id;
+    if (typeof fallback === 'string') {
+      return fallback.replace(/,(?=[^\s])/g, ', ');
+    }
+    return fallback;
   };
 
   const STATUS_PRIORITY: Record<GroupedBooking['status'], number> = {
@@ -208,6 +215,7 @@ export const groupBookings = (bookings: Booking[], venues: ApiVenue[] = []): Gro
       existing.venueName = existing.bookings
         .map(book => getVenueName(book.venueId, book))
         .filter((val, idx, self) => self.indexOf(val) === idx)
+        .sort((a, b) => a.localeCompare(b))
         .join(', ');
 
       // Re-calculate combined status
@@ -247,4 +255,44 @@ export const groupBookings = (bookings: Booking[], venues: ApiVenue[] = []): Gro
   }
 
   return Array.from(grouped.values());
+};
+
+export const splitGroupedBookingsByDay = (bookings: GroupedBooking[]): GroupedBooking[] => {
+  return bookings.flatMap(b => {
+    const start = new Date(b.startTimeISO || b.date);
+    const end = new Date(b.endTimeISO || b.date);
+
+    if (end < start) {
+      return [b];
+    }
+
+    const current = new Date(start);
+    current.setHours(0, 0, 0, 0);
+
+    const endDay = new Date(end);
+    endDay.setHours(0, 0, 0, 0);
+
+    if (current.getTime() === endDay.getTime()) {
+      return [b];
+    }
+
+    const results: GroupedBooking[] = [];
+    
+    // For multi-day events, show the exact timing of the entire event on all calendar days
+    const displayStartTime = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${b.startTime}`;
+    const displayEndTime = `${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${b.endTime}`;
+
+    while (current <= endDay) {
+      const dateStr = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`;
+      
+      results.push({
+          ...b,
+          date: dateStr,
+          startTime: displayStartTime,
+          endTime: displayEndTime,
+      });
+      current.setDate(current.getDate() + 1);
+    }
+    return results;
+  });
 };
