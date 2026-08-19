@@ -61,7 +61,9 @@ const ScheduleCalendarCard = ({
   emptyMessage,
 }: ScheduleCalendarCardProps) => {
   const selectedDateEvents = selectedDate
-    ? sourceGroupedEvents.filter(event => isSameDay(new Date(event.date), selectedDate))
+    ? sourceGroupedEvents
+        .filter(event => isSameDay(new Date(event.date), selectedDate))
+        .sort((a, b) => new Date(a.startTimeISO || a.date).getTime() - new Date(b.startTimeISO || b.date).getTime())
     : [];
 
   return (
@@ -324,6 +326,7 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
         date: e.date,
         startTime: e.startTime,
         endTime: e.endTime,
+        startTimeISO: e.startTimeISO,
         venueName: approvedVenueName || e.venueName || getVenueName(e.venueId || e.venueIds?.[0]),
         status: e.status,
         eventType: e.eventType,
@@ -531,7 +534,10 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border/40 overflow-y-auto max-h-[300px]">
-                {groupBookings(myEvents, venues).slice(0, 5).map((event, index) => (
+                {[...groupBookings(myEvents, venues)]
+                  .sort((a, b) => new Date(a.startTimeISO || a.date).getTime() - new Date(b.startTimeISO || b.date).getTime())
+                  .slice(0, 5)
+                  .map((event, index) => (
                   <motion.div
                     key={event.batchId || event.ids?.[0] || index}
                     initial={{ opacity: 0, x: 20 }}
@@ -595,7 +601,10 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border/40 overflow-y-auto max-h-[300px]">
-                {registeredEvents.slice(0, 5).map((event, index) => (
+                {[...registeredEvents]
+                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                  .slice(0, 5)
+                  .map((event, index) => (
                   <motion.div
                     key={event.id}
                     initial={{ opacity: 0, x: 20 }}

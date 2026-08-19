@@ -1,13 +1,12 @@
 {
   "name": "SBG-Website-be",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "private": true,
   "type": "commonjs",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc -p .",
-    "start": "node dist/server.js",
-    "migrate": "ts-node migrate.ts"
+    "start": "node dist/server.js"
   },
   "dependencies": {
     "@acpr/rate-limit-postgresql": "^1.4.1",

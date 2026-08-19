@@ -467,9 +467,14 @@ const LandingPage: React.FC = () => {
                                             return (
                                                 <div
                                                     key={day.toISOString()}
+                                                    onClick={() => {
+                                                        if (dayEventsForCell.length > 0) {
+                                                            setSelectedDayEvents(dayEventsForCell.map(we => we.event));
+                                                        }
+                                                    }}
                                                     className={`
                                                     border-r border-borderSoft/20 last:border-r-0
-                                                    transition-colors cursor-default
+                                                    transition-colors ${dayEventsForCell.length > 0 ? 'cursor-pointer' : 'cursor-default'}
                                                     ${isToday ? 'bg-brand/4 dark:bg-brand/6' : ''}
                                                     ${!isCurrentMonth ? 'opacity-40' : ''}
                                                     hover:bg-hoverSoft/40
