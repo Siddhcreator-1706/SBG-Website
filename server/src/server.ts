@@ -253,7 +253,7 @@ app.use((req, _res, next) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', build: BUILD_VERSION });
+  res.json({ status: 'ok' });
 });
 
 import archivesRoutes from './routes/archives';
@@ -275,10 +275,8 @@ app.use('/api/settings', settingsRoutes);
 // Start background cron jobs
 startCronJobs();
 
-// Serve static frontend files with SEO-friendly headers.
-// Docker sets CLIENT_DIST_DIR=/app/client; local prod uses ../../client/dist.
-const clientBuildPath = process.env.CLIENT_DIST_DIR
-  || path.join(__dirname, '../../client/dist');
+// Serve static frontend files with SEO-friendly headers
+const clientBuildPath = path.join(__dirname, '../../client/dist');
 
 // Cache immutable hashed assets aggressively (JS/CSS bundles)
 app.use('/assets', express.static(path.join(clientBuildPath, 'assets'), {
@@ -313,18 +311,9 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 
-const port = Number(process.env.PORT) || 4000;
-httpServer.listen(port, '0.0.0.0', () => {
+// Server listener
+
+const port = process.env.PORT || 4000;
+httpServer.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
-
-const shutdown = (signal: string) => {
-  console.log(`[${signal}] Shutting down...`);
-  httpServer.close(() => {
-    void db.end().finally(() => process.exit(0));
-  });
-  setTimeout(() => process.exit(1), 10_000).unref();
-};
-
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));

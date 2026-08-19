@@ -11,17 +11,12 @@ export default defineConfig(({ mode }) => {
     return {
       base: '/',
       server: {
-        port: 5173,
-        host: true,
+        port: 3005,
+        host: 'localhost',
         proxy: {
           '/api': {
-            target: process.env.VITE_PROXY_TARGET || 'http://localhost:4000',
+            target: 'http://localhost:4000',
             changeOrigin: true,
-          },
-          '/socket.io': {
-            target: process.env.VITE_PROXY_TARGET || 'http://localhost:4000',
-            changeOrigin: true,
-            ws: true,
           },
         },
       },
