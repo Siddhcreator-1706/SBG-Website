@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+package-lock.json
 
 # Environment variables
 .env
@@ -57,5 +58,4 @@ webhook-server.log
 
 # Docker
 docker-compose.override.yml
-**/docker-compose.override.yml
 .docker/

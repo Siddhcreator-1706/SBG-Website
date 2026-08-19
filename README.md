@@ -23,7 +23,7 @@ The official portal for the Student Body Government (SBG) of DAU. Far beyond a s
 | **Backend** | Node.js, Express, TypeScript |
 | **Database** | NeonDB (Serverless PostgreSQL) |
 | **Notifications** | EmailJS (optional) |
-| **Deployment** | Docker (single container), GHCR, GitHub Actions |
+| **Deployment** | Vercel (Frontend), PM2 + Apache (Backend), GitHub Actions |
 
 ## Prerequisites
 
@@ -62,16 +62,15 @@ cp client/.env.example client/.env
 **`server/.env`**
 ```env
 DATABASE_URL="postgresql://..."
-PORT=4000
+PORT=5000
 NODE_ENV="development"
-CORS_ORIGIN="http://localhost:5173,http://localhost:3005"
+CORS_ORIGIN="http://localhost:3005,http://localhost:5173"
 JWT_SECRET="local-dev-secret"
 ```
 
 **`client/.env`**
 ```env
-# Leave empty to use the Vite proxy (/api → http://localhost:4000).
-VITE_API_URL=
+VITE_API_URL="http://localhost:5000"
 ```
 
 ### 4. Run Database Migrations
@@ -86,7 +85,7 @@ npm run migrate
 ### 5. Start development servers
 
 ```bash
-# Terminal 1 — API server (localhost:4000)
+# Terminal 1 — API server (localhost:5000)
 cd server
 npm run dev
 
@@ -95,33 +94,20 @@ cd client
 npm run dev
 ```
 
-### Docker (optional)
-
-Compose files live in `docker-compose/`. Paths inside them are relative to that directory, so always pass `-f` from the repo root.
-
-```bash
-cp server/.env.example server/.env   # set DATABASE_URL and JWT_SECRET
-
-# Dev: Vite on :5173, API on :4000, hot reload
-docker compose -f docker-compose/docker-compose.dev.yml up --build
-
-# Production-like: one container, Express serves the SPA on :3005
-docker compose -f docker-compose/docker-compose.yml up --build
-```
-
 ## Project Structure
 
 ```
 SBG-Website/
-├── client/                  # React frontend (built into the app image)
+├── client/                  # React frontend (Deployed to Vercel)
 │   ├── src/
 │   │   ├── components/ui/   # shadcn/ui primitives
 │   │   ├── pages/           # Route-level pages
 │   │   ├── App.tsx          # Router & layout
 │   │   └── types.ts         # Shared TypeScript types
-│   └── vite.config.ts
+│   ├── vite.config.ts
+│   └── vercel.json          # Vercel SPA routing fallback
 │
-├── server/                  # Express API (serves the SPA in production)
+├── server/                  # Express API (Deployed to CentOS Server)
 │   ├── src/
 │   │   ├── controllers/     # Route handlers
 │   │   ├── routes/          # Express route definitions
@@ -131,75 +117,65 @@ SBG-Website/
 │   │   └── db.ts            # NeonDB (PostgreSQL) connection pool
 │   └── migrations/          # SQL schema migrations
 │
-├── docker-compose/          # Compose files (paths relative to this folder)
-│   ├── docker-compose.yml       # Local production-like build
-│   ├── docker-compose.dev.yml   # Local Vite + API
-│   └── docker-compose.prod.yml  # VPS: pull image from GHCR
-├── Dockerfile               # Production image (client + server)
-├── docker-entrypoint.sh
-└── .github/workflows/       # Typecheck, image build/push, SSH deploy
+└── .github/workflows/       # CI/CD pipeline for backend deployment
 ```
 
 ## Production Deployment
 
-Production is a **single Docker container**: Express serves the API and the built SPA. GitHub Actions typechecks, builds the image, pushes it to GHCR, then SSHs to the VPS to pull and restart.
+This project uses a distributed deployment architecture:
+1. **Frontend**: Deployed to Vercel. Connect your GitHub repository to Vercel and set the Root Directory to `client`.
+2. **Database**: Hosted on PostgreSQL (e.g., Aiven or Neon).
+3. **Backend**: Deployed to a CentOS/Linux server using PM2.
 
-### First-time VPS setup
+### Deploying the Backend on CentOS
 
-Install Docker Engine and the Compose plugin. Create the deploy directory and a secrets file (never commit this):
-
+**1. Install Required Software**
+Ensure Node.js (v22+), npm, and PM2 are installed on your CentOS server:
 ```bash
-sudo mkdir -p /opt/sbg-website
-sudo cp .env.example /opt/sbg-website/.env   # or copy from this repo
-sudo nano /opt/sbg-website/.env
+# Install Node.js
+curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
+sudo yum install -y nodejs
+
+# Install PM2 globally
+sudo npm install -g pm2
 ```
 
-Required values in `/opt/sbg-website/.env`:
-- `DATABASE_URL` — production PostgreSQL connection string
-- `JWT_SECRET` — long random string used to sign auth tokens
-- `NODE_ENV=production`
-- `CORS_ORIGIN` — live site origin, e.g. `https://sbg.dau.ac.in`
-- `PORT=3005` (inside the container; do not change unless you also change compose)
+**2. Deploy via Local Script (When Git Clone is blocked)**
+If your CentOS server is on a restricted intranet without GitHub access, you can deploy directly from your local Windows machine using the provided PowerShell script. This script builds the code locally, packages it, transfers it via SCP, and restarts PM2 over SSH.
 
-The app is published on `127.0.0.1:3005` by default. Put Nginx or Apache in front for HTTPS and proxy to that address.
+Open PowerShell on your local machine and run:
+```powershell
+.\deploy.ps1
+```
+*(You may be prompted for the SSH password for your server during the transfer and restart steps).*
 
-Log the VPS into GHCR so it can pull the private/public image (a PAT or `GHCR_PULL_TOKEN` used by Actions):
+*Note: Before running the script for the first time, open `deploy.ps1` and ensure the `$ServerUser`, `$ServerIP`, and `$ServerPath` variables match your CentOS server environment.*
 
+**3. Configure Environment Variables**
+Copy the example environment file and update the required variables:
 ```bash
-echo "$GHCR_PULL_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USER --password-stdin
+cp .env.example .env
+nano .env
 ```
+Ensure you change the following critical variables for production in `server/.env`:
+*   `DATABASE_URL`: Your production PostgreSQL connection string (e.g., Aiven URL).
+*   `NODE_ENV`: Set this strictly to `"production"`.
+*   `CORS_ORIGIN`: Set this to your live frontend URL (e.g., `"https://sbg.dau.ac.in"`).
+*   `JWT_SECRET`: Generate a long, secure random string used to sign authentication tokens.
+*   `PORT`: The port the backend will run on (e.g., `5000`).
 
-GitHub Actions copies `docker-compose/docker-compose.prod.yml` to `/opt/sbg-website/docker-compose.prod.yml` (flattened, so `.env` stays next to it). After the first successful deploy:
-
-```
-/opt/sbg-website/
-  .env
-  docker-compose.prod.yml
-```
-
-### CI/CD secrets
-
-Configure these on the GitHub repo (production environment):
-
-| Secret | Purpose |
-|--------|---------|
-| `DEPLOY_HOST` | VPS hostname or IP |
-| `DEPLOY_USER` | SSH user |
-| `DEPLOY_SSH_KEY` | Private key for that user |
-| `DEPLOY_PATH` | Optional; defaults to `/opt/sbg-website` |
-| `DEPLOY_PORT` | Optional; defaults to `22` |
-| `GHCR_PULL_TOKEN` | Optional; PAT with `read:packages` if the image is private |
-
-If `DEPLOY_HOST` is unset, the workflow still builds and pushes the image, then skips SSH deploy.
-
-### Manual deploy on the VPS
-
+**4. Start the Application with PM2**
 ```bash
-cd /opt/sbg-website
-export APP_IMAGE=ghcr.io/<owner>/sbg-website:<sha>
-docker compose -f docker-compose.prod.yml pull
-docker compose -f docker-compose.prod.yml up -d --remove-orphans
+# Start the compiled server
+pm2 start dist/server.js --name "sbg-backend"
+
+# Ensure PM2 restarts the app automatically on server reboot
+pm2 startup
+pm2 save
 ```
+
+**5. Setup Reverse Proxy (Optional but Recommended)**
+Use Apache or Nginx on your CentOS server to reverse-proxy external HTTP/HTTPS traffic to the Node application running on your chosen `PORT` (e.g., 5000).
 
 ## Contributing
 
