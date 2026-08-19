@@ -12,7 +12,10 @@ async function migrate() {
     process.exit(1);
   }
 
-  const client = new Client({ connectionString });
+  const client = new Client({
+    connectionString,
+    ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false },
+  });
   await client.connect();
 
   const migrationsDir = path.join(__dirname, 'migrations');
