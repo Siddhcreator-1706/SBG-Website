@@ -285,36 +285,45 @@ export const createBooking = async (req: Request, res: Response) => {
       }
     }
 
-    // --- Conflict check + insert must happen atomically to prevent a race ---
-    // Previously, the conflict check (SELECT) and the booking insert ran as
-    // two separate, unguarded queries. Two concurrent requests for the same
-    // venue/time could both pass the check before either booking was saved,
-    // resulting in the same venue being double-booked.
-    //
-    // Fix: take a client from the pool, open a transaction, and lock the
-    // relevant venue rows with `FOR UPDATE`. A second concurrent request for
-    // the same venue(s) will block on that lock until the first transaction
-    // commits or rolls back, so by the time it re-runs the conflict check it
-    // will correctly see the first request's booking(s).
-    const client = await db.connect();
+    // IMPORTANT: performVenueConflictCheck() must always run AFTER the FOR UPDATE lock,
+    // never before. The lock is what forces concurrent requests to wait, so
+    // moving the conflict check earlier would silently reopen the race
+    // condition this fix is meant to close.
+    for (const slot of timeSlots) {
+      const { conflict: venueConflict, message: venueMessage } = await performVenueConflictCheck(
+        venueIds,
+        slot.startTime,
+        slot.endTime,
+        undefined,
+        client
+      );
+      if (venueConflict) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: venueMessage });
+      }
+    }
+
     const createdBookings: any[] = [];
     const batchId = (req.body as any).batchId || randomUUID();
 
-    try {
-      await client.query('BEGIN');
+    for (const slot of timeSlots) {
+      for (const venue of venues) {
+        let status: 'approved' | 'pending' = 'pending';
+        if (issueFlag) {
+          status = 'pending';
+        } else if (venue.category === 'auto_approval') {
+          status = 'approved';
+        } else if (venue.category === 'needs_approval') {
+          status = 'pending';
+        }
 
-      // IMPORTANT: performVenueConflictCheck() must always run AFTER this lock,
-      // never before. The lock is what forces concurrent requests to wait, so
-      // moving the conflict check earlier would silently reopen the race
-      // condition this fix is meant to close.
-      await client.query(
-        'SELECT id FROM venues WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE',
-        [venueIds]
-      );
-
-      for (const slot of timeSlots) {
-        const { conflict: venueConflict, message: venueMessage } = await performVenueConflictCheck(
-          venueIds,
+        const { rows: insertRows } = await client.query(`
+          INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link, booking_name)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          RETURNING *
+        `, [
+          clubId,
+          venue.id,
           slot.startTime,
           slot.endTime,
           status,
@@ -330,52 +339,9 @@ export const createBooking = async (req: Request, res: Response) => {
         if (insertRows.length === 0) {
           throw new Error(`Failed to insert booking for venue ${venue.name}`);
         }
+
+        createdBookings.push(insertRows[0]);
       }
-
-      for (const slot of timeSlots) {
-        for (const venue of venues) {
-          let status: 'approved' | 'pending' = 'pending';
-          if (issueFlag) {
-            status = 'pending';
-          } else if (venue.category === 'auto_approval') {
-            status = 'approved';
-          } else if (venue.category === 'needs_approval') {
-            status = 'pending';
-          }
-
-          const { rows: insertRows } = await client.query(`
-            INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link, booking_name)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING *
-          `, [
-            clubId,
-            venue.id,
-            slot.startTime,
-            slot.endTime,
-            status,
-            req.user?.id || null,
-            expectedAttendees || null,
-            batchId,
-            event_id,
-            issueFlag,
-            permissionsLink || null,
-            bookingName!.trim()
-          ]);
-
-          if (insertRows.length === 0) {
-            throw new Error(`Failed to insert booking for venue ${venue.name}`);
-          }
-
-          createdBookings.push(insertRows[0]);
-        }
-      }
-
-      await client.query('COMMIT');
-    } catch (txErr) {
-      await client.query('ROLLBACK');
-      throw txErr;
-    } finally {
-      client.release();
     }
 
     await client.query('COMMIT');
@@ -396,8 +362,6 @@ export const createBooking = async (req: Request, res: Response) => {
           eventType,
         };
       });
-
-
 
       // Also persist as in-app notifications
       await createBookingPendingNotifications(itemsForNotification);
