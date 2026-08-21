@@ -62,6 +62,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
   const [busyVenueIds, setBusyVenueIds] = useState<string[]>([]);
   const [metaError, setMetaError] = useState<string | null>(null);
   const [bookingType, setBookingType] = useState<'recurring' | 'continuous'>('recurring');
+  const [isMeeting, setIsMeeting] = useState(false);
 
   const [warnings, setWarnings] = useState({
     conflict: '',
@@ -108,8 +109,6 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     if (prefill) {
       setFormData(prev => ({
         ...prev,
-        eventName: prefill.eventName || '',
-        eventType: prefill.eventType || 'closed_club',
         expectedAttendees: prefill.expectedAttendees || '',
         date: prefill.date ? toLocalISOString(new Date(prefill.date)) : '',
         endDate: prefill.date ? toLocalISOString(new Date(prefill.date)) : '',
@@ -119,6 +118,11 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         event_id: prefill.event_id ? String(prefill.event_id) : '',
         bookingName: prefill.bookingName || prefill.eventName || ''
       }));
+
+      // If no event is pre-linked, treat as a standalone meeting
+      if (!prefill.event_id) {
+        setIsMeeting(true);
+      }
 
       if (prefill.date) {
         const d = new Date(prefill.date);
@@ -144,14 +148,13 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     }
   }, [location.state, venues]);
 
-  // Synchronize eventName with the linked event selection
+  // Synchronize bookingName with the linked event (only auto-fills when blank)
   useEffect(() => {
     if (formData.event_id && events.length > 0) {
       const selectedEvent = events.find(e => e.id === formData.event_id);
       if (selectedEvent) {
         setFormData(prev => ({
           ...prev,
-          eventName: selectedEvent.name,
           bookingName: prev.bookingName || selectedEvent.name
         }));
       }
@@ -191,6 +194,10 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
   }, [selectedEndDate]);
 
   useEffect(() => {
+    if (isMeeting) {
+      setWarnings(prev => ({ ...prev, timeline: '' }));
+      return;
+    }
     if (!formData.date || !formData.event_id) {
       setWarnings(prev => ({ ...prev, timeline: '' }));
       return;
@@ -214,7 +221,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
     } else {
       setWarnings(prev => ({ ...prev, timeline: '' }));
     }
-  }, [formData.date, formData.event_id, events]);
+  }, [formData.date, formData.event_id, events, isMeeting]);
 
   // Parse date string to Date object for Calendar
   useEffect(() => {
@@ -481,17 +488,31 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         return;
       }
 
+      if (!formData.event_id && !isMeeting) {
+        toastError('Standalone bookings must be marked as a club meeting.');
+        return;
+      }
+
       const timeSlots = generateTimeSlots();
+
+      const bookingMode = isMeeting ? 'meet' : 'event';
+
+      const payload: any = {
+        ...formData,
+        clubId: selectedClub.id,
+        timeSlots,
+        expectedAttendees: parseInt(formData.expectedAttendees, 10) || 0,
+        bookingMode,
+      };
+
+      if (isMeeting) {
+        delete payload.event_id;
+      }
 
       await apiRequest('/api/bookings', {
         method: 'POST',
         auth: true,
-        body: {
-          ...formData,
-          clubId: selectedClub.id,
-          timeSlots,
-          expectedAttendees: parseInt(formData.expectedAttendees, 10) || 0
-        }
+        body: payload
       });
 
       toastSuccess('Booking request submitted successfully!');
@@ -509,6 +530,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         permissionsLink: '',
         bookingName: ''
       });
+      setIsMeeting(false);
       setSelectedDate(undefined);
       setSelectedEndDate(undefined);
       setWarnings({
@@ -529,6 +551,18 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
 
   const isSelectedVenueBusy = formData.venueIds.some(id => busyVenueIds.includes(id));
   const hasErrors = isSelectedVenueBusy;
+
+  // Derive a 0-100 completion score across 4 meaningful steps.
+  // Time is intentionally merged with date: default values ('12:00'/'13:00') are
+  // always truthy, so counting time independently would inflate the score on load.
+  const formCompletionPct = React.useMemo(() => {
+    let score = 0;
+    if (formData.bookingName.trim()) score += 25;
+    if (formData.event_id || isMeeting) score += 25;
+    if (formData.date) score += 25;           // time defaults are valid once a date is chosen
+    if (formData.venueIds.length > 0) score += 25;
+    return score;
+  }, [formData.bookingName, formData.event_id, isMeeting, formData.date, formData.venueIds]);
 
   return (
     <motion.div
@@ -573,13 +607,13 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
         transition={{ duration: 0.5, delay: 0.1 }}
         className="rounded-2xl border border-borderSoft bg-card/80 backdrop-blur-sm overflow-hidden shadow-sm"
       >
-        {/* Progress Line */}
+        {/* Progress Line — tracks actual form completion */}
         <div className="h-1 w-full bg-borderSoft relative overflow-hidden">
           <motion.div
             className="absolute top-0 left-0 h-full bg-brand"
-            initial={{ width: "0%" }}
-            animate={{ width: isSubmitting ? "100%" : "35%" }}
-            transition={{ duration: 1.5, ease: "circOut" }}
+            initial={{ width: '0%' }}
+            animate={{ width: isSubmitting ? '100%' : `${formCompletionPct}%` }}
+            transition={{ duration: 0.6, ease: 'circOut' }}
           />
         </div>
 
@@ -643,40 +677,101 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                 </div>
                 <div className="space-y-3">
                   <div className="p-4 bg-success/5 border border-success/20 rounded-xl space-y-3">
+
+                    {/* Booking name + type badge */}
+                    <div className="flex items-start gap-3">
+                      <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-success shrink-0">
+                        <CheckCircle2 size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-success uppercase tracking-wider">Booking</p>
+                        <p className="text-sm font-bold text-textPrimary truncate">
+                          {formData.bookingName || <span className="font-normal text-textMuted italic">Unnamed</span>}
+                        </p>
+                        <span className={cn(
+                          'inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border',
+                          isMeeting
+                            ? 'bg-brand/10 text-brand border-brand/20'
+                            : formData.event_id
+                              ? 'bg-success/10 text-success border-success/20'
+                              : 'bg-textMuted/10 text-textMuted border-textMuted/20'
+                        )}>
+                          {isMeeting ? 'Club Meeting' : formData.event_id ? 'Linked Event' : 'Not set'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Date */}
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-success">
+                      <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-success shrink-0">
                         <CalendarIcon size={20} />
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold text-success uppercase tracking-wider">Event Date(s)</p>
+                        <p className="text-[10px] font-bold text-success uppercase tracking-wider">Date(s)</p>
                         <p className="text-sm font-bold text-textPrimary">
                           {formData.date ? (
                             <span>
                               {new Date(formData.date).toLocaleDateString('en-US', {
-                                  timeZone: 'Asia/Kolkata',
+                                timeZone: 'Asia/Kolkata',
                                 month: 'short', day: 'numeric', year: 'numeric', weekday: 'short' })}
                               {formData.endDate && formData.endDate !== formData.date && (
                                 <> – {new Date(formData.endDate).toLocaleDateString('en-US', {
-                                    timeZone: 'Asia/Kolkata',
-                                    month: 'short', day: 'numeric', year: 'numeric', weekday: 'short' })}</>
+                                  timeZone: 'Asia/Kolkata',
+                                  month: 'short', day: 'numeric', year: 'numeric', weekday: 'short' })}</>
                               )}
                             </span>
-                          ) : 'Not selected'}
+                          ) : <span className="font-normal text-textMuted italic">Not selected</span>}
                         </p>
                       </div>
                     </div>
+
+                    {/* Time */}
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-success">
+                      <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-success shrink-0">
                         <Clock size={20} />
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-success uppercase tracking-wider">Time Range</p>
                         <p className="text-sm font-bold text-textPrimary">
-                          {(formData.startTime && formData.endTime) ? `${formData.startTime} – ${formData.endTime}` : 'Pick times'}
+                          {(formData.startTime && formData.endTime)
+                            ? `${formData.startTime} – ${formData.endTime}`
+                            : <span className="font-normal text-textMuted italic">Pick times</span>}
                         </p>
                       </div>
                     </div>
+
+                    {/* Venues */}
+                    {formData.venueIds.length > 0 && (
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-success shrink-0">
+                          <MapPin size={20} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-success uppercase tracking-wider">Venues</p>
+                          <p className="text-sm font-bold text-textPrimary">
+                            {formData.venueIds.length} venue{formData.venueIds.length !== 1 ? 's' : ''} selected
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                   </div>
+
+                  {/* Completion indicator */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs text-textMuted font-medium">
+                      <span>Form completion</span>
+                      <span className={cn(formCompletionPct === 100 ? 'text-success font-bold' : '')}>{formCompletionPct}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-borderSoft rounded-full overflow-hidden">
+                      <motion.div
+                        className={cn('h-full rounded-full', formCompletionPct === 100 ? 'bg-success' : 'bg-brand')}
+                        animate={{ width: `${formCompletionPct}%` }}
+                        transition={{ duration: 0.5, ease: 'circOut' }}
+                      />
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -684,17 +779,34 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
             {/* Main Form Area - Enhanced */}
             <div className="lg:col-span-8 p-5 sm:p-8 space-y-7 sm:space-y-8">
 
-              {/* Event Info */}
+              {/* Booking Info */}
               <section className="space-y-5">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-8 w-1.5 bg-gradient-to-b from-brand to-brandLink rounded-full" />
-                  <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">Event Details</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">Booking Details</h2>
                 </div>
 
                 <div className="grid grid-cols-1 gap-6">
+
+                  {/* ── Booking Name ── always visible, auto-fills from linked event */}
+                  <div className="space-y-2.5">
+                    <Label htmlFor="bookingName" className="text-textSecondary font-semibold text-sm">Booking Name *</Label>
+                    <Input
+                      id="bookingName"
+                      value={formData.bookingName}
+                      onChange={(e) => handleChange('bookingName', e.target.value)}
+                      placeholder="e.g. Workshop Session 1 / Weekly Sync"
+                      required
+                      className="h-11 border-borderSoft focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl"
+                    />
+                  </div>
+
+                  {/* ── Link to Event ── always visible, optional */}
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="event_id" className="text-textSecondary font-semibold text-sm">Link to Event</Label>
+                      <Label htmlFor="event_id" className="text-textSecondary font-semibold text-sm">
+                        Link to Event{' '}
+                      </Label>
                       <Button
                         onClick={() => setIsAddEventOpen(true)}
                         type="button"
@@ -709,9 +821,10 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                     <Select
                       value={formData.event_id}
                       onValueChange={(v) => handleChange('event_id', v)}
+                      disabled={isMeeting}
                     >
                       <SelectTrigger id="event_id" className="h-11 border-borderSoft hover:bg-hoverSoft/50 focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl">
-                        <SelectValue placeholder={selectableEvents.length > 0 ? "Select an event…" : "No events registered yet"} />
+                        <SelectValue placeholder={selectableEvents.length > 0 ? 'Select an event… (optional)' : 'No events registered yet'} />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl">
                         {selectableEvents.length === 0 ? (
@@ -747,22 +860,60 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                         This event is still awaiting admin approval — bookings linked to it stay pending until it is approved.
                       </p>
                     )}
+                    {formData.event_id && (
+                      <button
+                        type="button"
+                        onClick={() => handleChange('event_id', '')}
+                        className="text-xs text-textMuted hover:text-error transition-colors underline underline-offset-2"
+                      >
+                        Clear event link
+                      </button>
+                    )}
                   </div>
 
-                  <div className="space-y-2.5">
-                    <Label htmlFor="bookingName" className="text-textSecondary font-semibold text-sm">Booking Name *</Label>
-                    <Input
-                      id="bookingName"
-                      value={formData.bookingName}
-                      onChange={(e) => handleChange('bookingName', e.target.value)}
-                      placeholder="e.g. Workshop Session 1 / Rehearsal"
-                      required
-                      className="h-11 border-borderSoft focus:border-brand focus:ring-4 focus:ring-brand/20 transition-all rounded-xl"
-                    />
-                    <p className="text-xs text-textMuted">Give this specific venue booking a name (defaults to the selected event name).</p>
+                  {/* ── Is Meeting checkbox ── */}
+                  <div
+                    className={cn(
+                      'p-4 rounded-xl border-2 transition-all cursor-pointer select-none',
+                      isMeeting
+                        ? 'bg-brand/5 border-brand/30'
+                        : formData.event_id
+                          ? 'bg-hoverSoft/10 border-borderSoft opacity-50 cursor-not-allowed'
+                          : 'bg-hoverSoft/30 border-borderSoft hover:border-brand/20'
+                    )}
+                    onClick={() => { if (!formData.event_id) setIsMeeting(prev => !prev) }}
+                    role="checkbox"
+                    aria-checked={isMeeting}
+                    aria-disabled={!!formData.event_id}
+                    tabIndex={formData.event_id ? -1 : 0}
+                    onKeyDown={(e) => { if (!formData.event_id && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); setIsMeeting(prev => !prev); } }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        'h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all',
+                        isMeeting ? 'bg-brand border-brand text-white shadow-sm' : 'border-textMuted/40 bg-transparent'
+                      )}>
+                        {isMeeting && <Check className="h-3.5 w-3.5" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-textPrimary">This is a club meeting</p>
+                        <p className="text-xs text-textSecondary mt-0.5">No linked event required — treated as an internal club session</p>
+                      </div>
+                      {isMeeting && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-brand/10 text-brand border border-brand/20 shrink-0 whitespace-nowrap">
+                          Closed Club
+                        </span>
+                      )}
+                    </div>
+                    {!formData.event_id && !isMeeting && (
+                      <p className="text-xs text-warning font-medium flex items-center gap-1.5 mt-3 bg-warning/5 border border-warning/20 rounded-lg px-3 py-2">
+                        <AlertTriangle size={12} className="shrink-0" />
+                        No event linked — check “Is Meeting” to proceed as a standalone club meeting.
+                      </p>
+                    )}
                   </div>
 
-
+                  {/* ── Expected Attendees ── */}
                   <div className="space-y-2.5">
                     <Label htmlFor="expectedAttendees" className="text-textSecondary font-semibold text-sm">Expected Attendees *</Label>
                     <Select value={formData.expectedAttendees} onValueChange={(v) => handleChange('expectedAttendees', v)}>
@@ -1153,14 +1304,16 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
 
               <Separator className="bg-borderSoft/40" />
 
-              {/* Permissions */}
+              {/* Supporting Documents */}
               <section className="space-y-5">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-8 w-1.5 bg-gradient-to-b from-brand to-brandLink rounded-full" />
-                  <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">List of Permissions (if any)</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-textPrimary">Supporting Documents</h2>
                 </div>
                 <div className="space-y-2.5">
-                  <Label htmlFor="permissionsLink" className="text-textSecondary font-semibold text-sm">Drive Link to Document (Optional)</Label>
+                  <Label htmlFor="permissionsLink" className="text-textSecondary font-semibold text-sm">
+                    Drive / Docs Link <span className="font-normal text-textMuted">(Optional)</span>
+                  </Label>
                   <Input
                     id="permissionsLink"
                     type="url"
@@ -1169,7 +1322,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                     onChange={(e) => handleChange('permissionsLink', e.target.value)}
                     className="h-11 border-borderSoft focus-visible:ring-brand focus-visible:border-brand rounded-xl shadow-sm"
                   />
-                  <p className="text-xs text-textMuted mt-1">If your event requires specific permissions (e.g. from faculty or administration), provide a link to the document here.</p>
+                  <p className="text-xs text-textMuted mt-1">Attach any faculty/admin permission letters or supporting documents here.</p>
                 </div>
               </section>
 
@@ -1177,12 +1330,12 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
               <div className="pt-8 border-t border-borderSoft/40">
                 <Button
                   type="submit"
-                  disabled={hasErrors || isSubmitting || !formData.event_id || !formData.date || !formData.startTime || !formData.endTime || formData.venueIds.length === 0}
+                  disabled={hasErrors || isSubmitting || !formData.date || !formData.startTime || !formData.endTime || formData.venueIds.length === 0 || !formData.bookingName || (!formData.event_id && !isMeeting)}
                   className={cn(
-                    "w-full h-12 text-base font-bold rounded-lg shadow-sm transition-transform flex items-center justify-center gap-2",
-                    hasErrors || isSubmitting || !formData.event_id || !formData.date || !formData.startTime || !formData.endTime || formData.venueIds.length === 0
-                      ? "bg-borderSoft text-textMuted cursor-not-allowed"
-                      : "bg-brand text-bgMain hover:scale-[1.02] active:scale-[0.98]"
+                    'w-full h-12 text-base font-bold rounded-lg shadow-sm transition-transform flex items-center justify-center gap-2',
+                    hasErrors || isSubmitting || !formData.date || !formData.startTime || !formData.endTime || formData.venueIds.length === 0 || !formData.bookingName || (!formData.event_id && !isMeeting)
+                      ? 'bg-borderSoft text-textMuted cursor-not-allowed'
+                      : 'bg-brand text-bgMain hover:scale-[1.02] active:scale-[0.98]'
                   )}
                 >
                   {isSubmitting ? (
@@ -1202,9 +1355,11 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
                     ⚠️ Please resolve the warnings above to proceed.
                   </p>
                 )}
-                {!formData.event_id || !formData.date || !formData.startTime || !formData.endTime || formData.venueIds.length === 0 ? (
+                {(!formData.date || !formData.startTime || !formData.endTime || formData.venueIds.length === 0 || !formData.bookingName || (!formData.event_id && !isMeeting)) ? (
                   <p className="text-center text-textMuted text-sm mt-4 font-medium">
-                    📝 Please fill in all required fields to submit.
+                    {!formData.event_id && !isMeeting
+                      ? '🔒 Link an event or check "Is Meeting" to enable submission.'
+                      : '📝 Please fill in all required fields to submit.'}
                   </p>
                 ) : null}
               </div>
@@ -1224,7 +1379,13 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
             const without = prev.filter(e => e.id !== id);
             return [{ ...createdEvent, id }, ...without];
           });
-          setFormData(prev => ({ ...prev, event_id: id }));
+          // Link the newly created event and clear isMeeting override
+          setFormData(prev => ({
+            ...prev,
+            event_id: id,
+            bookingName: prev.bookingName || createdEvent.name
+          }));
+          setIsMeeting(false);
         }}
       />
     </motion.div>

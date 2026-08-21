@@ -128,7 +128,7 @@ export const mapBooking = (booking: ApiBooking) => {
   return {
     id: booking.id,
     eventName: booking.event_name,
-    bookingName: booking.booking_name || booking.event_name,
+    bookingName: booking.booking_name,
     venueId: booking.venue_id,
     venueName: booking.venues?.name || booking.venue_id,
     clubName: booking.clubs?.name || booking.club_id,
@@ -186,7 +186,7 @@ export const groupBookings = (bookings: Booking[], venues: ApiVenue[] = []): Gro
     // Group by event_id + startTime (since all bookings now belong to an event), fallback to batchId or composite string.
     const key = (b.event_id && b.startTime && b.date) 
       ? `${b.event_id}-${b.date}-${b.startTime}` 
-      : (b.batchId || `${b.eventName}-${b.clubName}-${b.date}-${b.startTime}-${b.eventType}`);
+      : (b.batchId || `${b.bookingName}-${b.clubName}-${b.date}-${b.startTime}-${b.eventType}`);
 
     if (grouped.has(key)) {
       const existing = grouped.get(key)!;
@@ -212,7 +212,10 @@ export const groupBookings = (bookings: Booking[], venues: ApiVenue[] = []): Gro
       }
 
       // Re-calculate display venue names from the unique set of active bookings
-      existing.venueName = existing.bookings
+      const activeBookings = existing.bookings.filter(book => book.status !== 'rejected');
+      const bookingsForName = activeBookings.length > 0 ? activeBookings : existing.bookings;
+      
+      existing.venueName = bookingsForName
         .map(book => getVenueName(book.venueId, book))
         .filter((val, idx, self) => self.indexOf(val) === idx)
         .sort((a, b) => a.localeCompare(b))
@@ -224,20 +227,16 @@ export const groupBookings = (bookings: Booking[], venues: ApiVenue[] = []): Gro
       const allRejected = statuses.every(s => s === 'rejected');
       const allPending = statuses.every(s => s === 'pending');
       const anyApproved = statuses.some(s => s === 'approved');
+      const anyPending = statuses.some(s => s === 'pending');
 
-      if (allApproved) {
+      if (allApproved || (anyApproved && !anyPending)) {
         existing.status = 'approved';
       } else if (allRejected) {
         existing.status = 'rejected';
-      } else if (allPending) {
+      } else if (allPending || (!anyApproved && anyPending)) {
         existing.status = 'pending';
-      } else if (anyApproved) {
-        // If there's at least one approved booking but it's not all approved
+      } else if (anyApproved && anyPending) {
         existing.status = 'partial';
-      } else {
-        // A mix of pending and rejected, but NO approved venues.
-        // It should be considered pending so it doesn't show up on approved calendars.
-        existing.status = 'pending';
       }
       
       existing.issueFlag = existing.bookings.find(b => b.issueFlag)?.issueFlag || null;

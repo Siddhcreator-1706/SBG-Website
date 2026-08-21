@@ -113,7 +113,10 @@ const ScheduleCalendarCard = ({
                       >
                         <Card className="border border-borderSoft rounded-xl hover:border-brand/30 transition-colors">
                           <CardContent className="p-4">
-                            <div className="font-semibold text-foreground text-sm mb-1">{event.eventName}</div>
+                            <div className="font-semibold text-foreground text-sm mb-1">{event.bookingName}</div>
+                            {event.eventName && event.eventName !== event.bookingName && (
+                              <div className="text-xs text-muted-foreground font-medium mb-1">Linked Event: {event.eventName}</div>
+                            )}
                             <div className="mt-0.5 mb-2 flex flex-wrap items-center gap-2">
                               <span className="text-xs text-primary font-medium">{event.clubName}</span>
                               {event.eventType && (
@@ -545,7 +548,12 @@ const ClubDashboard: React.FC<ClubDashboardProps> = ({ user }) => {
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                     className="p-4 hover:bg-hoverSoft transition-colors"
                   >
-                    <div className="font-semibold text-foreground text-sm"><span className="text-xs text-muted-foreground font-normal mr-1.5">Booking Name:</span>{event.bookingName || event.eventName}</div>
+                    <div className="font-semibold text-foreground text-sm"><span className="text-xs text-muted-foreground font-normal mr-1.5">Booking Name:</span>{event.bookingName}</div>
+                    {event.eventName && event.eventName !== event.bookingName && (
+                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+                        <span className="font-medium text-[10px] uppercase tracking-wider text-muted-foreground/70">Linked Event:</span> {event.eventName}
+                      </div>
+                    )}
                     <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
                       <CalendarPlus size={12} />
                       {new Date(event.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}

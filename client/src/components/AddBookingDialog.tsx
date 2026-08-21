@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Check } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { apiRequest, ApiVenue } from '../lib/api';
 import { Button } from './ui/button';
@@ -56,6 +56,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
     const [clubEvents, setClubEvents] = useState<any[]>([]);
     const [selectedEventId, setSelectedEventId] = useState('');
     const [bookingName, setBookingName] = useState('');
+    const [isMeeting, setIsMeeting] = useState(false);
 
     const [venues, setVenues] = useState<ApiVenue[]>([]);
     const [saving, setSaving] = useState(false);
@@ -110,6 +111,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
             setExpectedAttendees('');
             setSelectedEventId('');
             setBookingName('');
+            setIsMeeting(false);
             setError(null);
             setCoCurricularWarning('');
             setBookingType('recurring');
@@ -167,8 +169,8 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
             setError('Please select an organizing club.');
             return;
         }
-        if (!selectedEventId) {
-            setError('Please select an existing event');
+        if (!selectedEventId && !isMeeting) {
+            setError('Please select an existing event or mark as a club meeting');
             return;
         }
         if (selectedVenues.length === 0) {
@@ -234,7 +236,8 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                 body: {
                     club_id: selectedClubId,
                     venue_ids: selectedVenues,
-                    event_id: selectedEventId,
+                    event_id: isMeeting ? undefined : selectedEventId,
+                    bookingMode: isMeeting ? 'meet' : 'event',
                     bookingName: bookingName.trim(),
                     timeSlots,
                     expected_attendees: expectedAttendees
@@ -287,7 +290,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
 
                     <div className="grid gap-2">
                         <Label>Select Event</Label>
-                        <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+                        <Select value={selectedEventId} onValueChange={setSelectedEventId} disabled={isMeeting}>
                             <SelectTrigger className="bg-card">
                                 <SelectValue placeholder="Select an event" />
                             </SelectTrigger>
@@ -320,6 +323,49 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                                 )}
                             </SelectContent>
                         </Select>
+                        {selectedEventId && (
+                            <button
+                                type="button"
+                                onClick={() => setSelectedEventId('')}
+                                className="text-xs text-textMuted hover:text-error transition-colors underline underline-offset-2 text-left"
+                            >
+                                Clear event link
+                            </button>
+                        )}
+                        
+                        <div
+                            className={cn(
+                                'p-3 rounded-xl border-2 transition-all cursor-pointer select-none mt-1',
+                                isMeeting
+                                    ? 'bg-brand/5 border-brand/30'
+                                    : selectedEventId
+                                        ? 'bg-hoverSoft/10 border-borderSoft opacity-50 cursor-not-allowed'
+                                        : 'bg-hoverSoft/30 border-borderSoft hover:border-brand/20'
+                            )}
+                            onClick={() => { if (!selectedEventId) setIsMeeting(prev => !prev) }}
+                            role="checkbox"
+                            aria-checked={isMeeting}
+                            aria-disabled={!!selectedEventId}
+                            tabIndex={selectedEventId ? -1 : 0}
+                            onKeyDown={(e) => { if (!selectedEventId && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); setIsMeeting(prev => !prev); } }}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={cn(
+                                    'h-4 w-4 rounded-md border-2 flex items-center justify-center shrink-0 transition-all',
+                                    isMeeting ? 'bg-brand border-brand text-white shadow-sm' : 'border-textMuted/40 bg-transparent'
+                                )}>
+                                    {isMeeting && <Check className="h-3 w-3" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-textPrimary">This is a club meeting</p>
+                                </div>
+                                {isMeeting && (
+                                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand/10 text-brand border border-brand/20 shrink-0 whitespace-nowrap">
+                                        Closed Club
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     <div className="grid gap-2">
@@ -485,7 +531,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                         disabled={
                             saving || 
                             !selectedClubId || 
-                            !selectedEventId || 
+                            (!selectedEventId && !isMeeting) || 
                             selectedVenues.length === 0 || 
                             !startDate || 
                             !endDate || 

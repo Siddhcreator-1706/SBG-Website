@@ -196,10 +196,10 @@ const AdminEventRequests: React.FC = () => {
             <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
               <thead className="bg-hoverSoft border-b border-borderSoft uppercase tracking-wider text-xs font-semibold text-textMuted">
                 <tr>
-                  <th className="px-4 sm:px-6 py-4 w-[40%] sm:w-[45%]">Event</th>
-                  <th className="px-4 sm:px-6 py-4 w-[25%]">Date & Time</th>
+                  <th className="px-4 sm:px-6 py-4 w-[40%] sm:w-[35%]">Event</th>
+                  <th className="px-4 sm:px-6 py-4 w-[30%]">Date & Time</th>
                   <th className="px-4 sm:px-6 py-4 w-[20%] sm:w-[15%]">Status</th>
-                  <th className="px-4 sm:px-6 py-4 text-right w-[40%] sm:w-[15%]">Actions</th>
+                  <th className="px-4 sm:px-6 py-4 text-right w-[40%] sm:w-[20%]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
