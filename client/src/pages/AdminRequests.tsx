@@ -331,8 +331,8 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
               </div>
             )}
             <div>
-              <div className="font-semibold text-textPrimary flex items-center gap-2">
-                {req.bookingName || req.eventName}
+              <div className="font-semibold text-textPrimary text-base flex items-center gap-2">
+                {req.bookingName}
                 {req.issueFlag && (
                   <div className="text-warning" title={req.issueFlag}>
                     <AlertTriangle size={14} />

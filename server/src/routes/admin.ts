@@ -20,7 +20,7 @@ router.use(authMiddleware, adminOnly);
 const baseBookingQuery = `
   SELECT b.*, 
          e.name AS event_name,
-         e.event_type,
+         COALESCE(e.event_type, 'closed_club') AS event_type,
          json_build_object('name', c.name) AS clubs,
          json_build_object('name', v.name) AS venues
   FROM bookings b
@@ -324,18 +324,11 @@ router.patch('/bookings/:id/status', async (req, res) => {
     if (rows.length === 0) throw new Error('Booking not found');
     const data = rows[0];
 
-    // Fetch event name for the notification
-    let eventName = 'Event';
-    if (data.event_id) {
-      const evRes = await db.query('SELECT name FROM events WHERE id = $1', [data.event_id]);
-      if (evRes.rows.length > 0) eventName = evRes.rows[0].name;
-    }
-
     // Create a notification for the status change
     await createNotification({
       type: status === 'approved' ? 'booking_approved' : 'booking_rejected',
       title: `Booking ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-      message: `"${eventName}" has been ${status}.`,
+      message: `"${data.booking_name || 'Booking'}" has been ${status}.`,
       userId: data.user_id,
       metadata: { bookingId: id, status },
     });
@@ -344,7 +337,7 @@ router.patch('/bookings/:id/status', async (req, res) => {
     io.to(`club:${data.club_id}`).emit('booking:status_changed', {
       bookingId: id,
       status,
-      eventName,
+      eventName: data.booking_name || 'Booking',
       clubId: data.club_id,
     });
 
@@ -551,8 +544,8 @@ router.post('/bookings', async (req, res) => {
 
     await createNotification({
       type: 'booking_approved',
-      title: 'Event Created by Admin',
-      message: `"${event_name}" has been created and auto-approved.`,
+      title: 'Booking Created by Admin',
+      message: `"${bookingName.trim()}" has been created and auto-approved.`,
       userId: createdBookings[0]?.user_id || null,
       metadata: { batchId, venues: venue_ids },
     });

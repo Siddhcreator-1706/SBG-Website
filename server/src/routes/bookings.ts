@@ -175,7 +175,7 @@ router.get('/my-bookings', authMiddleware, async (req, res) => {
     const queryStr = `
       SELECT b.*, 
              e.name AS event_name,
-             e.event_type,
+             COALESCE(e.event_type, 'closed_club') AS event_type,
              json_build_object('name', c.name) AS clubs,
              json_build_object('name', v.name) AS venues
       FROM bookings b
@@ -231,7 +231,7 @@ router.delete('/my-bookings/:id', authMiddleware, async (req, res) => {
     }
     
     const booking = checkRes.rows[0];
-    if (new Date(booking.start_time) <= new Date()) {
+    if (booking.status !== 'rejected' && new Date(booking.start_time) <= new Date()) {
       return res.status(400).json({ error: 'Cannot cancel a booking after its start time has passed.' });
     }
     
@@ -266,7 +266,7 @@ router.get('/public-bookings', async (_req, res) => {
     const { rows } = await db.query(`
       SELECT b.*, 
              e.name AS event_name,
-             e.event_type,
+             COALESCE(e.event_type, 'closed_club') AS event_type,
              json_build_object('name', c.name) AS clubs,
              json_build_object('name', v.name) AS venues
       FROM bookings b
@@ -291,7 +291,7 @@ router.get('/campus-bookings', authMiddleware, async (_req, res) => {
     const { rows } = await db.query(`
       SELECT b.*, 
              e.name AS event_name,
-             e.event_type,
+             COALESCE(e.event_type, 'closed_club') AS event_type,
              json_build_object('name', c.name) AS clubs,
              json_build_object('name', v.name) AS venues
       FROM bookings b

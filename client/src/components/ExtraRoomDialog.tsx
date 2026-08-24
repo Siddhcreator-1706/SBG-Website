@@ -137,7 +137,7 @@ const ExtraRoomDialog: React.FC<ExtraRoomDialogProps> = ({ booking, open, onOpen
                     {/* Compact Event Brief */}
                     <div className="p-4 rounded-xl bg-muted/20 border border-border/50 text-xs font-medium space-y-2.5">
                         <div className="flex justify-between items-center text-muted-foreground uppercase tracking-widest font-black text-[10px]">
-                            <span>{booking.eventName}</span>
+                            <span>{booking.bookingName}</span>
                             <span>{eventDate.toLocaleDateString('en-US', {
                                 timeZone: 'Asia/Kolkata',
                                 month: 'short', day: 'numeric' })}</span>

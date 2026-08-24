@@ -208,7 +208,10 @@ const MyBookings: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                           <div className="flex-1">
-                            <h3 className={cn("text-2xl font-bold mb-2", isPast ? 'text-textMuted' : 'text-textPrimary')}>{booking.eventName}</h3>
+                            <h3 className={cn("text-2xl font-bold", (booking.eventName && booking.eventName !== booking.bookingName) ? "mb-1" : "mb-2", isPast ? 'text-textMuted' : 'text-textPrimary')}>{booking.bookingName}</h3>
+                            {booking.eventName && booking.eventName !== booking.bookingName && (
+                              <p className={cn("text-sm mb-3 font-medium", isPast ? 'text-textMuted/70' : 'text-textMuted')}>Linked Event: {booking.eventName}</p>
+                            )}
                             {booking.eventType && (
                               <Badge variant="outline" className="text-[10px] h-5 mb-3">
                                 {booking.eventType.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
@@ -283,15 +286,17 @@ const MyBookings: React.FC = () => {
                               <Button variant="outline" size="sm" onClick={() => openExtraRoomDialog(booking)} className="gap-2 rounded-lg font-semibold bg-brand/5 text-brand border-brand/20 hover:bg-brand/10 shadow-sm">
                                 <Plus className="h-4 w-4" /> Request Extra Room
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleCancelClick(booking)} 
-                                className="gap-2 rounded-lg font-semibold bg-error/5 text-error border-error/20 hover:bg-error/10 shadow-sm"
-                              >
-                                Cancel Booking
-                              </Button>
                             </>
+                          )}
+                          {(!isPast || booking.status === 'rejected') && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handleCancelClick(booking)} 
+                              className="gap-2 rounded-lg font-semibold bg-error/5 text-error border-error/20 hover:bg-error/10 shadow-sm"
+                            >
+                              {booking.status === 'rejected' ? 'Delete Record' : 'Cancel Booking'}
+                            </Button>
                           )}
                         </div>
                       </div>

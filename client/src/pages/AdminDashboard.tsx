@@ -490,7 +490,10 @@ const AdminDashboard: React.FC = () => {
                         <Card className="rounded-xl hover:border-brand/30 transition-colors">
                           <CardContent className="p-3">
                             <div className="flex justify-between items-start">
-                              <div className="font-semibold text-textPrimary text-sm mb-1">{event.bookingName || event.eventName}</div>
+                              <div className="font-semibold text-textPrimary text-sm mb-1">{event.bookingName}</div>
+                              {event.eventName && event.eventName !== event.bookingName && (
+                                <div className="text-xs text-textMuted font-medium mb-1.5">Linked Event: {event.eventName}</div>
+                              )}
                               <Badge variant={event.status === 'approved' ? 'success' : event.status === 'pending' ? 'pending' : 'destructive'} className="text-[10px] px-1.5 py-0 h-5">
                                 {event.status}
                               </Badge>
@@ -592,7 +595,10 @@ const AdminDashboard: React.FC = () => {
                         className="hover:bg-hoverSoft transition-colors"
                       >
                         <td className="px-4 sm:px-6 py-4">
-                          <div className="font-semibold text-textPrimary">{evt.eventName}</div>
+                          <div className="font-semibold text-textPrimary">{evt.bookingName}</div>
+                          {evt.eventName && evt.eventName !== evt.bookingName && (
+                            <div className="text-xs text-textMuted mt-0.5 font-medium">Linked Event: {evt.eventName}</div>
+                          )}
                           <div className="text-xs text-textMuted mt-0.5">{evt.clubName}</div>
                           {evt.permissionsLink && (
                             <a href={evt.permissionsLink} target="_blank" rel="noopener noreferrer" className="text-[10px] text-brand hover:underline mt-1 inline-block font-medium">

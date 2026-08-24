@@ -1,15 +1,14 @@
 import type { Request, Response } from 'express';
 // Swap Supabase for your database pool
 import { db } from '../db';
+import type { PoolClient } from 'pg';
 
 import { randomUUID } from 'crypto';
 import { io } from '../server';
 import { checkPendingEventReports } from '../services/eventReportService';
 import { createBookingPendingNotifications } from '../services/notification';
 
-
-
-type EventType = 'co_curricular' | 'open_all' | 'closed_club';
+type EventType = 'co_curricular' | 'open_all' | 'closed_club' | 'meet';
 
 type BookingRequestBody = {
   clubId: string;
@@ -17,8 +16,9 @@ type BookingRequestBody = {
   startTime: string;
   endTime: string;
   expectedAttendees?: number;
-  event_id: string;
+  event_id?: string;
   permissionsLink?: string;
+  bookingMode?: 'event' | 'meet';
   bookingName?: string;
 };
 
@@ -26,6 +26,7 @@ const MIN_DAYS_BY_EVENT: Record<EventType, number> = {
   co_curricular: 14,
   open_all: 20,
   closed_club: 0,
+  meet: 0,
 };
 
 const isValidDate = (value: string) => {
@@ -90,7 +91,7 @@ const performVenueConflictCheck = async (
   startTime: string,
   endTime: string,
   excludeIds?: string[],
-  client?: any
+  queryable: PoolClient | typeof db = db
 ) => {
   if (!venueIds || venueIds.length === 0) return { conflict: false, message: '' };
 
@@ -112,8 +113,7 @@ const performVenueConflictCheck = async (
   }
 
   // Check for ANY booking that overlaps with the requested time for ANY of the requested venues
-  const dbClient = client || db;
-  const { rows: conflicts } = await dbClient.query(query, params);
+  const { rows: conflicts } = await queryable.query(query, params);
 
   if (conflicts.length > 0) {
     // Get unique venue names that have conflicts
@@ -137,6 +137,7 @@ export const createBooking = async (req: Request, res: Response) => {
     expectedAttendees,
     event_id,
     permissionsLink,
+    bookingMode = 'event',
     bookingName,
   } = req.body as Partial<BookingRequestBody & { venueIds: string[]; timeSlots?: {startTime: string, endTime: string}[] }>;
 
@@ -147,26 +148,35 @@ export const createBooking = async (req: Request, res: Response) => {
     }
   }
 
-  if (!clubId || !venueIds || !Array.isArray(venueIds) || venueIds.length === 0 || !timeSlots || timeSlots.length === 0 || !event_id || !bookingName || bookingName.trim().length === 0) {
-    return res.status(400).json({ error: 'Missing required fields. Event selection and Booking Name are mandatory.' });
+  if (!clubId || !venueIds || !Array.isArray(venueIds) || venueIds.length === 0 || !timeSlots || timeSlots.length === 0 || !bookingName || bookingName.trim().length === 0) {
+    return res.status(400).json({ error: 'Missing required fields. Booking Name is mandatory.' });
   }
 
-  // Fetch event name, type, and status
-  const { rows: fetchedEventRows } = await db.query(
-    'SELECT name, event_type, status FROM events WHERE id = $1',
-    [event_id]
-  );
-
-  if (fetchedEventRows.length === 0) {
-    return res.status(404).json({ error: 'Selected event not found.' });
+  if (bookingMode === 'event' && !event_id) {
+    return res.status(400).json({ error: 'Event selection is mandatory for formal events.' });
   }
 
-  if (fetchedEventRows[0].status !== 'active') {
-    return res.status(400).json({ error: 'Cannot link a booking to an unapproved event.' });
-  }
+  let eventName = bookingName.trim();
+  let eventType: EventType = 'meet';
 
-  const eventName = fetchedEventRows[0].name;
-  const eventType = fetchedEventRows[0].event_type as EventType;
+  if (bookingMode === 'event') {
+    // Fetch event name, type, and status
+    const { rows: fetchedEventRows } = await db.query(
+      'SELECT name, event_type, status FROM events WHERE id = $1',
+      [event_id]
+    );
+
+    if (fetchedEventRows.length === 0) {
+      return res.status(404).json({ error: 'Selected event not found.' });
+    }
+
+    if (fetchedEventRows[0].status !== 'active') {
+      return res.status(400).json({ error: 'Cannot link a booking to an unapproved event.' });
+    }
+
+    eventName = fetchedEventRows[0].name;
+    eventType = fetchedEventRows[0].event_type as EventType;
+  }
 
   if (!Object.keys(MIN_DAYS_BY_EVENT).includes(eventType)) {
     return res.status(400).json({ error: 'Invalid eventType' });
@@ -183,7 +193,7 @@ export const createBooking = async (req: Request, res: Response) => {
     }
   }
 
-  if (event_id) {
+  if (bookingMode === 'event' && event_id) {
     const { rows: eventRows } = await db.query(
       `SELECT COALESCE(e.end_date, e.date) as dynamic_end_date
        FROM events e
@@ -275,8 +285,18 @@ export const createBooking = async (req: Request, res: Response) => {
       }
     }
 
+    // IMPORTANT: performVenueConflictCheck() must always run AFTER the FOR UPDATE lock,
+    // never before. The lock is what forces concurrent requests to wait, so
+    // moving the conflict check earlier would silently reopen the race
+    // condition this fix is meant to close.
     for (const slot of timeSlots) {
-      const { conflict: venueConflict, message: venueMessage } = await performVenueConflictCheck(venueIds, slot.startTime, slot.endTime, undefined, client);
+      const { conflict: venueConflict, message: venueMessage } = await performVenueConflictCheck(
+        venueIds,
+        slot.startTime,
+        slot.endTime,
+        undefined,
+        client
+      );
       if (venueConflict) {
         await client.query('ROLLBACK');
         return res.status(409).json({ error: venueMessage });
@@ -310,7 +330,7 @@ export const createBooking = async (req: Request, res: Response) => {
           req.user?.id || null,
           expectedAttendees || null,
           batchId,
-          event_id,
+          bookingMode === 'event' ? event_id : null,
           issueFlag,
           permissionsLink || null,
           bookingName!.trim()
@@ -342,8 +362,6 @@ export const createBooking = async (req: Request, res: Response) => {
           eventType,
         };
       });
-
-
 
       // Also persist as in-app notifications
       await createBookingPendingNotifications(itemsForNotification);
@@ -534,9 +552,11 @@ export const updateBookingTimings = async (req: Request, res: Response) => {
     const venueIds = bookingRes.rows.map((b: any) => b.venue_id);
     const eventId = bookingRes.rows[0].event_id;
 
-    // Fetch event type
+    // Fetch event type — for meets (no event_id), it's implicitly closed_club
     let eventType: EventType | null = null;
-    if (eventId) {
+    if (!eventId) {
+      eventType = 'closed_club';
+    } else if (eventId) {
       const { rows: eventRows } = await db.query('SELECT event_type FROM events WHERE id = $1', [eventId]);
       if (eventRows.length > 0) {
         eventType = eventRows[0].event_type as EventType;
