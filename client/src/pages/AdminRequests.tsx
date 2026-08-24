@@ -339,8 +339,8 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                   </div>
                 )}
               </div>
-              {req.eventName && req.eventName !== req.bookingName && (
-                <div className="text-xs text-textMuted mt-1 font-medium">Linked Event: {req.eventName}</div>
+              {req.bookingName && req.bookingName !== req.eventName && (
+                <div className="text-xs text-textMuted mt-0.5 font-medium">Event: {req.eventName}</div>
               )}
               <div className="text-xs text-textMuted mt-0.5">{req.clubName}</div>
               {req.permissionsLink && (
