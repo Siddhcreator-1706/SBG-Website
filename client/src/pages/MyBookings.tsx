@@ -14,9 +14,13 @@ import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue }
 import { getErrorMessage } from '../lib/errors';
 import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 import { toastError, toastInfo } from '../lib/toast';
-import { Booking, GroupedBooking } from '../types';
+import { Booking, GroupedBooking, User } from '../types';
 
-const MyBookings: React.FC = () => {
+interface MyBookingsProps {
+  currentUser?: User;
+}
+
+const MyBookings: React.FC<MyBookingsProps> = ({ currentUser }) => {
   const [myBookings, setMyBookings] = useState<Booking[]>([]);
   const [venues, setVenues] = useState<ApiVenue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -278,7 +282,7 @@ const MyBookings: React.FC = () => {
                         </div>
 
                         <div className="mt-6 pt-6 border-t border-borderSoft/50 flex flex-wrap gap-3">
-                          {!isPast && (booking.status === 'approved' || booking.status === 'pending' || booking.status === 'partial') && (
+                          {(!isPast || currentUser?.role === 'admin') && (booking.status === 'approved' || booking.status === 'pending' || booking.status === 'partial') && (
                             <>
                               <Button variant="outline" size="sm" onClick={() => openEditTimingsDialog(booking)} className="gap-2 rounded-lg font-semibold bg-brand/5 text-brand border-brand/20 hover:bg-brand/10 shadow-sm">
                                 <Clock className="h-4 w-4" /> Edit Timings
@@ -288,14 +292,14 @@ const MyBookings: React.FC = () => {
                               </Button>
                             </>
                           )}
-                          {(!isPast || booking.status === 'rejected') && (
+                          {(!isPast || booking.status === 'rejected' || currentUser?.role === 'admin') && (
                             <Button 
                               variant="outline" 
                               size="sm" 
                               onClick={() => handleCancelClick(booking)} 
                               className="gap-2 rounded-lg font-semibold bg-error/5 text-error border-error/20 hover:bg-error/10 shadow-sm"
                             >
-                              {booking.status === 'rejected' ? 'Delete Record' : 'Cancel Booking'}
+                              {booking.status === 'rejected' || isPast ? 'Delete Record' : 'Cancel Booking'}
                             </Button>
                           )}
                         </div>

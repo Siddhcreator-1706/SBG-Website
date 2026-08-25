@@ -67,7 +67,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
     useEffect(() => {
         if (open) {
             apiRequest<ApiVenue[]>('/api/venues')
-                .then(setVenues)
+                .then(data => setVenues(data.filter(v => v.is_active !== false)))
                 .catch(() => setVenues([]));
             // Auto-resolve SBG club
             apiRequest<Club[]>('/api/clubs')

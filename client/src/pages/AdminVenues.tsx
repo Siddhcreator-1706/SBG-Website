@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Edit2, MapPin, Plus, Trash2, Users } from 'lucide-react';
+import { CheckCircle2, Edit2, MapPin, Plus, Trash2, Users, XCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Button } from '../components/ui/button';
 import {
@@ -13,6 +13,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Skeleton } from '../components/ui/skeleton';
+import { Switch } from '../components/ui/switch';
 import { apiRequest, type ApiVenue } from '../lib/api';
 import { toastError, toastSuccess } from '../lib/toast';
 
@@ -26,7 +27,8 @@ const AdminVenues: React.FC = () => {
     name: '',
     category: 'needs_approval',
     capacity: '',
-    location: ''
+    location: '',
+    is_active: true
   });
 
   const fetchVenues = React.useCallback(async () => {
@@ -53,7 +55,8 @@ const AdminVenues: React.FC = () => {
         name: venue.name,
         category: venue.category,
         capacity: venue.capacity ? venue.capacity.toString() : '',
-        location: venue.location || ''
+        location: venue.location || '',
+        is_active: venue.is_active !== false
       });
     } else {
       setEditingVenue(null);
@@ -61,7 +64,8 @@ const AdminVenues: React.FC = () => {
         name: '',
         category: 'needs_approval',
         capacity: '',
-        location: ''
+        location: '',
+        is_active: true
       });
     }
     setIsModalOpen(true);
@@ -72,6 +76,25 @@ const AdminVenues: React.FC = () => {
     setEditingVenue(null);
   };
 
+  const handleToggleActive = async (venue: ApiVenue) => {
+    const newStatus = venue.is_active === false ? true : false;
+    try {
+      // Optimistic update
+      setVenues(prev => prev.map(v => v.id === venue.id ? { ...v, is_active: newStatus } : v));
+      
+      await apiRequest(`/api/admin/venues/${venue.id}`, {
+        method: 'PATCH',
+        auth: true,
+        body: { is_active: newStatus }
+      });
+      toastSuccess(`Venue "${venue.name}" marked as ${newStatus ? 'Active' : 'Inactive'}`);
+    } catch (error) {
+      // Rollback
+      setVenues(prev => prev.map(v => v.id === venue.id ? { ...v, is_active: venue.is_active !== false } : v));
+      toastError(error, 'Failed to update venue status');
+    }
+  };
+
   const handleSaveVenue = async () => {
     if (!formData.name.trim() || !formData.category) {
       toastError('Name and category are required');
@@ -80,10 +103,11 @@ const AdminVenues: React.FC = () => {
 
     try {
       const payload = {
-        name: formData.name,
+        name: formData.name.trim(),
         category: formData.category,
         capacity: formData.capacity ? parseInt(formData.capacity, 10) : null,
-        location: formData.location
+        location: formData.location.trim() || null,
+        is_active: formData.is_active
       };
 
       if (editingVenue) {
@@ -110,7 +134,7 @@ const AdminVenues: React.FC = () => {
   };
 
   const handleDeleteVenue = async (id: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
+    if (!window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone and will delete associated bookings.`)) {
       return;
     }
     try {
@@ -130,7 +154,7 @@ const AdminVenues: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tighter text-textPrimary leading-tight">Manage Venues</h1>
-          <p className="text-textSecondary mt-1 text-sm font-medium">Add, edit, or remove venues available for booking.</p>
+          <p className="text-textSecondary mt-1 text-sm font-medium">Add, edit, enable, disable, or remove venues available for booking.</p>
         </div>
         <Button onClick={() => handleOpenModal()} className="gap-2">
           <Plus size={16} /> Add Venue
@@ -139,10 +163,11 @@ const AdminVenues: React.FC = () => {
 
       <div className="bg-card border border-borderSoft rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px] sm:min-w-0 text-left text-sm">
+          <table className="w-full min-w-[650px] sm:min-w-0 text-left text-sm">
             <thead className="bg-bgMain border-b border-borderSoft text-textSecondary uppercase text-xs font-semibold">
               <tr>
                 <th className="px-6 py-4">Venue Name</th>
+                <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Category</th>
                 <th className="px-6 py-4">Capacity</th>
                 <th className="px-6 py-4">Location</th>
@@ -154,6 +179,7 @@ const AdminVenues: React.FC = () => {
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
                     <td className="px-6 py-4"><Skeleton className="h-5 w-32" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-5 w-20" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-5 w-16" /></td>
                     <td className="px-6 py-4"><Skeleton className="h-5 w-24" /></td>
@@ -162,55 +188,87 @@ const AdminVenues: React.FC = () => {
                 ))
               ) : venues.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-textMuted">
+                  <td colSpan={6} className="px-6 py-8 text-center text-textMuted">
                     <MapPin size={32} className="mx-auto mb-2 opacity-50" />
                     No venues found.
                   </td>
                 </tr>
               ) : (
-                venues.map(venue => (
-                  <motion.tr 
-                    key={venue.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="hover:bg-hoverSoft/30 transition-colors group"
-                  >
-                    <td className="px-6 py-4 font-semibold text-textPrimary">{venue.name}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-1 text-xs rounded-full bg-brand/10 text-brand font-medium">
-                        {venue.category.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-textSecondary flex items-center gap-1.5 mt-2.5">
-                      <Users size={14} /> {venue.capacity || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 text-textSecondary">
-                      {venue.location || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          aria-label="Edit venue"
-                          className="h-8 w-8 text-textMuted hover:text-brand hover:bg-brand/10"
-                          onClick={() => handleOpenModal(venue)}
+                venues.map(venue => {
+                  const isActive = venue.is_active !== false;
+                  return (
+                    <motion.tr 
+                      key={venue.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className={`hover:bg-hoverSoft/30 transition-colors group ${!isActive ? 'opacity-60 bg-muted/20' : ''}`}
+                    >
+                      <td className="px-6 py-4">
+                        <span className="font-semibold text-textPrimary">{venue.name}</span>
+                        {!isActive && (
+                          <span className="ml-2 text-xs text-muted-foreground italic">(Unavailable for new bookings)</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleActive(venue)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full transition-colors cursor-pointer border ${
+                            isActive
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                              : 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20 hover:bg-zinc-500/20'
+                          }`}
+                          title={`Click to ${isActive ? 'deactivate' : 'activate'} this venue`}
                         >
-                          <Edit2 size={14} />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          aria-label="Delete venue"
-                          className="h-8 w-8 text-textMuted hover:text-error hover:bg-error/10"
-                          onClick={() => handleDeleteVenue(venue.id, venue.name)}
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))
+                          {isActive ? (
+                            <>
+                              <CheckCircle2 size={12} className="text-emerald-500" />
+                              Active
+                            </>
+                          ) : (
+                            <>
+                              <XCircle size={12} className="text-zinc-400" />
+                              Inactive
+                            </>
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="px-2.5 py-1 text-xs rounded-full bg-brand/10 text-brand font-medium">
+                          {venue.category.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-textSecondary flex items-center gap-1.5 mt-2.5">
+                        <Users size={14} /> {venue.capacity || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 text-textSecondary">
+                        {venue.location || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            aria-label="Edit venue"
+                            className="h-8 w-8 text-textMuted hover:text-brand hover:bg-brand/10"
+                            onClick={() => handleOpenModal(venue)}
+                          >
+                            <Edit2 size={14} />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            aria-label="Delete venue"
+                            className="h-8 w-8 text-textMuted hover:text-error hover:bg-error/10"
+                            onClick={() => handleDeleteVenue(venue.id, venue.name)}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -263,6 +321,21 @@ const AdminVenues: React.FC = () => {
                 placeholder="e.g. CEP Building, 1st Floor"
               />
             </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-borderSoft">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-semibold text-textPrimary">Status (Available for Bookings)</Label>
+                <p className="text-xs text-textSecondary">
+                  {formData.is_active 
+                    ? 'Clubs can view and book this venue.' 
+                    : 'Disabled. Clubs cannot select or book this venue.'}
+                </p>
+              </div>
+              <Switch 
+                checked={formData.is_active} 
+                onCheckedChange={v => setFormData({ ...formData, is_active: v })} 
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={handleCloseModal}>Cancel</Button>
@@ -275,3 +348,4 @@ const AdminVenues: React.FC = () => {
 };
 
 export default AdminVenues;
+

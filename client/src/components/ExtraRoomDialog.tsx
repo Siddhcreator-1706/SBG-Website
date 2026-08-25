@@ -54,11 +54,13 @@ const ExtraRoomDialog: React.FC<ExtraRoomDialogProps> = ({ booking, open, onOpen
                 ? booking.bookings.filter(b => b.status !== 'rejected').map(b => b.venueId)
                 : booking.status !== 'rejected' ? [booking.venueId] : [];
 
-            const processedVenues = allVenues.map(v => ({
-                ...v,
-                isBusy: busyVenueIds.includes(v.id),
-                isAlreadyIn: existingVenueIds.includes(v.id)
-            }));
+            const processedVenues = allVenues
+                .filter(v => v.is_active !== false)
+                .map(v => ({
+                    ...v,
+                    isBusy: busyVenueIds.includes(v.id),
+                    isAlreadyIn: existingVenueIds.includes(v.id)
+                }));
 
             // We hide venues already in the booking, but show busy ones as disabled
             setVenues(processedVenues.filter(v => !v.isAlreadyIn));

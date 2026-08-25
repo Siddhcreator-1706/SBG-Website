@@ -22,7 +22,7 @@ router.get('/pending', authMiddleware, async (req, res) => {
         AND e.event_type IN ('open_all', 'co_curricular')
         AND e.report_exempt = false
         AND er.id IS NULL
-        AND COALESCE(e.end_date, e.date) < CURRENT_DATE
+        AND COALESCE(e.end_date, e.date) <= CURRENT_DATE
       ORDER BY final_end_date DESC
     `;
     const { rows } = await db.query(query, [club.id]);
@@ -106,7 +106,7 @@ router.post('/', authMiddleware, async (req, res) => {
     const now = new Date();
     now.setHours(0, 0, 0, 0); // normalize to start of day since date/end_date are dates
     const finalEndDate = new Date(eventData.final_end_date);
-    if (finalEndDate >= now) {
+    if (finalEndDate > now) {
       return res.status(400).json({ error: 'Cannot submit a report for an event that has not ended yet' });
     }
 
@@ -311,7 +311,7 @@ router.get('/all-past-events', authMiddleware, async (req, res) => {
       LEFT JOIN event_reports er ON e.id = er.event_id
       WHERE e.status = 'active'
         AND e.event_type IN ('open_all', 'co_curricular')
-        AND COALESCE(e.end_date, e.date) < CURRENT_DATE
+        AND COALESCE(e.end_date, e.date) <= CURRENT_DATE
       ORDER BY COALESCE(e.end_date, e.date) DESC
     `);
     
