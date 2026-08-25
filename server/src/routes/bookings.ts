@@ -1,20 +1,21 @@
 import express from 'express';
-// 1. Swap Supabase for your new database pool
 import NodeCache from 'node-cache';
+// 1. Swap Supabase for your new database pool
 import { checkConflict, createBooking, updateBookingTimings, getBusyVenues } from '../controllers/bookingController';
 import { db } from '../db';
 import authMiddleware from '../middleware/auth';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
 
+export const cache = new NodeCache({ stdTTL: 60 });
+
 const router = express.Router();
-const cache = new NodeCache({ stdTTL: 60 });
 
 router.get('/venues', async (_req, res) => {
   try {
     const cachedVenues = cache.get('venues');
     if (cachedVenues) return res.json(cachedVenues);
 
-    const { rows } = await db.query('SELECT * FROM venues');
+    const { rows } = await db.query('SELECT * FROM venues ORDER BY name ASC');
     cache.set('venues', rows);
     return res.json(rows);
   } catch (error: any) {
@@ -214,30 +215,36 @@ router.delete('/my-bookings/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const clubResult = await db.query(
-      'SELECT id FROM clubs WHERE email = $1 LIMIT 1',
-      [req.user.email]
-    );
+    const isAdmin = req.user.role === 'admin';
+    let clubId: string | undefined;
 
-    if (clubResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Club not found for this account' });
+    if (!isAdmin) {
+      const clubResult = await db.query(
+        'SELECT id FROM clubs WHERE email = $1 LIMIT 1',
+        [req.user.email]
+      );
+
+      if (clubResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Club not found for this account' });
+      }
+
+      clubId = clubResult.rows[0].id;
     }
 
-    const clubId = clubResult.rows[0].id;
+    const checkRes = isAdmin
+      ? await db.query('SELECT * FROM bookings WHERE id = $1', [id])
+      : await db.query('SELECT * FROM bookings WHERE id = $1 AND club_id = $2', [id, clubId]);
 
-    const checkRes = await db.query('SELECT * FROM bookings WHERE id = $1 AND club_id = $2', [id, clubId]);
     if (checkRes.rows.length === 0) {
       return res.status(404).json({ error: 'Booking not found or not owned by you' });
     }
     
     const booking = checkRes.rows[0];
-    if (booking.status !== 'rejected' && new Date(booking.start_time) <= new Date()) {
+    if (!isAdmin && booking.status !== 'rejected' && new Date(booking.start_time) <= new Date()) {
       return res.status(400).json({ error: 'Cannot cancel a booking after its start time has passed.' });
     }
     
-    // Optionally: only allow deleting if it's pending, or let them cancel approved ones too.
-    // The prompt just says "functionality of deleting events and bookings must be provided".
-    await db.query('DELETE FROM bookings WHERE id = $1 AND club_id = $2', [id, clubId]);
+    await db.query('DELETE FROM bookings WHERE id = $1', [id]);
 
     return res.json({ success: true, message: 'Booking deleted successfully' });
   } catch (err: any) {

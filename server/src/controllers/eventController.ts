@@ -146,10 +146,13 @@ export const updateEvent = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Event not found' });
     }
     const existingEvent = checkRes.rows[0];
-    if (!isAdmin && existingEvent.club_id !== clubId) {
-      return res.status(403).json({ error: 'You do not have permission to edit this event' });
-    } else if (new Date(existingEvent.date) <= new Date()) {
-      return res.status(403).json({ error: 'Ongoing or past events cannot be edited' });
+    if (!isAdmin) {
+      if (existingEvent.club_id !== clubId) {
+        return res.status(403).json({ error: 'You do not have permission to edit this event' });
+      }
+      if (new Date(existingEvent.date) <= new Date()) {
+        return res.status(403).json({ error: 'Ongoing or past events cannot be edited' });
+      }
     }
 
     const updateFields: Record<string, any> = {};
@@ -230,10 +233,13 @@ export const deleteEvent = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Event not found' });
     }
     const existingEvent = checkRes.rows[0];
-    if (!isAdmin && existingEvent.club_id !== clubId) {
-      return res.status(403).json({ error: 'You do not have permission to delete this event' });
-    } else if (new Date(existingEvent.end_date) < new Date()) {
-      return res.status(403).json({ error: 'Past events cannot be deleted' });
+    if (!isAdmin) {
+      if (existingEvent.club_id !== clubId) {
+        return res.status(403).json({ error: 'You do not have permission to delete this event' });
+      }
+      if (new Date(existingEvent.end_date) < new Date()) {
+        return res.status(403).json({ error: 'Past events cannot be deleted' });
+      }
     }
 
     await db.query('BEGIN');

@@ -261,12 +261,12 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {!hasStarted && (
+                      {(!hasStarted || currentUser?.role === 'admin') && (
                         <Button variant="outline" size="sm" onClick={() => handleEditClick(event)} className="gap-2">
                           <Edit size={14} /> Edit
                         </Button>
                       )}
-                      {(!isPast) && (
+                      {(!isPast || currentUser?.role === 'admin') && (
                         <Button 
                           variant="outline" 
                           size="sm" 
@@ -338,7 +338,7 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
                     }
                     setEditForm({ ...editForm, date: newStartDate, endDate: newEndDate });
                   }}
-                  minDate={new Date(todayStr)}
+                  minDate={currentUser?.role === 'admin' ? undefined : new Date(todayStr)}
                   className="h-10 rounded-xl"
                 />
               </div>
@@ -358,7 +358,7 @@ const ManageEvents: React.FC<ManageEventsProps> = ({ currentUser }) => {
                 <DatePicker
                   date={editForm.endDate ? parseISO(editForm.endDate) : undefined}
                   setDate={d => setEditForm({ ...editForm, endDate: d ? format(d, 'yyyy-MM-dd') : '' })}
-                  minDate={editForm.date ? parseISO(editForm.date) : new Date(todayStr)}
+                  minDate={editForm.date ? parseISO(editForm.date) : (currentUser?.role === 'admin' ? undefined : new Date(todayStr))}
                   className="h-10 rounded-xl"
                 />
               </div>

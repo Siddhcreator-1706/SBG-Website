@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Calendar, Check, CheckCircle, ChevronDown, ChevronRight, Clock, Filter, MapPin, Pencil, RefreshCw, Search, X, XCircle, RotateCcw, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Calendar, Check, CheckCircle, ChevronDown, ChevronRight, Clock, Filter, MapPin, Pencil, RefreshCw, Search, Trash2, X, XCircle, RotateCcw, ExternalLink } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
@@ -9,6 +9,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { apiRequest, groupBookings, mapBooking, type ApiBooking, type ApiVenue } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { getSocket } from '../lib/socket';
@@ -42,6 +43,9 @@ const AdminRequests: React.FC = () => {
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bookingIdsToDelete, setBookingIdsToDelete] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchRequests = React.useCallback(async () => {
     setIsLoading(true);
@@ -120,6 +124,35 @@ const AdminRequests: React.FC = () => {
     } catch (err) {
       console.error('Failed to send email:', err);
       toastError(err, 'Failed to send email.');
+    }
+  };
+
+  const handleDeleteBooking = (ids: string[]) => {
+    setBookingIdsToDelete(ids);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteBooking = async () => {
+    if (bookingIdsToDelete.length === 0) return;
+    setIsDeleting(true);
+    try {
+      await Promise.all(
+        bookingIdsToDelete.map(id =>
+          apiRequest(`/api/admin/bookings/${id}`, {
+            method: 'DELETE',
+            auth: true,
+          })
+        )
+      );
+      toastSuccess(`Booking${bookingIdsToDelete.length > 1 ? 's' : ''} deleted successfully`);
+      fetchRequests();
+      setDeleteDialogOpen(false);
+    } catch (err) {
+      console.error('Failed to delete booking(s):', err);
+      toastError(err, 'Failed to delete booking(s). Please try again.');
+    } finally {
+      setIsDeleting(false);
+      setBookingIdsToDelete([]);
     }
   };
 
@@ -248,6 +281,7 @@ const AdminRequests: React.FC = () => {
                     index={index}
                     venues={venues}
                     handleAction={handleAction}
+                    handleDelete={handleDeleteBooking}
                     handleSendEmail={handleSendEmail}
                     getVenueName={getVenueName}
                     isHistoryTab={false}
@@ -278,6 +312,29 @@ const AdminRequests: React.FC = () => {
         booking={editingBooking}
         onUpdated={fetchRequests}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-2xl bg-card border border-borderSoft text-textPrimary">
+          <DialogHeader>
+            <DialogTitle className="text-error flex items-center gap-1.5">
+              <Trash2 size={20} />
+              Delete Booking Permanently
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to completely delete this booking? This will remove the slot from the system and free up the venue. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteBooking} disabled={isDeleting} className="rounded-xl bg-error hover:bg-error/90 text-white font-semibold">
+              {isDeleting ? 'Deleting...' : 'Yes, Delete Booking'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };
@@ -287,6 +344,7 @@ interface AdminRequestRowProps {
   index: number;
   venues: ApiVenue[];
   handleAction: (ids: string[], action: 'approved' | 'rejected' | 'pending') => Promise<void>;
+  handleDelete: (ids: string[]) => void;
   handleSendEmail: (batchId: string | undefined, eventId: string | undefined) => Promise<void>;
   getVenueName: (id: string) => string;
   isHistoryTab: boolean;
@@ -294,7 +352,7 @@ interface AdminRequestRowProps {
   onEdit: (booking: Booking) => void;
 }
 
-const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, handleAction, handleSendEmail, getVenueName, isHistoryTab, isProcessingAction, onEdit }) => {
+const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, handleAction, handleDelete, handleSendEmail, getVenueName, isHistoryTab, isProcessingAction, onEdit }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const safeBookings = req.bookings || [];
   const isMultiVenue = safeBookings.length > 1;
@@ -309,7 +367,6 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
   };
 
   const safeStatus = req.status || 'pending';
-  const isStarted = safeBookings[0]?.startTimeISO ? new Date(safeBookings[0].startTimeISO) <= new Date() : false;
 
   return (
     <>
@@ -395,102 +452,124 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
               Send Mail
             </Button>
-            {!isStarted && (
-              <>
-                {/* Single-venue: show individual approve/reject directly on the row */}
-                {!isMultiVenue && safeBookings[0]?.status !== 'rejected' && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Reject venue"
-                    onClick={(e) => { e.stopPropagation(); handleAction([safeBookings[0].id], 'rejected'); }}
-                    className="text-textMuted hover:text-error"
-                    title="Reject this venue"
-                    disabled={isProcessingAction}
-                  >
-                    <XCircle size={18} />
-                  </Button>
-                )}
-                {!isMultiVenue && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Edit booking"
-                    onClick={(e) => { e.stopPropagation(); onEdit(safeBookings[0]); }}
-                    className="text-textMuted hover:text-primary"
-                    title="Edit booking timings"
-                    disabled={isProcessingAction}
-                  >
-                    <Pencil size={16} />
-                  </Button>
-                )}
-                {!isMultiVenue && safeBookings[0]?.status !== 'approved' && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Approve venue"
-                    onClick={(e) => { e.stopPropagation(); handleAction([safeBookings[0].id], 'approved'); }}
-                    className="text-primary hover:text-primary/80"
-                    title="Approve this venue"
-                    disabled={isProcessingAction}
-                  >
-                    <CheckCircle size={18} />
-                  </Button>
-                )}
-                {!isMultiVenue && safeBookings[0]?.status !== 'pending' && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Move to pending"
-                    onClick={(e) => { e.stopPropagation(); handleAction([safeBookings[0].id], 'pending'); }}
-                    className="text-textMuted hover:text-warning"
-                    title="Move to pending"
-                    disabled={isProcessingAction}
-                  >
-                    <RotateCcw size={18} />
-                  </Button>
-                )}
-                {/* Multi-venue: show bulk Reject All / Approve All; individual controls are in the expanded panel */}
-                {isMultiVenue && req.status !== 'rejected' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleAction(req.ids, 'rejected'); }}
-                    className="text-textMuted hover:text-error text-xs"
-                    title="Reject all venues"
-                    disabled={isProcessingAction}
-                  >
-                    <XCircle size={15} className="mr-1" />
-                    <span className="hidden sm:inline">Reject All</span>
-                  </Button>
-                )}
-                {isMultiVenue && req.status !== 'approved' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleAction(req.ids, 'approved'); }}
-                    className="text-primary hover:text-primary/80 text-xs"
-                    title="Approve all venues"
-                    disabled={isProcessingAction}
-                  >
-                    <CheckCircle size={15} className="mr-1" />
-                    <span className="hidden sm:inline">Approve All</span>
-                  </Button>
-                )}
-                {isMultiVenue && req.status !== 'pending' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleAction(req.ids, 'pending'); }}
-                    className="text-textMuted hover:text-warning text-xs"
-                    title="Move all to pending"
-                    disabled={isProcessingAction}
-                  >
-                    <RotateCcw size={15} className="mr-1" />
-                    <span className="hidden sm:inline">Pending All</span>
-                  </Button>
-                )}
-              </>
+            {/* Single-venue: show individual approve/reject directly on the row */}
+            {!isMultiVenue && safeBookings[0]?.status !== 'rejected' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Reject venue"
+                onClick={(e) => { e.stopPropagation(); handleAction([safeBookings[0].id], 'rejected'); }}
+                className="text-textMuted hover:text-error"
+                title="Reject this venue"
+                disabled={isProcessingAction}
+              >
+                <XCircle size={18} />
+              </Button>
+            )}
+            {!isMultiVenue && (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Edit booking"
+                onClick={(e) => { e.stopPropagation(); onEdit(safeBookings[0]); }}
+                className="text-textMuted hover:text-primary"
+                title="Edit booking timings"
+                disabled={isProcessingAction}
+              >
+                <Pencil size={16} />
+              </Button>
+            )}
+            {!isMultiVenue && safeBookings[0]?.status !== 'approved' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Approve venue"
+                onClick={(e) => { e.stopPropagation(); handleAction([safeBookings[0].id], 'approved'); }}
+                className="text-primary hover:text-primary/80"
+                title="Approve this venue"
+                disabled={isProcessingAction}
+              >
+                <CheckCircle size={18} />
+              </Button>
+            )}
+            {!isMultiVenue && safeBookings[0]?.status !== 'pending' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Move to pending"
+                onClick={(e) => { e.stopPropagation(); handleAction([safeBookings[0].id], 'pending'); }}
+                className="text-textMuted hover:text-warning"
+                title="Move to pending"
+                disabled={isProcessingAction}
+              >
+                <RotateCcw size={18} />
+              </Button>
+            )}
+            {!isMultiVenue && (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Delete booking"
+                onClick={(e) => { e.stopPropagation(); handleDelete([safeBookings[0].id]); }}
+                className="text-textMuted hover:text-error"
+                title="Delete this booking permanently"
+                disabled={isProcessingAction}
+              >
+                <Trash2 size={16} />
+              </Button>
+            )}
+            {/* Multi-venue: show bulk Reject All / Approve All; individual controls are in the expanded panel */}
+            {isMultiVenue && req.status !== 'rejected' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); handleAction(req.ids, 'rejected'); }}
+                className="text-textMuted hover:text-error text-xs"
+                title="Reject all venues"
+                disabled={isProcessingAction}
+              >
+                <XCircle size={15} className="mr-1" />
+                <span className="hidden sm:inline">Reject All</span>
+              </Button>
+            )}
+            {isMultiVenue && req.status !== 'approved' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); handleAction(req.ids, 'approved'); }}
+                className="text-primary hover:text-primary/80 text-xs"
+                title="Approve all venues"
+                disabled={isProcessingAction}
+              >
+                <CheckCircle size={15} className="mr-1" />
+                <span className="hidden sm:inline">Approve All</span>
+              </Button>
+            )}
+            {isMultiVenue && req.status !== 'pending' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); handleAction(req.ids, 'pending'); }}
+                className="text-textMuted hover:text-warning text-xs"
+                title="Move all to pending"
+                disabled={isProcessingAction}
+              >
+                <RotateCcw size={15} className="mr-1" />
+                <span className="hidden sm:inline">Pending All</span>
+              </Button>
+            )}
+            {isMultiVenue && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); handleDelete(req.ids); }}
+                className="text-textMuted hover:text-error text-xs"
+                title="Delete all venues in this booking"
+                disabled={isProcessingAction}
+              >
+                <Trash2 size={15} className="mr-1" />
+                <span className="hidden sm:inline">Delete All</span>
+              </Button>
             )}
           </div>
         </td>
@@ -529,7 +608,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2">
-                      {!isStarted && booking.status !== 'rejected' && (
+                      {booking.status !== 'rejected' && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -541,19 +620,17 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                           <X size={16} />
                         </Button>
                       )}
-                      {!isStarted && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onEdit(booking)}
-                          className="h-8 w-8 p-0 text-textMuted hover:text-primary"
-                          title="Edit booking timings"
-                          disabled={isProcessingAction}
-                        >
-                          <Pencil size={14} />
-                        </Button>
-                      )}
-                      {!isStarted && booking.status !== 'approved' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEdit(booking)}
+                        className="h-8 w-8 p-0 text-textMuted hover:text-primary"
+                        title="Edit booking timings"
+                        disabled={isProcessingAction}
+                      >
+                        <Pencil size={14} />
+                      </Button>
+                      {booking.status !== 'approved' && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -565,7 +642,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                           <Check size={16} />
                         </Button>
                       )}
-                      {!isStarted && booking.status !== 'pending' && (
+                      {booking.status !== 'pending' && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -577,6 +654,16 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({ req, index, venues, h
                           <RotateCcw size={16} />
                         </Button>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete([booking.id])}
+                        className="h-8 w-8 p-0 text-textMuted hover:text-error"
+                        title="Delete this venue booking"
+                        disabled={isProcessingAction}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
                     </div>
                   </div>
                 ))}

@@ -63,21 +63,21 @@ export const startCronJobs = () => {
   cron.schedule('*/15 * * * *', async () => {
     console.log('Running auto-reject for past pending requests...');
     try {
-      // Reject pending bookings whose start_time has passed
+      // Reject pending bookings whose end_time has passed
       const bookingResult = await db.query(`
         UPDATE bookings
         SET status = 'rejected'
-        WHERE status = 'pending' AND start_time < CURRENT_TIMESTAMP
+        WHERE status = 'pending' AND end_time < CURRENT_TIMESTAMP
       `);
       if (bookingResult.rowCount && bookingResult.rowCount > 0) {
         console.log(`Auto-rejected ${bookingResult.rowCount} past pending bookings.`);
       }
 
-      // Reject pending events whose date has passed
+      // Reject pending events whose end_date has passed
       const eventResult = await db.query(`
         UPDATE events
         SET status = 'rejected'
-        WHERE status = 'pending' AND date < CURRENT_DATE
+        WHERE status = 'pending' AND COALESCE(end_date, date) < CURRENT_TIMESTAMP
       `);
       if (eventResult.rowCount && eventResult.rowCount > 0) {
         console.log(`Auto-rejected ${eventResult.rowCount} past pending events.`);

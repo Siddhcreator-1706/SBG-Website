@@ -4,6 +4,7 @@ import authMiddleware from '../middleware/auth';
 import { io } from '../server';
 import { createNotification } from '../services/notification';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
+import { cache } from './bookings';
 
 const router = express.Router();
 
@@ -444,10 +445,6 @@ router.delete('/bookings/:id', async (req, res) => {
       return res.status(404).json({ error: 'Booking not found' });
     }
 
-    if (new Date(booking.start_time) <= new Date()) {
-      return res.status(400).json({ error: 'Cannot cancel a booking after its start time has passed.' });
-    }
-
     await db.query('DELETE FROM bookings WHERE id = $1', [id]);
 
     io.emit('events:updated');
@@ -721,15 +718,16 @@ router.get('/club-members/all', async (_req, res) => {
 });
 
 router.post('/venues', async (req, res) => {
-  const { name, category, capacity, location } = req.body;
+  const { name, category, capacity, location, is_active } = req.body;
   if (!name || !category) {
     return res.status(400).json({ error: 'Name and category are required' });
   }
   try {
     const { rows } = await db.query(
-      'INSERT INTO venues (name, category, capacity, location) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, category, capacity || null, location || null]
+      'INSERT INTO venues (name, category, capacity, location, is_active) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [name, category, capacity || null, location || null, is_active !== undefined ? Boolean(is_active) : true]
     );
+    cache.del('venues');
     return res.status(201).json(rows[0]);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -738,13 +736,14 @@ router.post('/venues', async (req, res) => {
 
 router.patch('/venues/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, category, capacity, location } = req.body;
+  const { name, category, capacity, location, is_active } = req.body;
 
   const updateFields: Record<string, any> = {};
   if (name !== undefined) updateFields.name = name;
   if (category !== undefined) updateFields.category = category;
   if (capacity !== undefined) updateFields.capacity = capacity;
   if (location !== undefined) updateFields.location = location;
+  if (is_active !== undefined) updateFields.is_active = Boolean(is_active);
 
   if (Object.keys(updateFields).length === 0) return res.status(400).json({ error: 'No fields to update' });
 
@@ -757,6 +756,7 @@ router.patch('/venues/:id', async (req, res) => {
     const { rows } = await db.query(`UPDATE venues SET ${setString} WHERE id = $${values.length} RETURNING *`, values);
     
     if (rows.length === 0) throw new Error('Venue not found');
+    cache.del('venues');
     return res.json(rows[0]);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -778,6 +778,7 @@ router.delete('/venues/:id', async (req, res) => {
     }
 
     await db.query('DELETE FROM venues WHERE id = $1', [id]);
+    cache.del('venues');
     return res.json({ success: true });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });

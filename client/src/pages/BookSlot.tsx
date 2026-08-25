@@ -90,7 +90,7 @@ const BookSlot: React.FC<BookSlotProps> = ({ currentUser }) => {
           apiRequest<AppEvent[]>('/api/events?futureOnly=true', { auth: true }).catch(() => [])
         ]);
         setClubs(clubsData);
-        setVenues(venuesData);
+        setVenues(venuesData.filter(v => v.is_active !== false));
         setEvents(
           (eventsData || []).map(e => ({ ...e, id: String(e.id) }))
         );
