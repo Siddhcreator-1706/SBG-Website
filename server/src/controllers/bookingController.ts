@@ -236,7 +236,7 @@ export const createBooking = async (req: Request, res: Response) => {
 
     // Lock target venue rows to serialize concurrent booking requests for the same venue(s)
     const { rows: venues } = await client.query(
-      'SELECT id, category, capacity, name, is_active FROM venues WHERE id = ANY($1::uuid[]) FOR UPDATE',
+      'SELECT id, category, name, is_active FROM venues WHERE id = ANY($1::uuid[]) FOR UPDATE',
       [venueIds]
     );
 
@@ -253,7 +253,7 @@ export const createBooking = async (req: Request, res: Response) => {
     }
 
     const { rows: clubRows } = await client.query(
-      'SELECT id, group_category, name FROM clubs WHERE id = $1',
+      'SELECT id, name FROM clubs WHERE id = $1',
       [clubId]
     );
     const club = clubRows[0];
@@ -327,7 +327,7 @@ export const createBooking = async (req: Request, res: Response) => {
         const { rows: insertRows } = await client.query(`
           INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link, booking_name)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-          RETURNING *
+          RETURNING id, venue_id, start_time, end_time, status
         `, [
           clubId,
           venue.id,

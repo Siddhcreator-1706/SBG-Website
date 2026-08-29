@@ -72,7 +72,7 @@ export const createEvent = async (req: Request, res: Response) => {
     const { rows } = await db.query(
       `INSERT INTO events (club_id, name, date, venue, end_date, event_type, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`,
+       RETURNING id, club_id, name, date, venue, end_date, event_type, status, created_at, updated_at`,
       [clubId, name, date, venue || null, end_date || null, finalEventType, initialStatus]
     );
 
@@ -85,9 +85,6 @@ export const createEvent = async (req: Request, res: Response) => {
 
 export const getEvents = async (req: Request, res: Response) => {
   try {
-    // Auto-reject any pending events that have already started
-    await db.query(`UPDATE events SET status = 'rejected' WHERE status = 'pending' AND date < NOW()`);
-
     const isAdmin = req.user?.role === 'admin';
     let clubId: string | undefined;
 
@@ -99,10 +96,9 @@ export const getEvents = async (req: Request, res: Response) => {
       clubId = club.id;
     }
 
-    let query = `SELECT e.*, c.name as club_name, COALESCE(e.end_date, e.date) as dynamic_end_date
+    let query = `SELECT e.id, e.name, e.date, e.venue, e.end_date, e.event_type, e.status, e.club_id, e.created_at, e.updated_at, c.name as club_name, COALESCE(e.end_date, e.date) as dynamic_end_date
        FROM events e
        LEFT JOIN clubs c ON e.club_id = c.id
-       LEFT JOIN bookings b ON e.id = b.event_id AND b.status != 'rejected'
        WHERE e.status != 'cancelled'`;
     const params: any[] = [];
 
@@ -112,9 +108,9 @@ export const getEvents = async (req: Request, res: Response) => {
     }
 
     if (req.query.futureOnly === 'true') {
-      query += ` GROUP BY e.id, c.name HAVING COALESCE(e.end_date, e.date) >= CURRENT_TIMESTAMP ORDER BY e.date DESC, e.created_at DESC`;
+      query += ` AND COALESCE(e.end_date, e.date) >= CURRENT_TIMESTAMP ORDER BY e.date DESC, e.created_at DESC`;
     } else {
-      query += ` GROUP BY e.id, c.name ORDER BY e.date DESC, e.created_at DESC`;
+      query += ` ORDER BY e.date DESC, e.created_at DESC`;
     }
 
     const { rows } = await db.query(query, params);
@@ -197,7 +193,7 @@ export const updateEvent = async (req: Request, res: Response) => {
     values.push(id);
 
     const { rows } = await db.query(
-      `UPDATE events SET ${setString} WHERE id = $${values.length} RETURNING *`,
+      `UPDATE events SET ${setString} WHERE id = $${values.length} RETURNING id, club_id, name, date, venue, end_date, event_type, status, created_at, updated_at`,
       values
     );
 
@@ -285,7 +281,7 @@ export const deleteEvent = async (req: Request, res: Response) => {
 export const getPublicEvents = async (_req: Request, res: Response) => {
   try {
     const { rows } = await db.query(`
-      SELECT e.*, 
+      SELECT e.id, e.name, e.date, e.venue, e.end_date, e.event_type, e.status, 
              json_build_object('name', c.name) AS clubs
       FROM events e
       LEFT JOIN clubs c ON e.club_id = c.id

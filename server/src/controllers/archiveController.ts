@@ -8,7 +8,7 @@ export const getArchivedEvents = async (req: Request, res: Response) => {
     const isAdmin = userRole === 'admin' || userRole === 'super_admin';
 
     let query = `
-      SELECT ae.*, c.name as club_name
+      SELECT ae.id, ae.club_id, ae.name, ae.date, ae.end_date, ae.venue, ae.event_type, ae.status, ae.report_exempt, ae.created_at, ae.updated_at, ae.archived_at, c.name as club_name
       FROM archived_events ae
       LEFT JOIN clubs c ON ae.club_id = c.id
     `;
@@ -36,12 +36,12 @@ export const getArchivedEvents = async (req: Request, res: Response) => {
     const idList = eventIds.map((_, i) => `$${i + 1}`).join(',');
 
     const bookingsRes = await db.query(`
-      SELECT ab.*, v.name as venue_name
+      SELECT ab.id, ab.club_id, ab.venue_id, ab.start_time, ab.end_time, ab.status, ab.user_id, ab.event_name, ab.event_type, ab.expected_attendees, ab.batch_id, ab.event_id, ab.created_at, ab.updated_at, ab.archived_at, v.name as venue_name
       FROM archived_bookings ab
       LEFT JOIN venues v ON ab.venue_id = v.id
       WHERE ab.event_id IN (${idList})
     `, eventIds);
-    const reportsRes = await db.query(`SELECT * FROM archived_event_reports WHERE event_id IN (${idList})`, eventIds);
+    const reportsRes = await db.query(`SELECT id, club_id, event_id, level, level_description, report_doc_link, participants_sheet_link, photos_drive_link, awards_doc_link, created_at, updated_at, archived_at FROM archived_event_reports WHERE event_id IN (${idList})`, eventIds);
 
     const result = events.map(event => ({
       ...event,

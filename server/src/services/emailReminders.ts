@@ -10,7 +10,7 @@ export const startCronJobs = () => {
       // 1. Exactly 7 days have passed since the event ended, OR
       // 2. It's the 1st day of a new month and the event ended in a prior month
       const query = `
-        SELECT e.name, c.email, c.name as club_name
+        SELECT e.name, c.email
         FROM events e
         JOIN clubs c ON e.club_id = c.id
         LEFT JOIN event_reports er ON e.id = er.event_id
