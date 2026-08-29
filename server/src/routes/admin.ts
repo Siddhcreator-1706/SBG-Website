@@ -1,4 +1,6 @@
 import express from 'express';
+import { invalidateClubs, invalidatePublicBookings, invalidateVenues } from '../cache';
+import { performVenueConflictCheck } from '../controllers/bookingController';
 import { db } from '../db';
 import authMiddleware from '../middleware/auth';
 import { io } from '../server';
@@ -46,6 +48,8 @@ router.get('/bookings', async (_req, res) => {
   try {
     const { rows } = await db.query(`
       ${baseBookingQuery}
+      WHERE b.status = 'pending'
+         OR b.end_time >= NOW() - INTERVAL '180 days'
       ORDER BY b.start_time DESC
     `);
     return res.json(rows);
@@ -57,9 +61,6 @@ router.get('/bookings', async (_req, res) => {
 // Event endpoints
 router.get('/events/pending', async (_req, res) => {
   try {
-    // Auto-reject any pending events that have already started
-    await db.query(`UPDATE events SET status = 'rejected' WHERE status = 'pending' AND date < NOW()`);
-
     const { rows } = await db.query(`
       SELECT e.*, 
              COALESCE(e.end_date, e.date) as dynamic_end_date,
@@ -77,9 +78,6 @@ router.get('/events/pending', async (_req, res) => {
 
 router.get('/events', async (_req, res) => {
   try {
-    // Auto-reject any pending events that have already started
-    await db.query(`UPDATE events SET status = 'rejected' WHERE status = 'pending' AND date < NOW()`);
-
     const { rows } = await db.query(`
       SELECT e.*, 
              COALESCE(e.end_date, e.date) as dynamic_end_date,
@@ -140,6 +138,8 @@ router.patch('/events/bulk-status', async (req, res) => {
 
     await client.query('COMMIT');
 
+    invalidatePublicBookings();
+
     // Create notifications
     const { createBulkEventStatusNotifications } = await import('../services/notification');
     await createBulkEventStatusNotifications(events, status);
@@ -193,6 +193,28 @@ router.patch('/bookings/bulk-status', async (req, res) => {
       throw new Error('No valid bookings found');
     }
 
+    if (status === 'approved') {
+      const venueIds = [...new Set(bookings.map((b: { venue_id: string }) => b.venue_id))];
+      await client.query(
+        'SELECT id FROM venues WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE',
+        [venueIds]
+      );
+
+      for (const booking of bookings) {
+        const { conflict, message } = await performVenueConflictCheck(
+          [booking.venue_id],
+          booking.start_time,
+          booking.end_time,
+          ids,
+          client
+        );
+        if (conflict) {
+          await client.query('ROLLBACK');
+          return res.status(409).json({ error: message });
+        }
+      }
+    }
+
     // Update statuses
     await client.query(
       `UPDATE bookings SET status = $1 WHERE id = ANY($2)`,
@@ -200,6 +222,8 @@ router.patch('/bookings/bulk-status', async (req, res) => {
     );
 
     await client.query('COMMIT');
+
+    invalidatePublicBookings();
 
     // Create notifications and emit socket events
     const { createBulkBookingStatusNotifications } = await import('../services/notification');
@@ -345,6 +369,7 @@ router.patch('/bookings/:id/status', async (req, res) => {
 
 
 
+    invalidatePublicBookings();
     return res.json(data);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -421,6 +446,7 @@ router.put('/bookings/:id', async (req, res) => {
     });
 
 
+    invalidatePublicBookings();
     return res.json(data);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -449,6 +475,7 @@ router.delete('/bookings/:id', async (req, res) => {
     }
 
     await db.query('DELETE FROM bookings WHERE id = $1', [id]);
+    invalidatePublicBookings();
 
     io.emit('events:updated');
     if (booking) {
@@ -518,29 +545,62 @@ router.post('/bookings', async (req, res) => {
     const { randomUUID } = await import('crypto');
     const batchId = randomUUID();
     const createdBookings = [];
+    const client = await db.connect();
 
-    for (const slot of timeSlots) {
-      for (const venueId of venue_ids) {
-        const { rows } = await db.query(`
-          WITH inserted AS (
-            INSERT INTO bookings (club_id, venue_id, start_time, end_time, expected_attendees, status, batch_id, event_id, booking_name)
-            VALUES ($1, $2, $3, $4, $5, 'approved', $6, $7, $8)
-            RETURNING *
-          )
-          SELECT i.*,
-                 e.name AS event_name,
-                 e.event_type,
-                 json_build_object('name', c.name) AS clubs,
-                 json_build_object('name', v.name) AS venues
-          FROM inserted i
-          LEFT JOIN clubs c ON i.club_id = c.id
-          LEFT JOIN venues v ON i.venue_id = v.id
-          LEFT JOIN events e ON i.event_id = e.id
-        `, [club_id, venueId, slot.startTime, slot.endTime, expected_attendees || 0, batchId, event_id, bookingName.trim()]);
-        
-        createdBookings.push(rows[0]);
+    try {
+      await client.query('BEGIN');
+
+      await client.query(
+        'SELECT id FROM venues WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE',
+        [venue_ids]
+      );
+
+      for (const slot of timeSlots) {
+        const { conflict, message } = await performVenueConflictCheck(
+          venue_ids,
+          slot.startTime,
+          slot.endTime,
+          undefined,
+          client
+        );
+        if (conflict) {
+          await client.query('ROLLBACK');
+          return res.status(409).json({ error: message });
+        }
       }
+
+      for (const slot of timeSlots) {
+        for (const venueId of venue_ids) {
+          const { rows } = await client.query(`
+            WITH inserted AS (
+              INSERT INTO bookings (club_id, venue_id, start_time, end_time, expected_attendees, status, batch_id, event_id, booking_name)
+              VALUES ($1, $2, $3, $4, $5, 'approved', $6, $7, $8)
+              RETURNING *
+            )
+            SELECT i.*,
+                   e.name AS event_name,
+                   e.event_type,
+                   json_build_object('name', c.name) AS clubs,
+                   json_build_object('name', v.name) AS venues
+            FROM inserted i
+            LEFT JOIN clubs c ON i.club_id = c.id
+            LEFT JOIN venues v ON i.venue_id = v.id
+            LEFT JOIN events e ON i.event_id = e.id
+          `, [club_id, venueId, slot.startTime, slot.endTime, expected_attendees || 0, batchId, event_id, bookingName.trim()]);
+
+          createdBookings.push(rows[0]);
+        }
+      }
+
+      await client.query('COMMIT');
+    } catch (txErr: any) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
     }
+
+    invalidatePublicBookings();
 
     await createNotification({
       type: 'booking_approved',
@@ -623,6 +683,8 @@ router.patch('/clubs/:id', async (req, res) => {
 
     const { rows } = await db.query(`UPDATE clubs SET ${setString} WHERE id = $${values.length} RETURNING *`, values);
     
+    invalidateClubs();
+    
     // Cascade email update to profiles and auth.users so login continues to work
     if (email && email !== oldEmail) {
        await db.query('UPDATE profiles SET email = $1 WHERE email = $2', [email, oldEmail]);
@@ -646,6 +708,8 @@ router.delete('/clubs/:id', async (req, res) => {
     // Enforce proper deletion order to respect Foreign Key constraints
     await db.query('DELETE FROM bookings WHERE club_id = $1', [id]);
     await db.query('DELETE FROM clubs WHERE id = $1', [id]);
+    invalidateClubs();
+    invalidatePublicBookings();
 
     const profileRes = await db.query('SELECT id FROM profiles WHERE email = $1', [club.email]);
     if (profileRes.rows.length > 0) {
@@ -730,6 +794,7 @@ router.post('/venues', async (req, res) => {
       'INSERT INTO venues (name, category, capacity, location) VALUES ($1, $2, $3, $4) RETURNING *',
       [name, category, capacity || null, location || null]
     );
+    invalidateVenues();
     return res.status(201).json(rows[0]);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -757,6 +822,7 @@ router.patch('/venues/:id', async (req, res) => {
     const { rows } = await db.query(`UPDATE venues SET ${setString} WHERE id = $${values.length} RETURNING *`, values);
     
     if (rows.length === 0) throw new Error('Venue not found');
+    invalidateVenues();
     return res.json(rows[0]);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -778,6 +844,8 @@ router.delete('/venues/:id', async (req, res) => {
     }
 
     await db.query('DELETE FROM venues WHERE id = $1', [id]);
+    invalidateVenues();
+    invalidatePublicBookings();
     return res.json({ success: true });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });

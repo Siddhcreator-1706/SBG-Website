@@ -122,11 +122,8 @@ const App: React.FC = () => {
 
     if (loggedInUser.role === 'admin') {
       socket.emit(SOCKET_EVENTS.JOIN_ADMIN);
-    } else if (loggedInUser.email) {
-      apiRequest<{ id: string }[]>('/api/clubs').then(clubs => {
-        const match = clubs.find((c: any) => c.email === loggedInUser.email);
-        if (match?.id) socket.emit(SOCKET_EVENTS.JOIN_CLUB, match.id);
-      }).catch(() => { });
+    } else if (loggedInUser.clubId) {
+      socket.emit(SOCKET_EVENTS.JOIN_CLUB, loggedInUser.clubId);
     }
   };
 
@@ -151,11 +148,8 @@ const App: React.FC = () => {
 
     if (user.role === 'admin') {
       socket.emit(SOCKET_EVENTS.JOIN_ADMIN);
-    } else if (user.email) {
-      apiRequest<{ id: string }[]>('/api/clubs').then(clubs => {
-        const match = clubs.find((c: any) => c.email === user.email);
-        if (match?.id) socket.emit(SOCKET_EVENTS.JOIN_CLUB, match.id);
-      }).catch(() => { });
+    } else if (user.clubId) {
+      socket.emit(SOCKET_EVENTS.JOIN_CLUB, user.clubId);
     }
   }, [user]);
 
@@ -215,8 +209,8 @@ const App: React.FC = () => {
               <Route path="/committee" element={<PageTitleWrapper title="Committee | SBG DAU">{user.role === 'club' ? <ClubCommittee user={user} /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/policy" element={<PageTitleWrapper title="Policy | SBG DAU"><PolicyPage /></PageTitleWrapper>} />
 
-              <Route path="/admin/requests" element={<PageTitleWrapper title="Slot Requests | SBG DAU"><AdminRequests /></PageTitleWrapper>} />
-              <Route path="/admin/event-requests" element={<PageTitleWrapper title="Event Registrations | SBG DAU"><AdminEventRequests /></PageTitleWrapper>} />
+              <Route path="/admin/requests" element={<PageTitleWrapper title="Slot Requests | SBG DAU">{user.role === 'admin' ? <AdminRequests /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
+              <Route path="/admin/event-requests" element={<PageTitleWrapper title="Event Registrations | SBG DAU">{user.role === 'admin' ? <AdminEventRequests /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
 
               <Route path="/admin/clubs" element={<PageTitleWrapper title="Clubs | SBG DAU">{user.role === 'admin' ? <AdminClubs /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/admin/venues" element={<PageTitleWrapper title="Venues | SBG DAU">{user.role === 'admin' ? <AdminVenues /> : <Navigate to="/" replace />}</PageTitleWrapper>} />

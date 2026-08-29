@@ -176,6 +176,16 @@ export async function createBulkEventStatusNotifications(
             return acc;
         }, {} as Record<string, { clubId: string; clubName: string; count: number }>);
 
+        const clubIds = Object.values(grouped).map((g) => g.clubId);
+        const { rows: profileRows } = await db.query(
+            `SELECT c.id AS club_id, p.id AS user_id
+             FROM clubs c
+             JOIN profiles p ON LOWER(p.email) = LOWER(c.email)
+             WHERE c.id = ANY($1::uuid[])`,
+            [clubIds]
+        );
+        const userByClub = new Map(profileRows.map((r: { club_id: string; user_id: string }) => [r.club_id, r.user_id]));
+
         const values: any[] = [];
         const placeholders: string[] = [];
         let paramIndex = 1;
@@ -194,7 +204,7 @@ export async function createBulkEventStatusNotifications(
                 status === 'active' ? 'event_approved' : status === 'rejected' ? 'event_rejected' : 'event_pending',
                 `Event ${status === 'active' ? 'Approved' : status === 'rejected' ? 'Rejected' : 'Pending'}`,
                 message,
-                null, // user_id is null for broadcasting to club
+                userByClub.get(group.clubId) || null,
                 { status, clubId: group.clubId, count: group.count }
             );
         }

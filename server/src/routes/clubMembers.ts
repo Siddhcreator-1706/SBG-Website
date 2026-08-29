@@ -1,4 +1,5 @@
 import express from 'express';
+import { isOfficialCommitteeEmail } from '../constants/officialEmails';
 import { db } from '../db';
 import authMiddleware from '../middleware/auth';
 import { getClubForUser } from '../utils/clubAuth';
@@ -108,7 +109,7 @@ router.post('/', authMiddleware, clubOnly, async (req, res) => {
     return res.status(400).json({ error: 'Email is required' });
   }
 
-  if (!email.trim().endsWith('@dau.ac.in')) {
+  if (!isOfficialCommitteeEmail(email)) {
     return res.status(400).json({ error: 'Email must end with @dau.ac.in' });
   }
 
@@ -240,7 +241,7 @@ router.patch('/:id', authMiddleware, clubOnly, async (req, res) => {
           if (typeof value !== 'string' || !value.trim()) {
             return res.status(400).json({ error: 'Email is required' });
           }
-          if (!value.trim().endsWith('@dau.ac.in')) {
+          if (!isOfficialCommitteeEmail(value)) {
             return res.status(400).json({ error: 'Email must end with @dau.ac.in' });
           }
         }

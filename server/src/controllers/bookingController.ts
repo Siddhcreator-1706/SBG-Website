@@ -4,6 +4,7 @@ import { db } from '../db';
 import type { PoolClient } from 'pg';
 
 import { randomUUID } from 'crypto';
+import { invalidatePublicBookings } from '../cache';
 import { io } from '../server';
 import { checkPendingEventReports } from '../services/eventReportService';
 import { createBookingPendingNotifications } from '../services/notification';
@@ -86,7 +87,7 @@ const violatesRestrictedWeekdayHours = (startUtc: Date, endUtc: Date) => {
 // client so the conflict check participates in the same transaction as
 // the row lock + insert/update, closing the race condition.
 
-const performVenueConflictCheck = async (
+export const performVenueConflictCheck = async (
   venueIds: string[],
   startTime: string,
   endTime: string,
@@ -231,12 +232,13 @@ export const createBooking = async (req: Request, res: Response) => {
   }
 
   const client = await db.connect();
+  let released = false;
   try {
     await client.query('BEGIN');
 
     // Lock target venue rows to serialize concurrent booking requests for the same venue(s)
     const { rows: venues } = await client.query(
-      'SELECT id, category, capacity, name FROM venues WHERE id = ANY($1::uuid[]) FOR UPDATE',
+      'SELECT id, category, capacity, name FROM venues WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE',
       [venueIds]
     );
 
@@ -345,92 +347,104 @@ export const createBooking = async (req: Request, res: Response) => {
     }
 
     await client.query('COMMIT');
+    client.release();
+    released = true;
 
-    const pendingForEmail = createdBookings.filter((b) => b.status === 'pending');
-    if (pendingForEmail.length > 0) {
-      const formatTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+    invalidatePublicBookings();
+
+    try {
+      const pendingForEmail = createdBookings.filter((b) => b.status === 'pending');
+      if (pendingForEmail.length > 0) {
+        const formatTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
 
 
-      const itemsForNotification = pendingForEmail.map((b) => {
-        const venue = venues.find((v) => v.id === b.venue_id);
-        return {
-          venueName: venue?.name ?? b.venue_id,
-          eventName: eventName,
-          startTime: formatTime(b.start_time),
-          endTime: formatTime(b.end_time),
-          clubName: club?.name,
-          eventType,
-        };
-      });
-
-      // Also persist as in-app notifications
-      await createBookingPendingNotifications(itemsForNotification);
-
-      // Send the email to the admin
-      const adminEmail = process.env.APPROVAL_SMTP_USER;
-      if (adminEmail) {
-        const { sendPendingBookingEmailToAdmin } = await import('../services/email/index');
-        await sendPendingBookingEmailToAdmin(adminEmail, itemsForNotification);
-      }
-
-      // Socket notification to admins
-      io.to('admin').emit('booking:pending', {
-        eventName,
-        clubName: club.name,
-        venueNames: venues.map(v => v.name).join(', '),
-        batchId,
-        clubId,
-      });
-    }
-
-    // Also emit for auto-approved bookings so they show up on the club's own dashboard and public calendar instantly
-    const approvedBookings = createdBookings.filter((b) => b.status === 'approved');
-    if (approvedBookings.length > 0) {
-      io.to(`club:${clubId}`).emit('booking:status_changed', {
-        bookingId: approvedBookings[0].id,
-        status: 'approved',
-        eventName,
-        clubId,
-      });
-      io.emit('events:updated');
-
-      const { sendBulkBookingProcessedEmail } = await import('../services/email');
-      const clubEmailRows = await db.query('SELECT email FROM clubs WHERE id = $1', [clubId]);
-      const clubEmail = clubEmailRows.rows[0]?.email;
-
-      if (clubEmail) {
-        const approvedVenues = approvedBookings.map((b) => {
+        const itemsForNotification = pendingForEmail.map((b) => {
           const venue = venues.find((v) => v.id === b.venue_id);
-          return venue?.name || 'Venue';
+          return {
+            venueName: venue?.name ?? b.venue_id,
+            eventName: eventName,
+            startTime: formatTime(b.start_time),
+            endTime: formatTime(b.end_time),
+            clubName: club?.name,
+            eventType,
+          };
         });
 
-        const date = new Date(approvedBookings[0].start_time).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
-        const startStr = new Date(approvedBookings[0].start_time).toLocaleTimeString('en-IN', {
-            timeZone: 'Asia/Kolkata',
-            hour: '2-digit', minute: '2-digit' });
-        const endStr = new Date(approvedBookings[0].end_time).toLocaleTimeString('en-IN', {
-            timeZone: 'Asia/Kolkata',
-            hour: '2-digit', minute: '2-digit' });
+        await createBookingPendingNotifications(itemsForNotification);
 
-        await sendBulkBookingProcessedEmail(
-          clubEmail,
+        const adminEmail = process.env.APPROVAL_SMTP_USER;
+        if (adminEmail) {
+          const { sendPendingBookingEmailToAdmin } = await import('../services/email/index');
+          await sendPendingBookingEmailToAdmin(adminEmail, itemsForNotification);
+        }
+
+        io.to('admin').emit('booking:pending', {
           eventName,
-          date,
-          startStr,
-          endStr,
-          approvedVenues,
-          []
-        );
+          clubName: club.name,
+          venueNames: venues.map(v => v.name).join(', '),
+          batchId,
+          clubId,
+        });
       }
+
+      const approvedBookings = createdBookings.filter((b) => b.status === 'approved');
+      if (approvedBookings.length > 0) {
+        io.to(`club:${clubId}`).emit('booking:status_changed', {
+          bookingId: approvedBookings[0].id,
+          status: 'approved',
+          eventName,
+          clubId,
+        });
+        io.emit('events:updated');
+
+        const { sendBulkBookingProcessedEmail } = await import('../services/email');
+        const clubEmailRows = await db.query('SELECT email FROM clubs WHERE id = $1', [clubId]);
+        const clubEmail = clubEmailRows.rows[0]?.email;
+
+        if (clubEmail) {
+          const approvedVenues = approvedBookings.map((b) => {
+            const venue = venues.find((v) => v.id === b.venue_id);
+            return venue?.name || 'Venue';
+          });
+
+          const date = new Date(approvedBookings[0].start_time).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+          const startStr = new Date(approvedBookings[0].start_time).toLocaleTimeString('en-IN', {
+              timeZone: 'Asia/Kolkata',
+              hour: '2-digit', minute: '2-digit' });
+          const endStr = new Date(approvedBookings[0].end_time).toLocaleTimeString('en-IN', {
+              timeZone: 'Asia/Kolkata',
+              hour: '2-digit', minute: '2-digit' });
+
+          await sendBulkBookingProcessedEmail(
+            clubEmail,
+            eventName,
+            date,
+            startStr,
+            endStr,
+            approvedVenues,
+            []
+          );
+        }
+      }
+    } catch (notifyErr) {
+      console.error('Post-booking notifications failed:', notifyErr);
     }
 
     return res.status(201).json(createdBookings);
   } catch (err) {
-    await client.query('ROLLBACK');
+    if (!released) {
+      try {
+        await client.query('ROLLBACK');
+      } catch {
+        // ignore rollback errors so we surface the original failure
+      }
+    }
     console.error('Create booking failed:', err);
     return res.status(500).json({ error: (err as Error).message });
   } finally {
-    client.release();
+    if (!released) {
+      client.release();
+    }
   }
 };
 
@@ -644,6 +658,7 @@ export const updateBookingTimings = async (req: Request, res: Response) => {
     }
 
     io.emit('events:updated');
+    invalidatePublicBookings();
 
     return res.json({ success: true });
   } catch (err: any) {

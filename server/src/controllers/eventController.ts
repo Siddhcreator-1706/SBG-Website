@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { db } from '../db';
+import { invalidatePublicBookings } from '../cache';
+import { db, withTransaction } from '../db';
 import { checkPendingEventReports } from '../services/eventReportService';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
 import { getClubForUser } from '../utils/clubAuth';
@@ -85,9 +86,6 @@ export const createEvent = async (req: Request, res: Response) => {
 
 export const getEvents = async (req: Request, res: Response) => {
   try {
-    // Auto-reject any pending events that have already started
-    await db.query(`UPDATE events SET status = 'rejected' WHERE status = 'pending' AND date < NOW()`);
-
     const isAdmin = req.user?.role === 'admin';
     let clubId: string | undefined;
 
@@ -102,7 +100,6 @@ export const getEvents = async (req: Request, res: Response) => {
     let query = `SELECT e.*, c.name as club_name, COALESCE(e.end_date, e.date) as dynamic_end_date
        FROM events e
        LEFT JOIN clubs c ON e.club_id = c.id
-       LEFT JOIN bookings b ON e.id = b.event_id AND b.status != 'rejected'
        WHERE e.status != 'cancelled'`;
     const params: any[] = [];
 
@@ -112,10 +109,10 @@ export const getEvents = async (req: Request, res: Response) => {
     }
 
     if (req.query.futureOnly === 'true') {
-      query += ` GROUP BY e.id, c.name HAVING COALESCE(e.end_date, e.date) >= CURRENT_TIMESTAMP ORDER BY e.date DESC, e.created_at DESC`;
-    } else {
-      query += ` GROUP BY e.id, c.name ORDER BY e.date DESC, e.created_at DESC`;
+      query += ` AND COALESCE(e.end_date, e.date) >= CURRENT_TIMESTAMP`;
     }
+
+    query += ` ORDER BY e.date DESC, e.created_at DESC`;
 
     const { rows } = await db.query(query, params);
     return res.json(rows);
@@ -201,6 +198,7 @@ export const updateEvent = async (req: Request, res: Response) => {
     // If the event was downgraded to pending, downgrade all its bookings too.
     if (updateFields.status === 'pending' && existingEvent.status !== 'pending') {
       await db.query(`UPDATE bookings SET status = 'pending' WHERE event_id = $1`, [id]);
+      invalidatePublicBookings();
     }
 
     return res.json(rows[0]);
@@ -236,41 +234,36 @@ export const deleteEvent = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Past events cannot be deleted' });
     }
 
-    await db.query('BEGIN');
+    await withTransaction(async (client) => {
+      await client.query(`
+        INSERT INTO archived_events (id, club_id, name, date, end_date, venue, event_type, status, report_exempt, created_at, updated_at)
+        SELECT id, club_id, name, date, end_date, venue, event_type, status, report_exempt, created_at, updated_at
+        FROM events WHERE id = $1
+      `, [id]);
 
-    // 1. Archive event
-    await db.query(`
-      INSERT INTO archived_events (id, club_id, name, date, end_date, venue, event_type, status, report_exempt, created_at, updated_at)
-      SELECT id, club_id, name, date, end_date, venue, event_type, status, report_exempt, created_at, updated_at
-      FROM events WHERE id = $1
-    `, [id]);
+      await client.query(`
+        INSERT INTO archived_bookings (id, club_id, venue_id, start_time, end_time, status, user_id, event_name, event_type, expected_attendees, batch_id, event_id, created_at, updated_at)
+        SELECT b.id, b.club_id, b.venue_id, b.start_time, b.end_time, b.status, b.user_id, e.name as event_name, e.event_type, b.expected_attendees, b.batch_id, b.event_id, b.created_at, b.updated_at
+        FROM bookings b
+        JOIN events e ON b.event_id = e.id
+        WHERE b.event_id = $1
+      `, [id]);
 
-    // 2. Archive bookings
-    await db.query(`
-      INSERT INTO archived_bookings (id, club_id, venue_id, start_time, end_time, status, user_id, event_name, event_type, expected_attendees, batch_id, event_id, created_at, updated_at)
-      SELECT b.id, b.club_id, b.venue_id, b.start_time, b.end_time, b.status, b.user_id, e.name as event_name, e.event_type, b.expected_attendees, b.batch_id, b.event_id, b.created_at, b.updated_at
-      FROM bookings b
-      JOIN events e ON b.event_id = e.id
-      WHERE b.event_id = $1
-    `, [id]);
+      await client.query(`
+        INSERT INTO archived_event_reports (id, club_id, event_id, level, level_description, report_doc_link, participants_sheet_link, photos_drive_link, awards_doc_link, created_at, updated_at)
+        SELECT id, club_id, event_id, level, level_description, report_doc_link, participants_sheet_link, photos_drive_link, awards_doc_link, created_at, updated_at
+        FROM event_reports WHERE event_id = $1
+      `, [id]);
 
-    // 3. Archive event reports
-    await db.query(`
-      INSERT INTO archived_event_reports (id, club_id, event_id, level, level_description, report_doc_link, participants_sheet_link, photos_drive_link, awards_doc_link, created_at, updated_at)
-      SELECT id, club_id, event_id, level, level_description, report_doc_link, participants_sheet_link, photos_drive_link, awards_doc_link, created_at, updated_at
-      FROM event_reports WHERE event_id = $1
-    `, [id]);
+      await client.query('DELETE FROM event_reports WHERE event_id = $1', [id]);
+      await client.query('DELETE FROM bookings WHERE event_id = $1', [id]);
+      await client.query('DELETE FROM events WHERE id = $1', [id]);
+    });
 
-    // 4. Delete from active tables (cascading might handle some, but explicit is safer)
-    await db.query('DELETE FROM event_reports WHERE event_id = $1', [id]);
-    await db.query('DELETE FROM bookings WHERE event_id = $1', [id]);
-    await db.query('DELETE FROM events WHERE id = $1', [id]);
-
-    await db.query('COMMIT');
+    invalidatePublicBookings();
 
     return res.json({ success: true, message: 'Event and associated data deleted and archived successfully' });
   } catch (error: any) {
-    await db.query('ROLLBACK');
     console.error('Error deleting event:', error);
     return res.status(500).json({ error: 'Failed to delete event' });
   }

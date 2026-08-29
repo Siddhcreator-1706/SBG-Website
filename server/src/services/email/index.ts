@@ -18,6 +18,7 @@ import {
     DANGER_COLOR,
     detailRow,
     detailsCard,
+    escapeHtml,
     MUTED_COLOR,
     renderEmailLayout,
     statusBadge,
@@ -277,7 +278,7 @@ export async function sendPendingBookingEmailToAdmin(
       (item, index) => `
       <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : BG_COLOR};">
         <td style="padding: 12px 14px; border-bottom: 1px solid ${BORDER_COLOR}; font-size: 14px; color: ${TEXT_COLOR}; font-weight: 500;">
-          ${item.venueName}
+          ${escapeHtml(item.venueName)}
         </td>
         <td style="padding: 12px 14px; border-bottom: 1px solid ${BORDER_COLOR}; font-size: 13px; color: ${MUTED_COLOR};">
           ${formatDateLabel(item.startTime)}
@@ -304,7 +305,7 @@ export async function sendPendingBookingEmailToAdmin(
 
   const bodyHtml = `
     <p style="margin:0 0 16px 0;">
-      <strong>${clubName}</strong> has submitted a new venue booking request that requires your approval.
+      <strong>${escapeHtml(clubName)}</strong> has submitted a new venue booking request that requires your approval.
     </p>
     ${detailsCard(
       detailRow('Event', eventName) +
@@ -386,7 +387,7 @@ export async function sendBulkBookingProcessedEmail(
       .map(
         (v) => `
         <tr>
-          <td style="padding: 8px 12px; font-size: 14px; color:${TEXT_COLOR};">${v}</td>
+          <td style="padding: 8px 12px; font-size: 14px; color:${TEXT_COLOR};">${escapeHtml(v)}</td>
         </tr>`
       )
       .join('');
