@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { AlertTriangle, Calendar, CheckCircle, Clock, Filter, RefreshCw, Search, Trash2, XCircle, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Calendar, CheckCircle, ChevronLeft, ChevronRight, Clock, Filter, RefreshCw, Search, Trash2, XCircle, RotateCcw } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
@@ -41,6 +41,8 @@ const AdminEventRequests: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
 
   const fetchEvents = React.useCallback(async () => {
     setIsLoading(true);
@@ -138,6 +140,14 @@ const AdminEventRequests: React.FC = () => {
     return matchesSearch && matchesClub && matchesType && matchesStatus;
   });
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterClub, filterType, filterStatus]);
+
+  const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedEvents = filteredEvents.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -232,7 +242,7 @@ const AdminEventRequests: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {filteredEvents.map((ev, index) => (
+                {paginatedEvents.map((ev, index) => (
                   <AdminEventRow
                     key={ev.id}
                     ev={ev}
@@ -254,6 +264,33 @@ const AdminEventRequests: React.FC = () => {
             <h3 className="text-lg font-medium text-textPrimary">No event registrations found</h3>
             <p className="text-textMuted mt-1">Try adjusting your search or filters.</p>
           </CardContent>
+        )}
+        {filteredEvents.length > 0 && totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 sm:px-6 border-t border-borderSoft bg-card gap-4">
+            <div className="flex items-center text-sm text-textMuted">
+              Showing <span className="font-medium mx-1">{startIndex + 1}</span> to <span className="font-medium mx-1">{Math.min(startIndex + itemsPerPage, filteredEvents.length)}</span> of <span className="font-medium mx-1">{filteredEvents.length}</span> results
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft size={16} className="mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight size={16} className="ml-1" />
+              </Button>
+            </div>
+          </div>
         )}
       </Card>
 

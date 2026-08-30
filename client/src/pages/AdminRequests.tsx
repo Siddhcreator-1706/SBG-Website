@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Calendar, Check, CheckCircle, ChevronDown, ChevronRight, Clock, Filter, MapPin, Pencil, RefreshCw, Search, Trash2, X, XCircle, RotateCcw, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Calendar, Check, CheckCircle, ChevronDown, ChevronRight, ChevronLeft, Clock, Filter, MapPin, Pencil, RefreshCw, Search, Trash2, X, XCircle, RotateCcw, ExternalLink } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
@@ -46,6 +46,8 @@ const AdminRequests: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bookingIdsToDelete, setBookingIdsToDelete] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
 
   const fetchRequests = React.useCallback(async () => {
     setIsLoading(true);
@@ -178,6 +180,14 @@ const AdminRequests: React.FC = () => {
     return matchesSearch && matchesClub && matchesVenue && matchesStatus;
   });
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterClub, filterVenue, filterStatus]);
+
+  const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedRequests = filteredRequests.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -274,7 +284,7 @@ const AdminRequests: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {filteredRequests.map((req, index) => (
+                {paginatedRequests.map((req, index) => (
                   <AdminRequestRow
                     key={req.batchId || req.ids[0]}
                     req={req}
@@ -303,6 +313,33 @@ const AdminRequests: React.FC = () => {
             <h3 className="text-lg font-medium text-textPrimary">No requests found</h3>
             <p className="text-textMuted mt-1">Try adjusting your search or filters.</p>
           </CardContent>
+        )}
+        {filteredRequests.length > 0 && totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 sm:px-6 border-t border-borderSoft bg-card gap-4">
+            <div className="flex items-center text-sm text-textMuted">
+              Showing <span className="font-medium mx-1">{startIndex + 1}</span> to <span className="font-medium mx-1">{Math.min(startIndex + itemsPerPage, filteredRequests.length)}</span> of <span className="font-medium mx-1">{filteredRequests.length}</span> results
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft size={16} className="mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight size={16} className="ml-1" />
+              </Button>
+            </div>
+          </div>
         )}
       </Card>
 
