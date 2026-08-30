@@ -131,7 +131,7 @@ const AdminEventRequests: React.FC = () => {
 
   const filteredEvents = events.filter(ev => {
     const matchesSearch = String(ev.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesClub = filterClub === 'all' || ev.clubName === filterClub;
+    const matchesClub = filterClub === 'all' || (ev.clubName && ev.clubName.toLowerCase() === filterClub.toLowerCase());
     const matchesType = filterType === 'all' || ev.event_type === filterType;
     let matchesStatus = true;
     if (filterStatus !== 'all') {

@@ -482,7 +482,7 @@ const AdminDashboard: React.FC = () => {
                   {selectedDateEvents.length > 0 ? (
                     selectedDateEvents.map((event, index) => (
                       <motion.div
-                        key={event.batchId || event.ids[0]}
+                        key={event.ids.join('-')}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.2, delay: index * 0.05 }}
@@ -695,7 +695,7 @@ const AdminDashboard: React.FC = () => {
               ) : (
                 pendingRequests.slice(0, 5).map((req, index) => (
                   <motion.div
-                    key={req.batchId || req.ids?.[0] || index}
+                    key={req.ids?.join('-') || index}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
