@@ -108,6 +108,10 @@ const AdminClubs: React.FC = () => {
         if (!addFormData.name.trim() || !addFormData.email.trim() || !addFormData.password.trim()) {
             return;
         }
+        if (addFormData.password.length < 8) {
+            toastError(new Error('Password must be at least 8 characters long'));
+            return;
+        }
         setIsAdding(true);
         try {
             await apiRequest('/api/auth/register', {
@@ -391,7 +395,7 @@ const AdminClubs: React.FC = () => {
                             <Input
                                 id="add-password"
                                 type="password"
-                                placeholder="Min 6 characters"
+                                placeholder="Min 8 characters"
                                 value={addFormData.password}
                                 onChange={e => setAddFormData({ ...addFormData, password: e.target.value })}
                             />

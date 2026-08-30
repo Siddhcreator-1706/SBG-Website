@@ -2,13 +2,23 @@ import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import jwt from 'jsonwebtoken';
-import { isOfficialCommitteeEmail, OFFICIAL_EMAIL_DOMAIN } from '../constants/officialEmails';
-import { db } from '../db';
+import { isOfficialCommitteeEmail, normalizeEmail, OFFICIAL_EMAIL_DOMAIN } from '../constants/officialEmails';
+import { db, withTransaction } from '../db';
 import authMiddleware from '../middleware/auth';
 import { sendPasswordResetEmail } from '../services/email';
+import { signUserToken, verifyUserToken } from '../utils/jwt';
 
 const router = express.Router();
+
+const MIN_PASSWORD_LENGTH = 8;
+
+const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+};
 
 const loginLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutes
@@ -16,7 +26,11 @@ const loginLimiter = rateLimit({
     message: { error: 'Too many login attempts, please try again after 10 minutes' },
     standardHeaders: true,
     legacyHeaders: false,
-    skipSuccessfulRequests: true, // Only count failed login attempts
+    skipSuccessfulRequests: true,
+    keyGenerator: (req) => {
+        const email = typeof req.body?.email === 'string' ? normalizeEmail(req.body.email) : '';
+        return `${req.ip}:${email}`;
+    },
 });
 
 const registerLimiter = rateLimit({
@@ -33,18 +47,26 @@ const passwordResetLimiter = rateLimit({
     message: { error: 'Too many password reset requests, please try again after 30 minutes' },
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => {
+        const email = typeof req.body?.email === 'string' ? normalizeEmail(req.body.email) : '';
+        return `${req.ip}:${email}`;
+    },
 });
 
 // Public Routes
 router.post('/register', registerLimiter, async (req, res) => {
     const { email, password, clubName, groupCategory, organizationType, userId: providedUserId } = req.body;
 
-    if (!email || !clubName || !groupCategory) {
+    if (providedUserId) {
+        return res.status(400).json({ error: 'Providing a userId is not allowed during registration' });
+    }
+
+    if (!email || !password || !clubName || !groupCategory) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    if (!providedUserId && !password) {
-        return res.status(400).json({ error: 'Password is required for new accounts' });
+    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+        return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long` });
     }
 
     if (!isOfficialCommitteeEmail(email)) {
@@ -53,45 +75,37 @@ router.post('/register', registerLimiter, async (req, res) => {
         });
     }
 
+    const normalizedEmail = normalizeEmail(email);
+
     try {
-        let userId = providedUserId;
+        const userId = randomUUID();
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        if (!userId) {
-            // 1. Create Auth User (Manual Registration via SQL)
-            // Removed raw_user_meta_data as we store role in profiles now
-            userId = randomUUID();
-            const hashedPassword = await bcrypt.hash(password, 10);
-
-            await db.query(`
+        await withTransaction(async (client) => {
+            await client.query(`
                 INSERT INTO auth.users (id, email, encrypted_password)
                 VALUES ($1, $2, $3)
-            `, [userId, email, hashedPassword]);
-        }
+            `, [userId, normalizedEmail, hashedPassword]);
 
-        // 2. Create or Update Profile (SQL Upsert)
-        await db.query(`
-            INSERT INTO profiles (id, email, role, full_name)
-            VALUES ($1, $2, 'club', $3)
-            ON CONFLICT (id) DO UPDATE 
-            SET email = EXCLUDED.email, 
-                full_name = EXCLUDED.full_name
-        `, [userId, email, clubName]);
+            await client.query(`
+                INSERT INTO profiles (id, email, role, full_name)
+                VALUES ($1, $2, 'club', $3)
+            `, [userId, normalizedEmail, clubName]);
 
-        // 3. Create Club Entry if it doesn't exist
-        const clubRes = await db.query('SELECT id FROM clubs WHERE email = $1', [email]);
-
-        if (clubRes.rows.length === 0) {
-            await db.query(`
+            await client.query(`
                 INSERT INTO clubs (name, email, group_category, organization_type)
                 VALUES ($1, $2, $3, $4)
-            `, [clubName, email, groupCategory, organizationType || 'club']);
-        }
+            `, [clubName, normalizedEmail, groupCategory, organizationType || 'club']);
+        });
 
         return res.status(201).json({ message: 'Registration successful', userId });
 
     } catch (err: any) {
         console.error('Registration error:', err);
-        return res.status(400).json({ error: err.message });
+        if (err.code === '23505') {
+            return res.status(400).json({ error: 'An account with this email already exists' });
+        }
+        return res.status(400).json({ error: 'Registration failed' });
     }
 });
 
@@ -103,24 +117,19 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 
     try {
-        const { rows } = await db.query('SELECT id, encrypted_password FROM auth.users WHERE email = $1', [email]);
+        const normalizedEmail = normalizeEmail(email);
+        const { rows } = await db.query(
+            'SELECT id, encrypted_password FROM auth.users WHERE LOWER(email) = $1',
+            [normalizedEmail]
+        );
         const user = rows[0];
 
         if (!user || !(await bcrypt.compare(password, user.encrypted_password))) {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
-        const secret = process.env.JWT_SECRET;
-        if (!secret) throw new Error('Server configuration error: Missing JWT_SECRET');
-
-        const token = jwt.sign({ sub: user.id }, secret, { expiresIn: '7d' });
-
-        res.cookie('jwt_token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-        });
+        const token = signUserToken(user.id);
+        res.cookie('jwt_token', token, cookieOptions);
 
         return res.json({ message: 'Logged in successfully' });
     } catch (err: any) {
@@ -133,7 +142,8 @@ router.post('/logout', (req, res) => {
     res.clearCookie('jwt_token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
     });
     return res.json({ message: 'Logged out successfully' });
 });
@@ -149,10 +159,16 @@ router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
         return res.status(400).json({ error: 'Email is required' });
     }
 
+    const genericMessage = 'If an account exists for this email, a 6-digit OTP has been sent.';
+
     try {
-        const { rows } = await db.query('SELECT id FROM auth.users WHERE email = $1', [email]);
+        const normalizedEmail = normalizeEmail(email);
+        const { rows } = await db.query(
+            'SELECT id, email FROM auth.users WHERE LOWER(email) = $1',
+            [normalizedEmail]
+        );
         if (rows.length === 0) {
-            return res.status(404).json({ error: 'No account found with this email' });
+            return res.json({ message: genericMessage });
         }
 
         const otp = generateOTP();
@@ -160,24 +176,22 @@ router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
 
         await db.query(
-            'UPDATE auth.users SET reset_otp = $1, reset_otp_expires_at = $2 WHERE email = $3',
-            [hashedOtp, expiresAt, email]
+            'UPDATE auth.users SET reset_otp = $1, reset_otp_expires_at = $2 WHERE id = $3',
+            [hashedOtp, expiresAt, rows[0].id]
         );
 
-        const emailResult = await sendPasswordResetEmail(email, otp);
+        const emailResult = await sendPasswordResetEmail(rows[0].email, otp);
 
         if (!emailResult.sent) {
             console.log(`\n======================================================`);
             console.log(`[DEV ONLY] Password Reset Requested`);
-            console.log(`Email: ${email}`);
+            console.log(`Email: ${rows[0].email}`);
             console.log(`OTP: ${otp}`);
-            console.log(`Reason: EmailJS is not configured or failed to send (${emailResult.error || 'not configured'}).`);
+            console.log(`Reason: Email is not configured or failed to send (${emailResult.error || 'not configured'}).`);
             console.log(`======================================================\n`);
         }
 
-        return res.json({
-            message: 'A 6-digit OTP has been sent to your email address.'
-        });
+        return res.json({ message: genericMessage });
 
     } catch (err: any) {
         console.error('Forgot password error:', err);
@@ -193,7 +207,10 @@ router.post('/verify-otp', loginLimiter, async (req, res) => {
     }
 
     try {
-        const { rows } = await db.query('SELECT reset_otp, reset_otp_expires_at FROM auth.users WHERE email = $1', [email]);
+        const { rows } = await db.query(
+            'SELECT reset_otp, reset_otp_expires_at FROM auth.users WHERE LOWER(email) = $1',
+            [normalizeEmail(email)]
+        );
         const user = rows[0];
 
         if (!user || !user.reset_otp || !user.reset_otp_expires_at) {
@@ -223,12 +240,15 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
         return res.status(400).json({ error: 'Email, OTP, and new password are required' });
     }
 
-    if (newPassword.length < 6) {
-        return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+        return res.status(400).json({ error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters long` });
     }
 
     try {
-        const { rows } = await db.query('SELECT id, reset_otp, reset_otp_expires_at FROM auth.users WHERE email = $1', [email]);
+        const { rows } = await db.query(
+            'SELECT id, reset_otp, reset_otp_expires_at FROM auth.users WHERE LOWER(email) = $1',
+            [normalizeEmail(email)]
+        );
         const user = rows[0];
 
         if (!user || !user.reset_otp || !user.reset_otp_expires_at) {
@@ -247,21 +267,12 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         await db.query(
-            'UPDATE auth.users SET encrypted_password = $1, reset_otp = NULL, reset_otp_expires_at = NULL WHERE email = $2',
-            [hashedPassword, email]
+            'UPDATE auth.users SET encrypted_password = $1, reset_otp = NULL, reset_otp_expires_at = NULL WHERE id = $2',
+            [hashedPassword, user.id]
         );
 
-        const secret = process.env.JWT_SECRET;
-        if (!secret) throw new Error('Server configuration error: Missing JWT_SECRET');
-
-        const token = jwt.sign({ sub: user.id }, secret, { expiresIn: '7d' });
-
-        res.cookie('jwt_token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-        });
+        const token = signUserToken(user.id);
+        res.cookie('jwt_token', token, cookieOptions);
 
         return res.json({ message: 'Password reset successfully. You are now logged in.' });
     } catch (err: any) {
@@ -283,13 +294,10 @@ router.get('/profile', async (req, res) => {
             return res.json(null); // Soft fail for better UX, no 401 in console
         }
 
-        const secret = process.env.JWT_SECRET;
-        if (!secret) return res.json(null);
-
         let decoded;
         try {
-            decoded = jwt.verify(token, secret) as { sub: string };
-        } catch (jwtError) {
+            decoded = verifyUserToken(token);
+        } catch {
             return res.json(null); // Invalid/expired token
         }
 
@@ -384,8 +392,8 @@ router.post('/change-password', authMiddleware, async (req, res) => {
         return res.status(400).json({ error: 'Missing current or new password' });
     }
 
-    if (newPassword.length < 6) {
-        return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+        return res.status(400).json({ error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters long` });
     }
 
     try {

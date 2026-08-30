@@ -7,7 +7,6 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import { createServer } from 'http';
-import jwt from 'jsonwebtoken'; // Added standard JWT verification
 import morgan from 'morgan';
 import path from 'path';
 import { Socket, Server as SocketIOServer } from 'socket.io';
@@ -20,13 +19,14 @@ import notificationRoutes from './routes/notifications';
 
 // 1. Swap Supabase for your new Neon DB Pool
 import { db } from './db';
+import { verifyUserToken } from './utils/jwt';
 
 const app = express();
 const httpServer = createServer(app);
 
 // Build version emitted to clients
 const getBuildVersion = (): string => {
-  return process.env.BUILD_ID || String(Date.now());
+  return process.env.BUILD_ID || process.env.npm_package_version || 'dev';
 };
 const BUILD_VERSION = getBuildVersion();
 
@@ -50,13 +50,16 @@ app.use(helmet({
 app.use(compression());
 app.use(morgan('tiny'));
 
-const envOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',').map(s => s.trim());
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
+const envOrigins = (process.env.CORS_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
+const productionOrigins = [
   'https://sbg-website-ashen.vercel.app',
-  ...envOrigins
+  ...envOrigins,
 ];
+const allowedOrigins = [...new Set(
+  process.env.NODE_ENV === 'production'
+    ? productionOrigins
+    : ['http://localhost:5173', 'http://127.0.0.1:5173', ...productionOrigins]
+)];
 
 app.use(cors({
   origin: allowedOrigins,
@@ -76,7 +79,7 @@ const extractTokenFromSocket = (socket: Socket): string | null => {
   const cookieStr = socket.handshake.headers.cookie;
   if (cookieStr) {
     const match = cookieStr.match(/jwt_token=([^;]+)/);
-    if (match) return match[1];
+    if (match) return decodeURIComponent(match[1]);
   }
 
   const authToken = socket.handshake.auth?.token;
@@ -110,12 +113,7 @@ io.use(async (socket, next) => {
   }
 
   try {
-    // 2. Standard JWT Verification (Replaces supabase.auth.getUser)
-    // Make sure you add JWT_SECRET to your backend .env file!
-    const secret = process.env.JWT_SECRET;
-    if (!secret) throw new Error("Missing JWT_SECRET");
-    
-    const decoded = jwt.verify(token, secret) as { sub: string };
+    const decoded = verifyUserToken(token);
     const userId = decoded.sub; // 'sub' is the standard JWT field for User ID
 
     if (!userId) {
@@ -252,8 +250,13 @@ app.use((req, _res, next) => {
   next();
 });
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', build: BUILD_VERSION });
+app.get('/api/health', async (_req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.json({ status: 'ok', build: BUILD_VERSION });
+  } catch {
+    res.status(503).json({ status: 'unhealthy', build: BUILD_VERSION });
+  }
 });
 
 import archivesRoutes from './routes/archives';

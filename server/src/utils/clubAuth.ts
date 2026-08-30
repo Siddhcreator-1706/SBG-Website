@@ -7,7 +7,7 @@ export async function getClubForUser(req: Request) {
   }
 
   const { rows } = await db.query(
-    'SELECT id, name, email, group_category FROM clubs WHERE email = $1 LIMIT 1',
+    'SELECT id, name, email, group_category FROM clubs WHERE LOWER(email) = LOWER($1) LIMIT 1',
     [req.user.email]
   );
 

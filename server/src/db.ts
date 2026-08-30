@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
@@ -37,6 +37,25 @@ export const db = new Pool({
 
 // Catch idle client errors so they don't crash the Node.js process
 // The pg Pool will automatically remove and replace the faulty client on the next query
-db.on('error', (err, client) => {
+db.on('error', (err, _client) => {
   console.error('Unexpected error on idle database client', err);
 });
+
+export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      // The original error is more useful than a rollback failure.
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+}

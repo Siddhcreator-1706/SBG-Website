@@ -44,7 +44,7 @@ const loginSchema = z.object({
 });
 
 const registrationSchema = loginSchema.extend({
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   clubName: z.string().min(2, 'Club name is required'),
   groupCategory: z.enum(['A', 'B', 'C', 'other'], {
     required_error: "Please select a group category",
@@ -174,8 +174,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
-    if (forgotNewPassword.length < 6) {
-      setForgotError('Password must be at least 6 characters.');
+    if (forgotNewPassword.length < 8) {
+      setForgotError('Password must be at least 8 characters.');
       return;
     }
 

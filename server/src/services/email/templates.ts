@@ -16,21 +16,33 @@ export type EmailLayoutOptions = {
   footerNote?: string;
 };
 
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * Wraps templated content in a consistent, formal email shell:
  * header band with brand name, white content card, and a muted footer.
  */
 export function renderEmailLayout({ preheader, heading, bodyHtml, footerNote }: EmailLayoutOptions): string {
+  const safeHeading = escapeHtml(heading);
+  const safePreheader = preheader ? escapeHtml(preheader) : '';
+  const safeFooter = escapeHtml(footerNote || 'This is an automated message, please do not reply directly to this email.');
   return `
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${heading}</title>
+    <title>${safeHeading}</title>
   </head>
   <body style="margin:0; padding:0; background-color:${BG_COLOR}; font-family: 'Segoe UI', Arial, Helvetica, sans-serif;">
-    ${preheader ? `<div style="display:none; max-height:0; overflow:hidden; opacity:0;">${preheader}</div>` : ''}
+    ${safePreheader ? `<div style="display:none; max-height:0; overflow:hidden; opacity:0;">${safePreheader}</div>` : ''}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${BG_COLOR}; padding: 32px 16px;">
       <tr>
         <td align="center">
@@ -53,7 +65,7 @@ export function renderEmailLayout({ preheader, heading, bodyHtml, footerNote }: 
             <tr>
               <td style="padding: 32px 32px 8px 32px;">
                 <h1 style="margin:0; font-size: 20px; line-height: 28px; color:${TEXT_COLOR}; font-weight: 600;">
-                  ${heading}
+                  ${safeHeading}
                 </h1>
               </td>
             </tr>
@@ -76,7 +88,7 @@ export function renderEmailLayout({ preheader, heading, bodyHtml, footerNote }: 
             <tr>
               <td style="padding: 20px 32px 28px 32px;">
                 <p style="margin:0 0 6px 0; font-size: 13px; line-height: 20px; color:${MUTED_COLOR};">
-                  ${footerNote || 'This is an automated message, please do not reply directly to this email.'}
+                  ${safeFooter}
                 </p>
                 <p style="margin:0; font-size: 13px; line-height: 20px; color:${MUTED_COLOR};">
                   &mdash; SBG Team
@@ -96,8 +108,8 @@ export function renderEmailLayout({ preheader, heading, bodyHtml, footerNote }: 
 export function detailRow(label: string, value: string): string {
   return `
     <tr>
-      <td style="padding: 6px 0; font-size: 14px; color:${MUTED_COLOR}; width: 140px; vertical-align: top;">${label}</td>
-      <td style="padding: 6px 0; font-size: 14px; color:${TEXT_COLOR}; font-weight: 600; vertical-align: top;">${value}</td>
+      <td style="padding: 6px 0; font-size: 14px; color:${MUTED_COLOR}; width: 140px; vertical-align: top;">${escapeHtml(label)}</td>
+      <td style="padding: 6px 0; font-size: 14px; color:${TEXT_COLOR}; font-weight: 600; vertical-align: top;">${escapeHtml(value)}</td>
     </tr>`;
 }
 

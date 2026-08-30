@@ -1,15 +1,19 @@
 import type { NextFunction, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
 import { db } from '../db';
+import { verifyUserToken } from '../utils/jwt';
 
 const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization || '';
     const mockEmail = req.headers['x-mock-user-email'];
 
-    // Mock Login for Dev/Test
-    if (process.env.NODE_ENV !== 'production' && typeof mockEmail === 'string' && mockEmail) {
-      // Direct SQL Query instead of Supabase
+    // Mock login is opt-in and never available in production.
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      process.env.ENABLE_MOCK_AUTH === 'true' &&
+      typeof mockEmail === 'string' &&
+      mockEmail
+    ) {
       const { rows } = await db.query(
         'SELECT id, role, email FROM profiles WHERE email = $1 LIMIT 1',
         [mockEmail]
@@ -30,7 +34,6 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       return next();
     }
 
-    // 1. Check for HttpOnly Cookie, fallback to Authorization Header
     const token = req.cookies?.jwt_token || (authHeader.startsWith('Bearer ')
       ? authHeader.slice('Bearer '.length).trim()
       : null);
@@ -39,27 +42,19 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       return res.status(401).json({ error: 'Missing authorization token' });
     }
 
-    // 1. Verify the JWT locally (Replaces supabase.auth.getUser)
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      console.error("CRITICAL: JWT_SECRET is missing from your .env file!");
-      return res.status(500).json({ error: 'Internal server configuration error' });
-    }
-
-    let decoded;
+    let decoded: { sub: string };
     try {
-      decoded = jwt.verify(token, secret) as { sub: string };
-    } catch (jwtError) {
+      decoded = verifyUserToken(token);
+    } catch {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    const userId = decoded.sub; // 'sub' is the standard JWT property for the User ID
+    const userId = decoded.sub;
 
     if (!userId) {
       return res.status(401).json({ error: 'Invalid token payload structure' });
     }
 
-    // 2. Query profile directly from Postgres (Replaces supabase.from('profiles')...)
     const { rows } = await db.query(
       'SELECT role, email FROM profiles WHERE id = $1 LIMIT 1',
       [userId]
