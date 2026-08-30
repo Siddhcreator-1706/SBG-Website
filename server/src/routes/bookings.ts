@@ -13,7 +13,7 @@ router.get('/venues', async (_req, res) => {
     const cachedVenues = cache.get(CACHE_KEYS.venues);
     if (cachedVenues) return res.json(cachedVenues);
 
-    const { rows } = await db.query('SELECT * FROM venues ORDER BY name ASC');
+    const { rows } = await db.query('SELECT id, name, category, is_active FROM venues ORDER BY name ASC');
     cache.set(CACHE_KEYS.venues, rows);
     return res.json(rows);
   } catch (error: any) {
