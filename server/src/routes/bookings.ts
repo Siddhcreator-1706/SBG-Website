@@ -5,6 +5,7 @@ import { db } from '../db';
 import authMiddleware from '../middleware/auth';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
 
+
 const router = express.Router();
 
 router.get('/venues', async (_req, res) => {
@@ -12,7 +13,7 @@ router.get('/venues', async (_req, res) => {
     const cachedVenues = cache.get(CACHE_KEYS.venues);
     if (cachedVenues) return res.json(cachedVenues);
 
-    const { rows } = await db.query('SELECT * FROM venues');
+    const { rows } = await db.query('SELECT id, name, category, is_active FROM venues ORDER BY name ASC');
     cache.set(CACHE_KEYS.venues, rows);
     return res.json(rows);
   } catch (error: any) {
@@ -65,6 +66,7 @@ router.get('/clubs/stats', async (_req, res) => {
       SELECT COUNT(*)::int as count 
       FROM events
       WHERE (event_type = 'co_curricular' OR event_type = 'open_all')
+        AND COALESCE(end_date, date) < NOW()
         AND date >= CURRENT_DATE - INTERVAL '1 year'
     `);
     if (activityRows.length > 0) {
@@ -84,7 +86,7 @@ router.get('/clubs/my-club', authMiddleware, async (req, res) => {
 
   try {
     const { rows } = await db.query(
-      'SELECT * FROM clubs WHERE email = $1 LIMIT 1',
+      'SELECT id, name, organization_type, group_category, logo_url, member_tag, logo_bg, description, key_activities, linkedin_url, instagram_url, youtube_url, website_url, email FROM clubs WHERE email = $1 LIMIT 1',
       [req.user.email]
     );
 
@@ -148,7 +150,7 @@ router.patch('/clubs/my-club', authMiddleware, async (req, res) => {
     values.push(clubId);
 
     const { rows } = await db.query(
-      `UPDATE clubs SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      `UPDATE clubs SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING id, name, organization_type, group_category, logo_url, member_tag, logo_bg, description, key_activities, linkedin_url, instagram_url, youtube_url, website_url, email`,
       values
     );
 
@@ -171,7 +173,7 @@ router.get('/my-bookings', authMiddleware, async (req, res) => {
     );
 
     const queryStr = `
-      SELECT b.*, 
+      SELECT b.id, b.club_id, b.venue_id, b.start_time, b.end_time, b.status, b.user_id, b.expected_attendees, b.batch_id, b.event_id, b.issue_flag, b.permissions_link, b.booking_name, b.created_at, b.updated_at,
              e.name AS event_name,
              COALESCE(e.event_type, 'closed_club') AS event_type,
              json_build_object('name', c.name) AS clubs,
@@ -212,30 +214,36 @@ router.delete('/my-bookings/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const clubResult = await db.query(
-      'SELECT id FROM clubs WHERE email = $1 LIMIT 1',
-      [req.user.email]
-    );
+    const isAdmin = req.user.role === 'admin';
+    let clubId: string | undefined;
 
-    if (clubResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Club not found for this account' });
+    if (!isAdmin) {
+      const clubResult = await db.query(
+        'SELECT id FROM clubs WHERE email = $1 LIMIT 1',
+        [req.user.email]
+      );
+
+      if (clubResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Club not found for this account' });
+      }
+
+      clubId = clubResult.rows[0].id;
     }
 
-    const clubId = clubResult.rows[0].id;
+    const checkRes = isAdmin
+      ? await db.query('SELECT id, status, start_time FROM bookings WHERE id = $1', [id])
+      : await db.query('SELECT id, status, start_time FROM bookings WHERE id = $1 AND club_id = $2', [id, clubId]);
 
-    const checkRes = await db.query('SELECT * FROM bookings WHERE id = $1 AND club_id = $2', [id, clubId]);
     if (checkRes.rows.length === 0) {
       return res.status(404).json({ error: 'Booking not found or not owned by you' });
     }
     
     const booking = checkRes.rows[0];
-    if (booking.status !== 'rejected' && new Date(booking.start_time) <= new Date()) {
+    if (!isAdmin && booking.status !== 'rejected' && new Date(booking.start_time) <= new Date()) {
       return res.status(400).json({ error: 'Cannot cancel a booking after its start time has passed.' });
     }
     
-    // Optionally: only allow deleting if it's pending, or let them cancel approved ones too.
-    // The prompt just says "functionality of deleting events and bookings must be provided".
-    await db.query('DELETE FROM bookings WHERE id = $1 AND club_id = $2', [id, clubId]);
+    await db.query('DELETE FROM bookings WHERE id = $1', [id]);
     invalidatePublicBookings();
 
     return res.json({ success: true, message: 'Booking deleted successfully' });
@@ -263,7 +271,7 @@ router.get('/public-bookings', async (_req, res) => {
     }
 
     const { rows } = await db.query(`
-      SELECT b.*, 
+      SELECT b.id, b.club_id, b.venue_id, b.start_time, b.end_time, b.status, b.user_id, b.expected_attendees, b.batch_id, b.event_id, b.issue_flag, b.permissions_link, b.booking_name, b.created_at, b.updated_at,
              e.name AS event_name,
              COALESCE(e.event_type, 'closed_club') AS event_type,
              json_build_object('name', c.name) AS clubs,
@@ -288,7 +296,7 @@ router.get('/public-bookings', async (_req, res) => {
 router.get('/campus-bookings', authMiddleware, async (_req, res) => {
   try {
     const { rows } = await db.query(`
-      SELECT b.*, 
+      SELECT b.id, b.club_id, b.venue_id, b.start_time, b.end_time, b.status, b.user_id, b.expected_attendees, b.batch_id, b.event_id, b.issue_flag, b.permissions_link, b.booking_name, b.created_at, b.updated_at,
              e.name AS event_name,
              COALESCE(e.event_type, 'closed_club') AS event_type,
              json_build_object('name', c.name) AS clubs,

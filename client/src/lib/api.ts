@@ -93,6 +93,7 @@ export type ApiVenue = {
   category: string;
   capacity?: number | null;
   location?: string | null;
+  is_active?: boolean;
 };
 
 export type ApiClub = {

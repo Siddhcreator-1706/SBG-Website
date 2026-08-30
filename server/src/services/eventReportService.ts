@@ -16,7 +16,7 @@ import { db } from '../db';
 export const checkPendingEventReports = async (clubId: string): Promise<{ blocked: boolean; message: string }> => {
   try {
     const query = `
-      SELECT e.id, e.name, COALESCE(e.end_date, e.date) as final_end_date
+      SELECT e.name
       FROM events e
       LEFT JOIN event_reports er ON e.id = er.event_id
       WHERE e.club_id = $1

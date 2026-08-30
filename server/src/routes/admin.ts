@@ -7,6 +7,7 @@ import { io } from '../server';
 import { createNotification } from '../services/notification';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
 
+
 const router = express.Router();
 
 const adminOnly = (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -470,10 +471,6 @@ router.delete('/bookings/:id', async (req, res) => {
       return res.status(404).json({ error: 'Booking not found' });
     }
 
-    if (new Date(booking.start_time) <= new Date()) {
-      return res.status(400).json({ error: 'Cannot cancel a booking after its start time has passed.' });
-    }
-
     await db.query('DELETE FROM bookings WHERE id = $1', [id]);
     invalidatePublicBookings();
 
@@ -785,14 +782,14 @@ router.get('/club-members/all', async (_req, res) => {
 });
 
 router.post('/venues', async (req, res) => {
-  const { name, category, capacity, location } = req.body;
+  const { name, category, capacity, location, is_active } = req.body;
   if (!name || !category) {
     return res.status(400).json({ error: 'Name and category are required' });
   }
   try {
     const { rows } = await db.query(
-      'INSERT INTO venues (name, category, capacity, location) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, category, capacity || null, location || null]
+      'INSERT INTO venues (name, category, capacity, location, is_active) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [name, category, capacity || null, location || null, is_active !== undefined ? Boolean(is_active) : true]
     );
     invalidateVenues();
     return res.status(201).json(rows[0]);
@@ -803,13 +800,14 @@ router.post('/venues', async (req, res) => {
 
 router.patch('/venues/:id', async (req, res) => {
   const { id } = req.params;
-  const { name, category, capacity, location } = req.body;
+  const { name, category, capacity, location, is_active } = req.body;
 
   const updateFields: Record<string, any> = {};
   if (name !== undefined) updateFields.name = name;
   if (category !== undefined) updateFields.category = category;
   if (capacity !== undefined) updateFields.capacity = capacity;
   if (location !== undefined) updateFields.location = location;
+  if (is_active !== undefined) updateFields.is_active = Boolean(is_active);
 
   if (Object.keys(updateFields).length === 0) return res.status(400).json({ error: 'No fields to update' });
 

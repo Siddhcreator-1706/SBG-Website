@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { AlertTriangle, Calendar, CheckCircle, Clock, Filter, RefreshCw, Search, XCircle, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Calendar, CheckCircle, ChevronLeft, ChevronRight, Clock, Filter, RefreshCw, Search, Trash2, XCircle, RotateCcw } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { apiRequest } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { getSocket } from '../lib/socket';
@@ -37,6 +38,11 @@ const AdminEventRequests: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
 
   const fetchEvents = React.useCallback(async () => {
     setIsLoading(true);
@@ -95,6 +101,31 @@ const AdminEventRequests: React.FC = () => {
     }
   };
 
+  const handleDeleteEvent = (id: string) => {
+    setEventToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteEvent = async () => {
+    if (!eventToDelete) return;
+    setIsDeleting(true);
+    try {
+      await apiRequest(`/api/events/${eventToDelete}`, {
+        method: 'DELETE',
+        auth: true,
+      });
+      toastSuccess('Event deleted and archived successfully');
+      fetchEvents();
+      setDeleteDialogOpen(false);
+    } catch (err) {
+      console.error('Failed to delete event:', err);
+      toastError(err, 'Failed to delete event. Please try again.');
+    } finally {
+      setIsDeleting(false);
+      setEventToDelete(null);
+    }
+  };
+
   const uniqueClubs = Array.from(new Set(events.map(ev => ev.clubName))).sort();
   const uniqueTypes = Array.from(new Set(events.map(ev => ev.event_type).filter(Boolean))).sort();
 
@@ -108,6 +139,14 @@ const AdminEventRequests: React.FC = () => {
     }
     return matchesSearch && matchesClub && matchesType && matchesStatus;
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterClub, filterType, filterStatus]);
+
+  const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedEvents = filteredEvents.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <motion.div
@@ -203,12 +242,13 @@ const AdminEventRequests: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {filteredEvents.map((ev, index) => (
+                {paginatedEvents.map((ev, index) => (
                   <AdminEventRow
                     key={ev.id}
                     ev={ev}
                     index={index}
                     handleAction={handleEventAction}
+                    handleDelete={handleDeleteEvent}
                     isHistoryTab={filterStatus !== 'pending'}
                     isProcessingAction={isProcessingAction}
                   />
@@ -225,7 +265,57 @@ const AdminEventRequests: React.FC = () => {
             <p className="text-textMuted mt-1">Try adjusting your search or filters.</p>
           </CardContent>
         )}
+        {filteredEvents.length > 0 && totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 sm:px-6 border-t border-borderSoft bg-card gap-4">
+            <div className="flex items-center text-sm text-textMuted">
+              Showing <span className="font-medium mx-1">{startIndex + 1}</span> to <span className="font-medium mx-1">{Math.min(startIndex + itemsPerPage, filteredEvents.length)}</span> of <span className="font-medium mx-1">{filteredEvents.length}</span> results
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft size={16} className="mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight size={16} className="ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-2xl bg-card border border-borderSoft text-textPrimary">
+          <DialogHeader>
+            <DialogTitle className="text-error flex items-center gap-1.5">
+              <Trash2 size={20} />
+              Delete Event Permanently
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to completely delete this event? This will archive all associated bookings and event reports. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteEvent} disabled={isDeleting} className="rounded-xl bg-error hover:bg-error/90 text-white font-semibold">
+              {isDeleting ? 'Deleting...' : 'Yes, Delete Event'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };
@@ -234,11 +324,12 @@ interface AdminEventRowProps {
   ev: AppEvent & { clubName: string };
   index: number;
   handleAction: (ids: string[], action: 'active' | 'rejected' | 'pending') => Promise<void>;
+  handleDelete: (id: string) => void;
   isHistoryTab: boolean;
   isProcessingAction: boolean;
 }
 
-const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, isHistoryTab, isProcessingAction }) => {
+const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, handleDelete, isHistoryTab, isProcessingAction }) => {
   const getStatusVariant = (status: string) => {
     switch (status) {
       case 'active': return 'success';
@@ -249,14 +340,6 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
   };
 
   const safeStatus = ev.status || 'pending';
-
-  const isStarted = (() => {
-    const dateToUse = ev.dynamic_end_date || ev.date;
-    if (!dateToUse) return false;
-    const d = new Date(dateToUse);
-    d.setHours(23, 59, 59, 999);
-    return d <= new Date();
-  })();
 
   return (
     <motion.tr
@@ -312,49 +395,56 @@ const AdminEventRow: React.FC<AdminEventRowProps> = ({ ev, index, handleAction, 
       </td>
       <td className="px-4 sm:px-6 py-4 text-right">
         <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-          {!isStarted && (
-            <>
-              {ev.status !== 'rejected' && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Reject Event"
-                  onClick={(e) => { e.stopPropagation(); handleAction([ev.id], 'rejected'); }}
-                  className="text-textMuted hover:text-error"
-                  title="Reject Event"
-                  disabled={isProcessingAction}
-                >
-                  <XCircle size={18} />
-                </Button>
-              )}
-              {ev.status !== 'active' && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Approve Event"
-                  onClick={(e) => { e.stopPropagation(); handleAction([ev.id], 'active'); }}
-                  className="text-primary hover:text-primary/80"
-                  title="Approve Event"
-                  disabled={isProcessingAction}
-                >
-                  <CheckCircle size={18} />
-                </Button>
-              )}
-              {ev.status !== 'pending' && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Move to Pending"
-                  onClick={(e) => { e.stopPropagation(); handleAction([ev.id], 'pending'); }}
-                  className="text-textMuted hover:text-warning"
-                  title="Move to Pending"
-                  disabled={isProcessingAction}
-                >
-                  <RotateCcw size={18} />
-                </Button>
-              )}
-            </>
+          {ev.status !== 'rejected' && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Reject Event"
+              onClick={(e) => { e.stopPropagation(); handleAction([ev.id], 'rejected'); }}
+              className="text-textMuted hover:text-error"
+              title="Reject Event"
+              disabled={isProcessingAction}
+            >
+              <XCircle size={18} />
+            </Button>
           )}
+          {ev.status !== 'active' && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Approve Event"
+              onClick={(e) => { e.stopPropagation(); handleAction([ev.id], 'active'); }}
+              className="text-primary hover:text-primary/80"
+              title="Approve Event"
+              disabled={isProcessingAction}
+            >
+              <CheckCircle size={18} />
+            </Button>
+          )}
+          {ev.status !== 'pending' && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Move to Pending"
+              onClick={(e) => { e.stopPropagation(); handleAction([ev.id], 'pending'); }}
+              className="text-textMuted hover:text-warning"
+              title="Move to Pending"
+              disabled={isProcessingAction}
+            >
+              <RotateCcw size={18} />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Delete Event"
+            onClick={(e) => { e.stopPropagation(); handleDelete(ev.id); }}
+            className="text-textMuted hover:text-error"
+            title="Delete Event Permanently"
+            disabled={isProcessingAction}
+          >
+            <Trash2 size={18} />
+          </Button>
         </div>
       </td>
     </motion.tr>

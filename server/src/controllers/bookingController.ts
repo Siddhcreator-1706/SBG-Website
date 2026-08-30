@@ -238,7 +238,7 @@ export const createBooking = async (req: Request, res: Response) => {
 
     // Lock target venue rows to serialize concurrent booking requests for the same venue(s)
     const { rows: venues } = await client.query(
-      'SELECT id, category, capacity, name FROM venues WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE',
+      'SELECT id, category, name, is_active FROM venues WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE',
       [venueIds]
     );
 
@@ -247,8 +247,15 @@ export const createBooking = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'One or more venues not found' });
     }
 
+    const inactiveVenues = venues.filter((v: any) => v.is_active === false);
+    if (inactiveVenues.length > 0) {
+      await client.query('ROLLBACK');
+      const names = inactiveVenues.map((v: any) => v.name).join(', ');
+      return res.status(400).json({ error: `The following venue(s) are currently disabled for booking: ${names}` });
+    }
+
     const { rows: clubRows } = await client.query(
-      'SELECT id, group_category, name FROM clubs WHERE id = $1',
+      'SELECT id, name FROM clubs WHERE id = $1',
       [clubId]
     );
     const club = clubRows[0];
@@ -322,7 +329,7 @@ export const createBooking = async (req: Request, res: Response) => {
         const { rows: insertRows } = await client.query(`
           INSERT INTO bookings (club_id, venue_id, start_time, end_time, status, user_id, expected_attendees, batch_id, event_id, issue_flag, permissions_link, booking_name)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-          RETURNING *
+          RETURNING id, venue_id, start_time, end_time, status
         `, [
           clubId,
           venue.id,
@@ -544,22 +551,27 @@ export const updateBookingTimings = async (req: Request, res: Response) => {
   }
 
   try {
-    const clubResult = await db.query(
-      'SELECT id FROM clubs WHERE email = $1 LIMIT 1',
-      [req.user?.email]
-    );
+    const isAdmin = req.user?.role === 'admin';
+    let clubId: string | undefined;
 
-    if (clubResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Club not found for this account' });
+    if (!isAdmin) {
+      const clubResult = await db.query(
+        'SELECT id FROM clubs WHERE email = $1 LIMIT 1',
+        [req.user?.email]
+      );
+
+      if (clubResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Club not found for this account' });
+      }
+      clubId = clubResult.rows[0].id;
     }
-    const clubId = clubResult.rows[0].id;
 
-    const bookingRes = await db.query(
-      'SELECT id, venue_id, status, event_id FROM bookings WHERE (batch_id = $1 OR id = $1) AND club_id = $2',
-      [batchId, clubId]
-    );
+    const bookingRes = isAdmin
+      ? await db.query('SELECT id, venue_id, status, event_id FROM bookings WHERE (batch_id = $1 OR id = $1)', [batchId])
+      : await db.query('SELECT id, venue_id, status, event_id FROM bookings WHERE (batch_id = $1 OR id = $1) AND club_id = $2', [batchId, clubId]);
+
     if (bookingRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Bookings not found or not owned by you' });
+      return res.status(404).json({ error: 'Bookings not found' });
     }
 
     const bookingIds = bookingRes.rows.map((b: any) => b.id);
@@ -585,19 +597,21 @@ export const updateBookingTimings = async (req: Request, res: Response) => {
     const earliestStart = new Date(startTime);
     let issueFlag: string | null = null;
 
-    const violatesRestricted = violatesRestrictedWeekdayHours(new Date(startTime), new Date(endTime));
-    if (violatesRestricted) {
-      issueFlag = 'Violates restricted weekday hours (8:00 AM - 7:00 PM IST)';
-    }
+    if (!isAdmin) {
+      const violatesRestricted = violatesRestrictedWeekdayHours(new Date(startTime), new Date(endTime));
+      if (violatesRestricted) {
+        issueFlag = 'Violates restricted weekday hours (8:00 AM - 7:00 PM IST)';
+      }
 
-    const daysGap = (earliestStart.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
-    const requiredDays = MIN_DAYS_BY_EVENT[eventType];
-    if (daysGap < requiredDays) {
-      const gapMsg = `Short notice booking (${Math.floor(daysGap)} days advance). Requires ${requiredDays} days advance notice.`;
-      if (!issueFlag) {
-        issueFlag = gapMsg;
-      } else {
-        issueFlag += ` | ${gapMsg}`;
+      const daysGap = (earliestStart.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+      const requiredDays = MIN_DAYS_BY_EVENT[eventType];
+      if (daysGap < requiredDays) {
+        const gapMsg = `Short notice booking (${Math.floor(daysGap)} days advance). Requires ${requiredDays} days advance notice.`;
+        if (!issueFlag) {
+          issueFlag = gapMsg;
+        } else {
+          issueFlag += ` | ${gapMsg}`;
+        }
       }
     }
 

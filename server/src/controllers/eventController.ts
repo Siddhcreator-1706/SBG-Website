@@ -73,7 +73,7 @@ export const createEvent = async (req: Request, res: Response) => {
     const { rows } = await db.query(
       `INSERT INTO events (club_id, name, date, venue, end_date, event_type, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`,
+       RETURNING id, club_id, name, date, venue, end_date, event_type, status, created_at, updated_at`,
       [clubId, name, date, venue || null, end_date || null, finalEventType, initialStatus]
     );
 
@@ -97,7 +97,7 @@ export const getEvents = async (req: Request, res: Response) => {
       clubId = club.id;
     }
 
-    let query = `SELECT e.*, c.name as club_name, COALESCE(e.end_date, e.date) as dynamic_end_date
+    let query = `SELECT e.id, e.name, e.date, e.venue, e.end_date, e.event_type, e.status, e.club_id, e.created_at, e.updated_at, c.name as club_name, COALESCE(e.end_date, e.date) as dynamic_end_date
        FROM events e
        LEFT JOIN clubs c ON e.club_id = c.id
        WHERE e.status != 'cancelled'`;
@@ -143,10 +143,13 @@ export const updateEvent = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Event not found' });
     }
     const existingEvent = checkRes.rows[0];
-    if (!isAdmin && existingEvent.club_id !== clubId) {
-      return res.status(403).json({ error: 'You do not have permission to edit this event' });
-    } else if (new Date(existingEvent.date) <= new Date()) {
-      return res.status(403).json({ error: 'Ongoing or past events cannot be edited' });
+    if (!isAdmin) {
+      if (existingEvent.club_id !== clubId) {
+        return res.status(403).json({ error: 'You do not have permission to edit this event' });
+      }
+      if (new Date(existingEvent.date) <= new Date()) {
+        return res.status(403).json({ error: 'Ongoing or past events cannot be edited' });
+      }
     }
 
     const updateFields: Record<string, any> = {};
@@ -191,7 +194,7 @@ export const updateEvent = async (req: Request, res: Response) => {
     values.push(id);
 
     const { rows } = await db.query(
-      `UPDATE events SET ${setString} WHERE id = $${values.length} RETURNING *`,
+      `UPDATE events SET ${setString} WHERE id = $${values.length} RETURNING id, club_id, name, date, venue, end_date, event_type, status, created_at, updated_at`,
       values
     );
 
@@ -228,10 +231,13 @@ export const deleteEvent = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Event not found' });
     }
     const existingEvent = checkRes.rows[0];
-    if (!isAdmin && existingEvent.club_id !== clubId) {
-      return res.status(403).json({ error: 'You do not have permission to delete this event' });
-    } else if (new Date(existingEvent.end_date) < new Date()) {
-      return res.status(403).json({ error: 'Past events cannot be deleted' });
+    if (!isAdmin) {
+      if (existingEvent.club_id !== clubId) {
+        return res.status(403).json({ error: 'You do not have permission to delete this event' });
+      }
+      if (new Date(existingEvent.end_date) < new Date()) {
+        return res.status(403).json({ error: 'Past events cannot be deleted' });
+      }
     }
 
     await withTransaction(async (client) => {
@@ -272,7 +278,7 @@ export const deleteEvent = async (req: Request, res: Response) => {
 export const getPublicEvents = async (_req: Request, res: Response) => {
   try {
     const { rows } = await db.query(`
-      SELECT e.*, 
+      SELECT e.id, e.name, e.date, e.venue, e.end_date, e.event_type, e.status, 
              json_build_object('name', c.name) AS clubs
       FROM events e
       LEFT JOIN clubs c ON e.club_id = c.id

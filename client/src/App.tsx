@@ -202,7 +202,7 @@ const App: React.FC = () => {
               <Route path="/" element={<PageTitleWrapper title="Dashboard | SBG DAU">{user.role === 'club' ? <ClubDashboard user={user} /> : <AdminDashboard />}</PageTitleWrapper>} />
 
               <Route path="/book" element={<PageTitleWrapper title="Book Venue | SBG DAU"><BookSlot currentUser={user} /></PageTitleWrapper>} />
-              <Route path="/my-bookings" element={<PageTitleWrapper title="My Bookings | SBG DAU"><MyBookings /></PageTitleWrapper>} />
+              <Route path="/my-bookings" element={<PageTitleWrapper title="My Bookings | SBG DAU"><MyBookings currentUser={user} /></PageTitleWrapper>} />
               <Route path="/manage-events" element={<PageTitleWrapper title="Manage Events | SBG DAU"><ManageEvents currentUser={user} /></PageTitleWrapper>} />
               <Route path="/event-reports" element={<PageTitleWrapper title="Event Reports | SBG DAU"><EventReports /></PageTitleWrapper>} />
               <Route path="/members" element={<PageTitleWrapper title="Members | SBG DAU"><ClubMembers user={user} /></PageTitleWrapper>} />

@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
 
     try {
         // We use 1=1 as a base so we can safely append AND clauses
-        let queryStr = 'SELECT * FROM notifications WHERE 1=1';
+        let queryStr = 'SELECT id, type, title, message, metadata, is_read, user_id, created_at FROM notifications WHERE 1=1';
         const values: any[] = [];
 
         if (unreadOnly) {
