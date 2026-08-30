@@ -1,22 +1,20 @@
 import express from 'express';
-import NodeCache from 'node-cache';
-// 1. Swap Supabase for your new database pool
+import { cache, CACHE_KEYS, invalidateClubs, invalidatePublicBookings } from '../cache';
 import { checkConflict, createBooking, updateBookingTimings, getBusyVenues } from '../controllers/bookingController';
 import { db } from '../db';
 import authMiddleware from '../middleware/auth';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
 
-export const cache = new NodeCache({ stdTTL: 60 });
 
 const router = express.Router();
 
 router.get('/venues', async (_req, res) => {
   try {
-    const cachedVenues = cache.get('venues');
+    const cachedVenues = cache.get(CACHE_KEYS.venues);
     if (cachedVenues) return res.json(cachedVenues);
 
-    const { rows } = await db.query('SELECT id, name, capacity, category, is_active FROM venues ORDER BY name ASC');
-    cache.set('venues', rows);
+    const { rows } = await db.query('SELECT * FROM venues ORDER BY name ASC');
+    cache.set(CACHE_KEYS.venues, rows);
     return res.json(rows);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -25,11 +23,11 @@ router.get('/venues', async (_req, res) => {
 
 router.get('/clubs', async (_req, res) => {
   try {
-    const cachedClubs = cache.get('clubs');
+    const cachedClubs = cache.get(CACHE_KEYS.clubs);
     if (cachedClubs) return res.json(cachedClubs);
 
     const { rows } = await db.query('SELECT id, name, organization_type, group_category, logo_url, member_tag, logo_bg, description, key_activities, linkedin_url, instagram_url, youtube_url, website_url, email FROM clubs ORDER BY name ASC');
-    cache.set('clubs', rows);
+    cache.set(CACHE_KEYS.clubs, rows);
     return res.json(rows);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -156,7 +154,7 @@ router.patch('/clubs/my-club', authMiddleware, async (req, res) => {
       values
     );
 
-    cache.del('clubs');
+    invalidateClubs();
 
     return res.json(rows[0]);
   } catch (error: any) {
@@ -246,6 +244,7 @@ router.delete('/my-bookings/:id', authMiddleware, async (req, res) => {
     }
     
     await db.query('DELETE FROM bookings WHERE id = $1', [id]);
+    invalidatePublicBookings();
 
     return res.json({ success: true, message: 'Booking deleted successfully' });
   } catch (err: any) {
@@ -256,16 +255,16 @@ router.delete('/my-bookings/:id', authMiddleware, async (req, res) => {
 
 router.patch('/my-bookings/:batchId/timings', authMiddleware, updateBookingTimings);
 
-router.get('/bookings/check-conflict', checkConflict);
+router.get('/bookings/check-conflict', authMiddleware, checkConflict);
+router.post('/bookings/check-conflict', authMiddleware, checkConflict);
 
-
-router.get('/busy-venues', getBusyVenues);
+router.get('/busy-venues', authMiddleware, getBusyVenues);
 
 router.post('/bookings', authMiddleware, createBooking);
 
 router.get('/public-bookings', async (_req, res) => {
   try {
-    const cacheKey = 'public_bookings';
+    const cacheKey = CACHE_KEYS.publicBookings;
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
       return res.json(cachedData);
@@ -307,6 +306,7 @@ router.get('/campus-bookings', authMiddleware, async (_req, res) => {
       LEFT JOIN venues v ON b.venue_id = v.id
       LEFT JOIN events e ON b.event_id = e.id
       WHERE b.status IN ('approved', 'pending')
+        AND (b.status = 'pending' OR b.end_time >= NOW() - INTERVAL '90 days')
       ORDER BY b.start_time ASC
     `);
 

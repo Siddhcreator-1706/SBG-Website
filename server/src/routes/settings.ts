@@ -1,5 +1,5 @@
 import express from 'express';
-import { db } from '../db';
+import { db, withTransaction } from '../db';
 import authMiddleware from '../middleware/auth';
 
 const router = express.Router();
@@ -34,19 +34,16 @@ router.post('/', authMiddleware, adminOnly, async (req, res) => {
   }
 
   try {
-    await db.query('BEGIN');
-    
-    for (const [key, value] of Object.entries(settings)) {
-      await db.query(
-        'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
-        [key, value]
-      );
-    }
-    
-    await db.query('COMMIT');
+    await withTransaction(async (client) => {
+      for (const [key, value] of Object.entries(settings)) {
+        await client.query(
+          'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
+          [key, value]
+        );
+      }
+    });
     res.json({ success: true });
   } catch (error: any) {
-    await db.query('ROLLBACK');
     res.status(500).json({ error: error.message });
   }
 });

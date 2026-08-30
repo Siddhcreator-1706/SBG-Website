@@ -47,7 +47,7 @@ const ExtraRoomDialog: React.FC<ExtraRoomDialogProps> = ({ booking, open, onOpen
             // Fetch all venues and busy venue IDs in parallel with proper encoding
             const [allVenues, busyVenueIds] = await Promise.all([
                 apiRequest<ApiVenue[]>('/api/venues'),
-                apiRequest<string[]>(`/api/busy-venues?startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}`)
+                apiRequest<string[]>(`/api/busy-venues?startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}`, { auth: true })
             ]);
 
             const existingVenueIds = 'bookings' in booking
