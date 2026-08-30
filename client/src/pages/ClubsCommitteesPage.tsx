@@ -95,6 +95,7 @@ const ClubsCommitteesPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'club' | 'committee' | 'organisation'>('club');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedClubForModal, setSelectedClubForModal] = useState<Club | null>(null);
+    const [modalTab, setModalTab] = useState<'about' | 'members'>('about');
 
     const selectedClubMembers = useMemo(() => {
         if (!selectedClubForModal) return [];
@@ -220,13 +221,13 @@ const ClubsCommitteesPage: React.FC = () => {
                 <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 mb-8 space-y-4">
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                         {/* Framer motion segment tabs control */}
-                        <div className="flex flex-wrap sm:flex-nowrap bg-hoverSoft/50 p-1 rounded-xl border border-borderSoft/40 w-full sm:w-auto self-start gap-1 sm:gap-0">
+                        <div className="flex flex-nowrap overflow-x-auto bg-hoverSoft/50 p-1 rounded-xl border border-borderSoft/40 w-full sm:w-auto self-start gap-1">
                             {(['club', 'committee', 'organisation'] as const).map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => { setActiveTab(tab); setSearchQuery(''); }}
                                     className={`
-                                    relative px-3 sm:px-5 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors flex-1 sm:flex-none sm:w-auto capitalize cursor-pointer min-w-max
+                                    relative px-2 sm:px-5 py-2 text-[11px] sm:text-sm font-semibold rounded-lg transition-colors flex-1 sm:flex-none sm:w-auto capitalize cursor-pointer whitespace-nowrap
                                     ${activeTab === tab ? 'text-brand' : 'text-textMuted hover:text-textPrimary hover:bg-hoverSoft'}
                                 `}
                                 >
@@ -247,7 +248,7 @@ const ClubsCommitteesPage: React.FC = () => {
 
                         {/* Search filter input */}
                         <div className="relative w-full sm:w-72">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted h-4 w-4" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted z-99 h-4 w-4" />
                             <Input
                                 placeholder={`Search ${activeTab}s...`}
                                 className="pl-9 bg-card border-borderSoft/60 focus:border-brand rounded-xl h-10 w-full"
@@ -262,7 +263,7 @@ const ClubsCommitteesPage: React.FC = () => {
                 <Dialog open={!!selectedClubForModal} onOpenChange={(open) => {
                     if (!open) {
                         setSelectedClubForModal(null);
-                        setTimeout(() => setDragY(0), 300);
+                        setTimeout(() => { setDragY(0); setModalTab('about'); }, 300);
                     }
                 }}>
                     <DialogContent 
@@ -273,7 +274,7 @@ const ClubsCommitteesPage: React.FC = () => {
                         }}
                     >
                         <DialogHeader 
-                            className="border-b border-borderSoft/40 pb-4 flex flex-row items-center gap-3 sm:gap-4 space-y-0 select-none cursor-grab active:cursor-grabbing"
+                            className="border-b border-borderSoft/40 pb-4 pr-14 flex flex-row items-center gap-3 sm:gap-4 space-y-0 select-none cursor-grab active:cursor-grabbing sm:cursor-default sm:active:cursor-auto"
                             onTouchStart={(e) => {
                                 touchStartY.current = e.touches[0].clientY;
                             }}
@@ -286,10 +287,9 @@ const ClubsCommitteesPage: React.FC = () => {
                             onTouchEnd={(e) => {
                                 if (dragY > 100) {
                                     setSelectedClubForModal(null);
-                                    // Reset handled by onOpenChange
-                                } else {
-                                    setDragY(0);
+                                    setModalTab('about');
                                 }
+                                setDragY(0);
                             }}
                         >
                             <Avatar className={cn("h-14 w-14 border border-borderSoft rounded-2xl shrink-0", selectedClubForModal?.logo_bg === 'white' ? 'bg-white' : selectedClubForModal?.logo_bg === 'dark' ? 'bg-slate-900' : 'bg-transparent')}>
@@ -299,7 +299,7 @@ const ClubsCommitteesPage: React.FC = () => {
                                 </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0 flex-1">
-                                <DialogTitle className="text-xl font-bold text-textPrimary leading-tight">
+                                <DialogTitle className="text-[16px] sm:text-xl font-bold text-textPrimary leading-tight wrap-break-word">
                                     {selectedClubForModal?.name}
                                 </DialogTitle>
                                 <DialogDescription className="text-xs text-textMuted mt-1">
@@ -308,10 +308,24 @@ const ClubsCommitteesPage: React.FC = () => {
                             </div>
                         </DialogHeader>
 
-                        <Tabs defaultValue="about" className="w-full mt-4">
-                            <TabsList className="grid w-full grid-cols-2 mb-4 bg-hoverSoft/50 p-1 rounded-xl">
-                                <TabsTrigger value="about" className="rounded-lg py-1.5 text-sm font-medium cursor-pointer">About</TabsTrigger>
-                                <TabsTrigger value="members" className="rounded-lg py-1.5 text-sm font-medium cursor-pointer">Members</TabsTrigger>
+                        <Tabs value={modalTab} onValueChange={(value) => setModalTab(value as 'about' | 'members')} className="w-full mt-4">
+                            <TabsList className="grid w-full grid-cols-2 gap-1 mb-4 bg-hoverSoft/50 p-1 rounded-xl border border-borderSoft/40 items-stretch h-12">
+                                {(['about', 'members'] as const).map(tab => (
+                                    <TabsTrigger
+                                        key={tab}
+                                        value={tab}
+                                        className="relative rounded-lg py-1.2 text-sm font-medium cursor-pointer bg-transparent shadow-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-textPrimary hover:text-textPrimary hover:bg-hoverSoft"
+                                    >
+                                        {modalTab === tab && (
+                                            <motion.div
+                                                layoutId="active-modal-tab"
+                                                className="absolute inset-0 bg-card border border-borderSoft rounded-lg shadow-sm"
+                                                transition={dragY !== 0 ? { duration: 0 } : { type: 'spring', stiffness: 380, damping: 30 }}
+                                            />
+                                        )}
+                                        <span className="relative z-10 capitalize">{tab}</span>
+                                    </TabsTrigger>
+                                ))}
                             </TabsList>
 
                             <TabsContent value="members" className="min-h-[250px] max-h-[50dvh] flex flex-col focus-visible:outline-none focus-visible:ring-0 mt-0">
@@ -360,7 +374,7 @@ const ClubsCommitteesPage: React.FC = () => {
                             </TabsContent>
 
                             <TabsContent value="about" className="min-h-[250px] max-h-[50dvh] flex flex-col focus-visible:outline-none focus-visible:ring-0 mt-0">
-                                <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+                                <div className="space-y-4 flex-1 overflow-y-auto pr-1 pb-2">
                                     <div className="space-y-2">
                                         <span className="text-xs font-bold text-textMuted uppercase tracking-wider block">About</span>
                                         <p className="text-sm text-textSecondary leading-relaxed bg-hoverSoft/15 border border-borderSoft/60 rounded-xl p-3.5 whitespace-pre-wrap">
