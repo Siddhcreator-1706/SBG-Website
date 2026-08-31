@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { getAuthProfile } from '../services/profile';
 import { db } from '../db';
 import { verifyUserToken } from '../utils/jwt';
 
@@ -55,11 +56,7 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
       return res.status(401).json({ error: 'Invalid token payload structure' });
     }
 
-    const { rows } = await db.query(
-      'SELECT role, email FROM profiles WHERE id = $1 LIMIT 1',
-      [userId]
-    );
-    const profile = rows[0];
+    const profile = await getAuthProfile(userId);
 
     if (!profile) {
       console.error('Profile not found for user:', userId);

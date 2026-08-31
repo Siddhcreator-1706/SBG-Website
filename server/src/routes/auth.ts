@@ -7,6 +7,12 @@ import { db, withTransaction } from '../db';
 import authMiddleware from '../middleware/auth';
 import { sendPasswordResetEmail } from '../services/email';
 import { signUserToken, verifyUserToken } from '../utils/jwt';
+import { PostgresStore } from '@acpr/rate-limit-postgresql';
+
+const dbConfig = {
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false },
+};
 
 const router = express.Router();
 
@@ -27,6 +33,7 @@ const loginLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: true,
+    store: new PostgresStore(dbConfig, 'rate_limits_login'),
     keyGenerator: (req) => {
         const email = typeof req.body?.email === 'string' ? normalizeEmail(req.body.email) : '';
         return `${req.ip}:${email}`;
@@ -39,6 +46,7 @@ const registerLimiter = rateLimit({
     message: { error: 'Too many registration attempts, please try again after 10 minutes' },
     standardHeaders: true,
     legacyHeaders: false,
+    store: new PostgresStore(dbConfig, 'rate_limits_register'),
 });
 
 const passwordResetLimiter = rateLimit({
@@ -47,6 +55,7 @@ const passwordResetLimiter = rateLimit({
     message: { error: 'Too many password reset requests, please try again after 30 minutes' },
     standardHeaders: true,
     legacyHeaders: false,
+    store: new PostgresStore(dbConfig, 'rate_limits_reset'),
     keyGenerator: (req) => {
         const email = typeof req.body?.email === 'string' ? normalizeEmail(req.body.email) : '';
         return `${req.ip}:${email}`;
