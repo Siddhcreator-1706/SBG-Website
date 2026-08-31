@@ -75,4 +75,11 @@ const authMiddleware = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
+export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  return next();
+};
+
 export default authMiddleware;
