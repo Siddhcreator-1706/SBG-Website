@@ -240,7 +240,7 @@ const AdminRequests: React.FC = () => {
           </Select>
 
           <div className="relative w-full sm:w-64 shrink-0">
-            <Search className="absolute left-3 top-2.5 text-textMuted pointer-events-none" size={18} />
+            <Search className="absolute left-3 top-2.5 text-textMuted pointer-events-none z-10" size={18} />
             <Input
               type="text"
               placeholder="Search requests..."

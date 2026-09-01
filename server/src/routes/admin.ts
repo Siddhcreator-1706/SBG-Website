@@ -442,10 +442,9 @@ router.put('/bookings/:id', async (req, res) => {
     io.to(`club:${data.club_id}`).emit('booking:status_changed', {
       bookingId: id,
       status: data.status,
-      eventName: data.event_name,
+      eventName: data.booking_name || data.event_name,
       clubId: data.club_id,
     });
-
 
     invalidatePublicBookings();
     return res.json(data);

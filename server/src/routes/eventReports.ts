@@ -304,7 +304,7 @@ router.get('/all-past-events', authMiddleware, async (req, res) => {
     }
 
     const { rows } = await db.query(`
-      SELECT e.id, e.name, e.date, e.venue, e.end_date, e.event_type, e.status, e.club_id, e.created_at, e.updated_at, c.name as club_name, 
+      SELECT e.id, e.name, e.date, e.venue, e.end_date, e.event_type, e.status, e.report_exempt, e.club_id, e.created_at, e.updated_at, c.name as club_name, 
         CASE WHEN er.id IS NOT NULL THEN true ELSE false END as has_report
       FROM events e
       JOIN clubs c ON e.club_id = c.id
