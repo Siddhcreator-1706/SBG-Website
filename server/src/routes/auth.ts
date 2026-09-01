@@ -4,9 +4,15 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { isOfficialCommitteeEmail, normalizeEmail, OFFICIAL_EMAIL_DOMAIN } from '../constants/officialEmails';
 import { db, withTransaction } from '../db';
-import authMiddleware from '../middleware/auth';
+import authMiddleware, { adminOnly } from '../middleware/auth';
 import { sendPasswordResetEmail } from '../services/email';
 import { signUserToken, verifyUserToken } from '../utils/jwt';
+import { PostgresStore } from '@acpr/rate-limit-postgresql';
+
+const dbConfig = {
+  connectionString: process.env.DATABASE_URL?.replace(/([?&])sslmode=[^&]*&?/g, '$1').replace(/[?&]$/, '') || '',
+  ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false },
+};
 
 const router = express.Router();
 
@@ -27,18 +33,22 @@ const loginLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: true,
+    store: new PostgresStore(dbConfig, 'rate_limits_login'),
     keyGenerator: (req) => {
-        const email = typeof req.body?.email === 'string' ? normalizeEmail(req.body.email) : '';
-        return `${req.ip}:${email}`;
+        return req.ip || 'unknown';
     },
 });
 
 const registerLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutes
-    max: 5,
+    max: 25,
     message: { error: 'Too many registration attempts, please try again after 10 minutes' },
     standardHeaders: true,
     legacyHeaders: false,
+    store: new PostgresStore(dbConfig, 'rate_limits_register'),
+    keyGenerator: (req) => {
+        return req.ip || 'unknown';
+    },
 });
 
 const passwordResetLimiter = rateLimit({
@@ -47,14 +57,14 @@ const passwordResetLimiter = rateLimit({
     message: { error: 'Too many password reset requests, please try again after 30 minutes' },
     standardHeaders: true,
     legacyHeaders: false,
+    store: new PostgresStore(dbConfig, 'rate_limits_reset'),
     keyGenerator: (req) => {
-        const email = typeof req.body?.email === 'string' ? normalizeEmail(req.body.email) : '';
-        return `${req.ip}:${email}`;
+        return req.ip || 'unknown';
     },
 });
 
-// Public Routes
-router.post('/register', registerLimiter, async (req, res) => {
+// Admin Route
+router.post('/register', authMiddleware, adminOnly, registerLimiter, async (req, res) => {
     const { email, password, clubName, groupCategory, organizationType, userId: providedUserId } = req.body;
 
     if (providedUserId) {

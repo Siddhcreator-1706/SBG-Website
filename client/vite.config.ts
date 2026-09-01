@@ -1,8 +1,48 @@
 import path from 'path';
+import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+// ── Derive a safe, validated app version for the built bundle ──────────────
+// All candidate values are validated against strict allowlists before use.
+// This prevents a compromised git binary or malicious env var from injecting
+// arbitrary strings into the bundle via the define map.
+const SHA_RE = /^[0-9a-f]{7,40}$/i;         // git short or full SHA
+const SEMVER_RE = /^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$/;
+
+function deriveAppVersion(): string {
+  // 1. Prefer the full SHA injected by GitHub Actions (most authoritative)
+  const ciSha = process.env.GITHUB_SHA ?? '';
+  if (SHA_RE.test(ciSha)) return ciSha.slice(0, 7);
+
+  // 2. Fall back to local git short SHA
+  try {
+    const sha = execSync('git rev-parse --short HEAD', {
+      encoding: 'utf8',
+      timeout: 3000,      // don't hang if git is unavailable
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (SHA_RE.test(sha)) return sha;
+  } catch {
+    // git unavailable — continue to next fallback
+  }
+
+  // 3. Fall back to the semver from package.json
+  try {
+    const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version?: string };
+    if (typeof pkg.version === 'string' && SEMVER_RE.test(pkg.version)) return pkg.version;
+  } catch {
+    // package.json unreadable — continue to last resort
+  }
+
+  // 4. Last resort: unix timestamp (always safe)
+  return String(Date.now());
+}
+
+const appVersion = deriveAppVersion();
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
@@ -71,6 +111,7 @@ export default defineConfig(({ mode }) => {
         })
       ],
       define: {
+        '__APP_VERSION__': JSON.stringify(appVersion),
       },
       build: {
         sourcemap: true,

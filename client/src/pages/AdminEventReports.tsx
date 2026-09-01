@@ -54,9 +54,7 @@ export default function AdminEventReports() {
       const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
       const apiUrl = `${baseUrl.replace(/\/$/, '')}/api/event-reports/export`;
       const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('jwt_token')}`
-        }
+        credentials: 'include'
       });
       if (!response.ok) throw new Error('Export failed');
       

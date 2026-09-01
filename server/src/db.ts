@@ -10,18 +10,7 @@ if (!databaseUrlRaw) {
   console.error('DATABASE_URL is missing from server/.env');
 }
 
-let databaseUrl = databaseUrlRaw || '';
-try {
-  if (databaseUrl.includes('://')) {
-    const url = new URL(databaseUrl);
-    if (url.searchParams.has('sslmode')) {
-      url.searchParams.delete('sslmode');
-      databaseUrl = url.toString();
-    }
-  }
-} catch (e) {
-  // Ignore URL parse errors
-}
+const databaseUrl = databaseUrlRaw?.replace(/([?&])sslmode=[^&]*&?/g, '$1').replace(/[?&]$/, '') || '';
 
 if (!process.env.JWT_SECRET) {
   console.error('JWT_SECRET is missing from server/.env');

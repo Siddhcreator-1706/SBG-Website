@@ -25,3 +25,6 @@ CREATE TABLE IF NOT EXISTS event_reports (
 
 -- Index for fast lookup by club
 CREATE INDEX IF NOT EXISTS idx_event_reports_club_id ON event_reports(club_id);
+
+-- Rename Convenor to Convener in the club_members table
+UPDATE club_members SET designation = 'Convener' WHERE designation = 'Convenor';

@@ -203,12 +203,62 @@ docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
 ## Contributing
 
-Contributions are welcome! If you'd like to help improve SBG-Website:
+Contributions are welcome! This project uses **[Conventional Commits](https://www.conventionalcommits.org/)** and **automated versioning** — no manual version bumps needed.
+
+### Workflow
+
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Commit your changes (`git commit -m "Add my feature"`)
-4. Push to your branch (`git push origin feature/my-feature`)
-5. Open a Pull Request
+2. Create a feature branch (`git checkout -b feat/my-feature`)
+3. Make your changes
+4. Commit using Conventional Commits format (see below)
+5. Push to your branch (`git push origin feat/my-feature`)
+6. Open a Pull Request — CI will validate your commit messages automatically
+
+### Commit Message Format
+
+Every commit must follow this format:
+
+```
+<type>(<optional scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Types and their effect on versioning:**
+
+| Type | Description | Version Bump |
+|------|-------------|-------------|
+| `feat` | New feature | **Minor** (1.x.0) |
+| `fix` | Bug fix | **Patch** (1.0.x) |
+| `docs` | Documentation only | None |
+| `style` | Formatting, whitespace | None |
+| `refactor` | Code restructuring | None |
+| `perf` | Performance improvement | None |
+| `test` | Adding/updating tests | None |
+| `build` | Build system changes | None |
+| `ci` | CI configuration | None |
+| `chore` | Maintenance tasks | None |
+| `revert` | Reverts a previous commit | None |
+
+**Breaking changes** → **Major** bump (x.0.0): add `!` after the type or include a `BREAKING CHANGE:` footer.
+
+**Examples:**
+```bash
+git commit -m "feat: add real-time booking notifications"
+git commit -m "fix: prevent double-booking on concurrent requests"
+git commit -m "feat(admin)!: redesign dashboard API endpoints"
+git commit -m "docs: update deployment instructions"
+```
+
+### How Auto-Versioning Works
+
+1. You write commits with `feat:` / `fix:` prefixes
+2. CI validates commit messages on every PR
+3. When your PR merges to `main`, [release-please](https://github.com/googleapis/release-please) opens a **Release PR** with the bumped version and updated CHANGELOG
+4. When the Release PR is merged, a GitHub Release and git tag are created automatically
+5. CI builds and deploys the Docker image tagged with the new version
 
 *Note: By contributing to this repository, you agree that your contributions will be licensed under its proprietary license.*
 

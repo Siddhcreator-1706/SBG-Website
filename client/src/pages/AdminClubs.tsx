@@ -116,6 +116,7 @@ const AdminClubs: React.FC = () => {
         try {
             await apiRequest('/api/auth/register', {
                 method: 'POST',
+                auth: true,
                 body: {
                     clubName: addFormData.name,
                     email: addFormData.email,
