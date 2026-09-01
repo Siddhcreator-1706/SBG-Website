@@ -5,6 +5,10 @@ module.exports = {
     'type-case': [2, 'always', 'lower-case'],
     // Enforce non-empty subject
     'subject-empty': [2, 'never'],
+    // Relax subject-case so capitalized subjects (e.g. "fix: Resolve...") are accepted
+    'subject-case': [0],
+    // Relax trailing period rule
+    'subject-full-stop': [0],
     // Enforce non-empty type
     'type-empty': [2, 'never'],
     // Allow these types only
@@ -26,4 +30,7 @@ module.exports = {
       ],
     ],
   },
+  // Automatically ignore merge commits from git and GitHub PR merges
+  ignores: [(commit) => commit.startsWith('Merge ') || commit.startsWith('merge ')],
+  defaultIgnores: true,
 };
