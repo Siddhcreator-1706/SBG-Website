@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -5,31 +6,127 @@ import { Client } from 'pg';
 
 dotenv.config();
 
-async function migrate() {
+function sha256(content: string): string {
+  return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
+}
+
+function createClient(): Client {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     console.error('DATABASE_URL is required');
     process.exit(1);
   }
+  const databaseUrl = connectionString.replace(/([?&])sslmode=[^&]*&?/g, '$1').replace(/[?&]$/, '');
 
-  const client = new Client({
-    connectionString,
-    ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false },
+  return new Client({
+    connectionString: databaseUrl,
+    ssl: databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },
   });
+}
+// ── Schema bootstrap ────────────────────────────────────────────────
+
+async function ensureMigrationsTable(client: Client) {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version VARCHAR(255) PRIMARY KEY,
+      applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // Add the checksum column if it doesn't exist (upgrade path for existing DBs)
+  const colCheck = await client.query(`
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'schema_migrations' AND column_name = 'checksum'
+  `);
+  if (colCheck.rows.length === 0) {
+    await client.query(`ALTER TABLE schema_migrations ADD COLUMN checksum VARCHAR(64)`);
+    console.log('  Added checksum column to schema_migrations');
+  }
+}
+
+// ── Migration ───────────────────────────────────────────────────────
+async function migrate() {
+  const client = createClient();
   await client.connect();
 
-  const migrationsDir = path.join(__dirname, 'migrations');
-  const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
+  try {
+    await ensureMigrationsTable(client);
 
-  for (const file of files) {
-    const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
-    console.log(`Running migration: ${file}`);
-    await client.query(sql);
-    console.log(`  ✓ ${file}`);
+    const { rows } = await client.query('SELECT version, checksum FROM schema_migrations');
+    const appliedMigrations = new Map<string, string | null>(
+      rows.map((r: any) => [r.version, r.checksum])
+    );
+
+    const migrationsDir = path.join(__dirname, 'migrations');
+    const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
+
+    // ── Phase 1: Verify checksums of all applied migrations BEFORE running anything ──
+    const tamperedFiles: string[] = [];
+
+    for (const file of files) {
+      if (!appliedMigrations.has(file)) continue;
+
+      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+      const checksum = sha256(sql);
+      const storedChecksum = appliedMigrations.get(file);
+
+      if (storedChecksum && storedChecksum !== checksum) {
+        console.error(`  ✗ CHECKSUM MISMATCH: ${file}`);
+        console.error(`    stored:  ${storedChecksum}`);
+        console.error(`    current: ${checksum}`);
+        tamperedFiles.push(file);
+      } else if (!storedChecksum) {
+        // Backfill checksum for migrations applied before checksums were added
+        await client.query(
+          'UPDATE schema_migrations SET checksum = $1 WHERE version = $2',
+          [checksum, file]
+        );
+        console.log(`  Backfilled checksum: ${file}`);
+      }
+    }
+
+    if (tamperedFiles.length > 0) {
+      console.error(
+        `\nABORTING: ${tamperedFiles.length} applied migration(s) have been modified on disk.\n` +
+        `   This may indicate tampering, accidental edits, or an incomplete merge.\n` +
+        `   Affected: ${tamperedFiles.join(', ')}\n` +
+        `   If the change is intentional, update the checksum in schema_migrations:\n` +
+        `     UPDATE schema_migrations SET checksum = '<new_hash>' WHERE version = '<filename>';`
+      );
+      process.exit(1);
+    }
+
+    // ── Phase 2: Apply pending migrations ────────────────────────────
+    for (const file of files) {
+      if (appliedMigrations.has(file)) {
+        console.log(`Skipping applied migration: ${file}`);
+        continue;
+      }
+
+      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+      const checksum = sha256(sql);
+      console.log(`Running migration: ${file}`);
+      
+      try {
+        await client.query('BEGIN');
+        await client.query(sql);
+        await client.query(
+          'INSERT INTO schema_migrations (version, checksum) VALUES ($1, $2)',
+          [file, checksum]
+        );
+        await client.query('COMMIT');
+        console.log(`  ✓ ${file}`);
+      } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(`  ✗ Failed ${file}:`, err);
+        throw err;
+      }
+    }
+
+    console.log('All migrations complete.');
+  } finally {
+    await client.end();
   }
-
-  await client.end();
-  console.log('All migrations complete.');
 }
 
 migrate().catch((err) => {

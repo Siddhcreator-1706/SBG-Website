@@ -18,9 +18,3 @@ CREATE INDEX IF NOT EXISTS idx_events_status ON events (status);
 -- Polled frequently to show the unread notification badge on the frontend
 CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications (user_id, is_read);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications (created_at DESC);
-
--- 4. Archives Optimization
--- Needed for the archives page to quickly load historical data per club
-CREATE INDEX IF NOT EXISTS idx_archived_bookings_club ON archived_bookings (club_id);
-CREATE INDEX IF NOT EXISTS idx_archived_events_club ON archived_events (club_id);
-CREATE INDEX IF NOT EXISTS idx_archived_reports_club ON archived_event_reports (club_id);

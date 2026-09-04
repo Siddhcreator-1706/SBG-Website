@@ -167,7 +167,7 @@ const AdminRequests: React.FC = () => {
     const isStarted = safeBookings[0]?.startTimeISO ? new Date(safeBookings[0].startTimeISO) <= new Date() : false;
     const isPending = req.status === 'pending' || (req.status === 'partial' && safeBookings.some(b => b.status === 'pending'));
     const matchesSearch = String(req.eventName || '').toLowerCase().includes(searchTerm.toLowerCase()) || String(req.bookingName || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesClub = filterClub === 'all' || req.clubName === filterClub;
+    const matchesClub = filterClub === 'all' || (req.clubName && req.clubName.toLowerCase() === filterClub.toLowerCase());
     const matchesVenue = filterVenue === 'all' || safeBookings.some(b => b.venueId === filterVenue);
 
     let matchesStatus = true;
@@ -240,7 +240,7 @@ const AdminRequests: React.FC = () => {
           </Select>
 
           <div className="relative w-full sm:w-64 shrink-0">
-            <Search className="absolute left-3 top-2.5 text-textMuted pointer-events-none" size={18} />
+            <Search className="absolute left-3 top-2.5 text-textMuted pointer-events-none z-10" size={18} />
             <Input
               type="text"
               placeholder="Search requests..."
@@ -286,7 +286,7 @@ const AdminRequests: React.FC = () => {
               <tbody className="divide-y divide-border/40">
                 {paginatedRequests.map((req, index) => (
                   <AdminRequestRow
-                    key={req.batchId || req.ids[0]}
+                    key={req.ids.join('-')}
                     req={req}
                     index={index}
                     venues={venues}

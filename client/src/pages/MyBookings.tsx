@@ -195,7 +195,7 @@ const MyBookings: React.FC<MyBookingsProps> = ({ currentUser }) => {
 
             return (
               <motion.div
-                key={booking.batchId || booking.ids[0]}
+                key={booking.ids.join('-')}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.08 }}

@@ -116,6 +116,7 @@ const AdminClubs: React.FC = () => {
         try {
             await apiRequest('/api/auth/register', {
                 method: 'POST',
+                auth: true,
                 body: {
                     clubName: addFormData.name,
                     email: addFormData.email,
@@ -249,7 +250,7 @@ const AdminClubs: React.FC = () => {
             <Card className="border border-borderSoft rounded-lg overflow-hidden bg-card shadow-sm">
                 <div className="p-4 border-b border-borderSoft flex flex-col sm:flex-row sm:items-center bg-card/50">
                     <div className="relative w-full sm:max-w-sm">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted h-4 w-4" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted h-4 w-4 pointer-events-none z-10" />
                         <Input
                             placeholder="Search clubs by name or email..."
                             className="pl-9 bg-background/50 border-borderSoft w-full max-w-full"

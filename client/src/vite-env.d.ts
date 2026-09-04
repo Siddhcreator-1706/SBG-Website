@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+declare const __APP_VERSION__: string;
 
 interface ImportMetaEnv {
   /** API base URL; empty string means same-origin in production. */

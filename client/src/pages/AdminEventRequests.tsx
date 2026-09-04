@@ -131,7 +131,7 @@ const AdminEventRequests: React.FC = () => {
 
   const filteredEvents = events.filter(ev => {
     const matchesSearch = String(ev.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesClub = filterClub === 'all' || ev.clubName === filterClub;
+    const matchesClub = filterClub === 'all' || (ev.clubName && ev.clubName.toLowerCase() === filterClub.toLowerCase());
     const matchesType = filterType === 'all' || ev.event_type === filterType;
     let matchesStatus = true;
     if (filterStatus !== 'all') {
@@ -199,7 +199,7 @@ const AdminEventRequests: React.FC = () => {
           </Select>
 
           <div className="relative w-full sm:w-64 shrink-0">
-            <Search className="absolute left-3 top-2.5 text-textMuted pointer-events-none" size={18} />
+            <Search className="absolute left-3 top-2.5 text-textMuted pointer-events-none z-10" size={18} />
             <Input
               type="text"
               placeholder="Search events..."

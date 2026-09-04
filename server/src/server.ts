@@ -19,6 +19,7 @@ import notificationRoutes from './routes/notifications';
 
 // 1. Swap Supabase for your new Neon DB Pool
 import { db } from './db';
+import { getAuthProfile } from './services/profile';
 import { verifyUserToken } from './utils/jwt';
 
 const app = express();
@@ -121,18 +122,12 @@ io.use(async (socket, next) => {
       return next();
     }
 
-    // 3. Raw SQL Query for Profile (Replaces supabase.from('profiles'))
-    const profileResult = await db.query(
-      'SELECT role, email FROM profiles WHERE id = $1',
-      [userId]
-    );
-
-    if (profileResult.rows.length === 0) {
+    const profile = await getAuthProfile(userId);
+    
+    if (!profile) {
       socket.data.user = null;
       return next();
     }
-
-    const profile = profileResult.rows[0];
 
     if (profile.role !== 'club' && profile.role !== 'admin') {
       socket.data.user = null;

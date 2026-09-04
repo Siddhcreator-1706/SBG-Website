@@ -2,20 +2,13 @@ import express from 'express';
 import { invalidateClubs, invalidatePublicBookings, invalidateVenues } from '../cache';
 import { performVenueConflictCheck } from '../controllers/bookingController';
 import { db } from '../db';
-import authMiddleware from '../middleware/auth';
+import authMiddleware, { adminOnly } from '../middleware/auth';
 import { io } from '../server';
 import { createNotification } from '../services/notification';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
 
 
 const router = express.Router();
-
-const adminOnly = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  if (req.user?.role !== 'admin') {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  return next();
-};
 
 router.use(authMiddleware, adminOnly);
 
@@ -442,10 +435,9 @@ router.put('/bookings/:id', async (req, res) => {
     io.to(`club:${data.club_id}`).emit('booking:status_changed', {
       bookingId: id,
       status: data.status,
-      eventName: data.event_name,
+      eventName: data.booking_name || data.event_name,
       clubId: data.club_id,
     });
-
 
     invalidatePublicBookings();
     return res.json(data);

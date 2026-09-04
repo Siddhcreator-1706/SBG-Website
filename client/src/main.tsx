@@ -6,6 +6,37 @@ import App from './App';
 import { ThemeProvider } from './components/theme-provider';
 import './index.css';
 
+const storedVersion = localStorage.getItem('sbg_app_version');
+
+if (storedVersion && storedVersion !== __APP_VERSION__) {
+  console.warn(
+    `[VersionManager] Upgrading ${storedVersion} → ${__APP_VERSION__}. Purging stale caches.`
+  );
+
+  // 1. Clear CacheStorage (service worker & workbox caches)
+  if ('caches' in window) {
+    caches.keys().then((names) => names.forEach((n) => caches.delete(n)));
+  }
+
+  // 2. Unregister all Service Workers so the new one can take over cleanly
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((regs) => regs.forEach((r) => r.unregister()));
+  }
+
+  // 3. Persist the new version before reloading
+  localStorage.setItem('sbg_app_version', __APP_VERSION__);
+
+  // 4. Hard reload to origin + pathname only.
+  //    We do NOT use window.location.href because it may contain attacker-controlled
+  //    query params or a fragment that could redirect elsewhere.
+  //    window.location.origin + pathname is always a same-origin, path-only URL.
+  window.location.replace(window.location.origin + window.location.pathname);
+} else if (!storedVersion) {
+  localStorage.setItem('sbg_app_version', __APP_VERSION__);
+}
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
