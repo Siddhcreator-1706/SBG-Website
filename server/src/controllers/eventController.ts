@@ -256,8 +256,8 @@ export const deleteEvent = async (req: Request, res: Response) => {
       `, [id]);
 
       await client.query(`
-        INSERT INTO archived_event_reports (id, club_id, event_id, level, level_description, report_doc_link, participants_sheet_link, photos_drive_link, awards_doc_link, created_at, updated_at)
-        SELECT id, club_id, event_id, level, level_description, report_doc_link, participants_sheet_link, photos_drive_link, awards_doc_link, created_at, updated_at
+        INSERT INTO archived_event_reports (id, club_id, event_id, level, report_doc_link, participants_sheet_link, photos_drive_link, awards_doc_link, created_at, updated_at)
+        SELECT id, club_id, event_id, level, report_doc_link, participants_sheet_link, photos_drive_link, awards_doc_link, created_at, updated_at
         FROM event_reports WHERE event_id = $1
       `, [id]);
 
