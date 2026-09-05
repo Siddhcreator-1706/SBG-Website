@@ -372,8 +372,9 @@ export default function AdminEventReports() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label>Event Report Format Link</Label>
+              <Label htmlFor="event-report-link">Event Report Format Link</Label>
               <Input 
+                id="event-report-link"
                 type="url" 
                 value={settings.event_report_format_link} 
                 onChange={e => setSettings({...settings, event_report_format_link: e.target.value})} 
@@ -381,8 +382,9 @@ export default function AdminEventReports() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Awards Format Link</Label>
+              <Label htmlFor="awards-link">Awards Format Link</Label>
               <Input 
+                id="awards-link"
                 type="url" 
                 value={settings.awards_format_link} 
                 onChange={e => setSettings({...settings, awards_format_link: e.target.value})} 
@@ -392,9 +394,10 @@ export default function AdminEventReports() {
 
             <div className="pt-2 border-t border-borderSoft space-y-3">
               <div>
-                <Label className="font-semibold text-textPrimary">Google Sheet Webhook URL</Label>
+                <Label htmlFor="webhook-url" className="font-semibold text-textPrimary">Google Sheet Webhook URL</Label>
                 <p className="text-xs text-textMuted mb-1.5">Auto-updates event reports directly in your Google Sheet.</p>
                 <Input 
+                  id="webhook-url"
                   type="url" 
                   value={settings.google_sheet_webhook_url} 
                   onChange={e => setSettings({...settings, google_sheet_webhook_url: e.target.value})} 

@@ -46,11 +46,11 @@ COPY --chown=nodejs:nodejs --chmod=755 docker-entrypoint.sh /app/docker-entrypoi
 ARG BUILD_ID=
 ENV BUILD_ID=$BUILD_ID \
     NODE_ENV=production \
-    PORT=3005 \
+    PORT=${PORT:-3005} \
     CLIENT_DIST_DIR=/app/client
 
 USER nodejs
-EXPOSE 3005
+EXPOSE 4000
 WORKDIR /app/server
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \

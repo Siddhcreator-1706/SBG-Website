@@ -316,8 +316,9 @@ const AdminVenues: React.FC = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Venue Name <span className="text-error">*</span></Label>
+              <Label htmlFor="venue-name">Venue Name <span className="text-error">*</span></Label>
               <Input 
+                id="venue-name"
                 value={formData.name} 
                 onChange={e => setFormData({ ...formData, name: e.target.value })} 
                 placeholder="e.g. CEP 108, OAT"
@@ -325,9 +326,9 @@ const AdminVenues: React.FC = () => {
             </div>
             
             <div className="space-y-2">
-              <Label>Category <span className="text-error">*</span></Label>
+              <Label htmlFor="venue-category">Category <span className="text-error">*</span></Label>
               <Select value={formData.category} onValueChange={v => setFormData({ ...formData, category: v })}>
-                <SelectTrigger>
+                <SelectTrigger id="venue-category">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -338,8 +339,9 @@ const AdminVenues: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Capacity</Label>
+              <Label htmlFor="venue-capacity">Capacity</Label>
               <Input 
+                id="venue-capacity"
                 type="number"
                 value={formData.capacity} 
                 onChange={e => setFormData({ ...formData, capacity: e.target.value })} 
@@ -348,8 +350,9 @@ const AdminVenues: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Location</Label>
+              <Label htmlFor="venue-location">Location</Label>
               <Input 
+                id="venue-location"
                 value={formData.location} 
                 onChange={e => setFormData({ ...formData, location: e.target.value })} 
                 placeholder="e.g. CEP Building, 1st Floor"

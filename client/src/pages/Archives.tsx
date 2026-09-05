@@ -250,6 +250,9 @@ const Archives: React.FC = () => {
             </Card>
           </motion.div>
         ))}
+        </>
+      );
+    })()}
         {archives.length > 0 && Math.ceil(archives.length / itemsPerPage) > 1 && (() => {
           const totalPages = Math.ceil(archives.length / itemsPerPage);
           const startIndex = (currentPage - 1) * itemsPerPage;
@@ -269,8 +272,6 @@ const Archives: React.FC = () => {
             </div>
           );
         })()}
-        </>
-      )}
       </div>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
