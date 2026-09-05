@@ -1,4 +1,4 @@
-import { Download, FileSpreadsheet, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, FileSpreadsheet, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { GlassCard } from '../components/glass-card';
@@ -18,6 +18,9 @@ export default function AdminEventReports() {
   const [pastEvents, setPastEvents] = useState<any[]>([]);
   const [tab, setTab] = useState<'submitted' | 'tracking' | 'exempt'>('submitted');
   const [loading, setLoading] = useState(true);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
@@ -139,39 +142,68 @@ export default function AdminEventReports() {
     }
   };
 
+  const currentData = tab === 'submitted' 
+    ? reports 
+    : tab === 'tracking' 
+      ? pastEvents.filter(e => !e.has_report && !e.report_exempt)
+      : pastEvents.filter(e => e.report_exempt);
+
+  const totalPages = Math.ceil(currentData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedData = currentData.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="relative min-h-dvh">
       <GradientBackground />
       <div className="relative z-10 space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-textPrimary leading-tight">All Event Reports</h1>
-            <p className="text-textMuted max-w-3xl mt-1">Manage and export all club event reports.</p>
-          </div>
-          <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setIsSettingsOpen(true)} className="w-full sm:w-auto">
-              <Settings className="w-4 h-4 mr-2" />
-              Settings & Formats
-            </Button>
-            <Button 
-              onClick={() => setIsSyncModalOpen(true)}
-              className="w-full sm:w-auto gap-2 rounded-xl h-10 font-semibold border-[1.5px] border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 shadow-sm"
-            >
-              <FileSpreadsheet size={16} />
-              Sync to Google Sheet
-            </Button>
-            <Button 
-              onClick={handleExport}
-              className="w-full sm:w-auto gap-2 rounded-xl h-10 font-semibold border-[1.5px] border-slate-300 dark:border-slate-600 bg-card text-textSecondary hover:bg-hoverSoft shadow-sm"
-            >
-              <Download size={16} />
-              Export Reports
-            </Button>
-          </div>
-        </div>
+        <div className="w-full flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+  {/* Title */}
+  <div className="min-w-0 lg:flex-1">
+    <h1 className="text-2xl sm:text-3xl font-bold text-textPrimary leading-tight">
+      Event Reports
+    </h1>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'submitted' | 'tracking' | 'exempt')} className="w-full">
+    <p className="mt-1 text-sm sm:text-base text-textMuted max-w-md">
+      Manage and export all club/committee event reports.
+    </p>
+  </div>
+
+  {/* Actions */}
+  <div className="flex flex-col gap-2 sm:gap-3 lg:shrink-0">
+    {/* Settings - full width row */}
+    <Button
+      variant="outline"
+      onClick={() => setIsSettingsOpen(true)}
+      className="h-10 rounded-xl px-4 whitespace-nowrap w-full"
+    >
+      <Settings className="w-4 h-4 mr-2 shrink-0" />
+      Settings & Formats
+    </Button>
+
+    {/* Sync + Export side by side */}
+    <div className="flex gap-2 sm:gap-3">
+      <Button
+        onClick={() => setIsSyncModalOpen(true)}
+        className="h-10 gap-2 rounded-xl px-4 font-semibold border-[1.5px] border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 shadow-sm whitespace-nowrap flex-1"
+      >
+        <FileSpreadsheet className="w-4 h-4 shrink-0" />
+        Sync Sheet
+      </Button>
+
+      <Button
+        onClick={handleExport}
+        className="hover:bg-hoverSoft shadow-sm whitespace-nowrap flex-1"
+      >
+        <Download className="w-4 h-4 shrink-0" />
+        Export
+      </Button>
+    </div>
+  </div>
+</div>
+
+
+
+        <Tabs value={tab} onValueChange={(v) => { setTab(v as 'submitted' | 'tracking' | 'exempt'); setCurrentPage(1); }} className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-hoverSoft border-borderSoft rounded-xl p-1">
             <TabsTrigger value="submitted" className="data-[state=active]:bg-background">
               Submitted ({reports.length})
@@ -202,7 +234,7 @@ export default function AdminEventReports() {
           <>
             {tab === 'submitted' && (
           <div className="space-y-4">
-            {reports.map(r => (
+            {paginatedData.map(r => (
               <GlassCard key={r.id} className="p-4 space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                   <h3 className="font-semibold text-lg leading-tight">
@@ -221,84 +253,114 @@ export default function AdminEventReports() {
               </GlassCard>
             ))}
           </div>
-        )}
+        
+      )}
 
         {tab === 'tracking' && (
-          <div className="overflow-x-auto w-full">
-            <table className="w-full min-w-[600px] sm:min-w-0 text-sm text-left">
-              <thead className="text-xs uppercase bg-card/50 text-textMuted">
-                <tr>
-                  <th className="px-4 py-3">Event</th>
-                  <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3">End Date</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pastEvents.filter(e => !e.has_report && !e.report_exempt).map(e => (
-                  <tr key={e.id} className="border-b border-borderSoft hover:bg-hoverSoft/50">
-                    <td className="px-4 py-3 font-medium">{e.name}</td>
-                    <td className="px-4 py-3">{e.club_name}</td>
-                    <td className="px-4 py-3">{new Date(e.end_date || e.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</td>
-                    <td className="px-4 py-3">
-                      <span className="text-error font-semibold">Pending</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button variant="outline" size="sm" onClick={() => toggleExempt(e.id, e.report_exempt)}>
-                        Mark Exempt
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-                {pastEvents.filter(e => !e.has_report && !e.report_exempt).length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-textMuted">No pending events require a report.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+  <div className="overflow-x-auto bg-white dark:bg-card border border-borderSoft rounded-xl">
+    <table className="min-w-full text-left text-sm">
+      <thead className="bg-gray-50 dark:bg-gray-800/50">
+        <tr>
+          <th className="px-4 py-3 font-semibold text-textSecondary text-center">Event</th>
+          <th className="px-4 py-3 font-semibold text-textSecondary text-center">Club / Committee</th>
+          <th className="px-4 py-3 font-semibold text-textSecondary text-center">End Date</th>
+          <th className="px-4 py-3 font-semibold text-textSecondary text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-borderSoft">
+        {paginatedData.map(e => (
+          <tr key={e.id}>
+            <td className="px-4 py-3 font-medium">{e.name}</td>
+            <td className="px-4 py-3 text-textMuted">{e.club_name}</td>
+            <td className="px-4 py-3 text-textMuted">{new Date(e.end_date || e.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</td>
+            <td className="px-4 py-3">
+              <Button variant="outline" size="sm" onClick={() => toggleExempt(e.id, e.report_exempt)}>
+                Mark Exempt
+              </Button>
+            </td>
+          </tr>
+        ))}
+        {paginatedData.length === 0 && (
+          <tr>
+            <td colSpan={4} className="text-center text-textMuted py-8">
+              No pending events require a report.
+            </td>
+          </tr>
         )}
+      </tbody>
+    </table>
+  </div>
+)}
 
         {tab === 'exempt' && (
-          <div className="overflow-x-auto w-full">
-            <table className="w-full min-w-[600px] sm:min-w-0 text-sm text-left">
-              <thead className="text-xs uppercase bg-card/50 text-textMuted">
-                <tr>
-                  <th className="px-4 py-3">Event</th>
-                  <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3">End Date</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pastEvents.filter(e => e.report_exempt).map(e => (
-                  <tr key={e.id} className="border-b border-borderSoft hover:bg-hoverSoft/50">
-                    <td className="px-4 py-3 font-medium">{e.name}</td>
-                    <td className="px-4 py-3">{e.club_name}</td>
-                    <td className="px-4 py-3">{new Date(e.end_date || e.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</td>
-                    <td className="px-4 py-3">
-                      <span className="text-gray-400">Exempt</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button variant="outline" size="sm" onClick={() => toggleExempt(e.id, e.report_exempt)}>
-                        Remove Exemption
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-                {pastEvents.filter(e => e.report_exempt).length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-textMuted">No exempt events.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+  <div className="overflow-x-auto bg-white dark:bg-card border border-borderSoft rounded-xl">
+    <table className="min-w-full text-left text-sm">
+      <thead className="bg-gray-50 dark:bg-gray-800/50">
+        <tr>
+          <th className="px-4 py-3 font-semibold text-textSecondary text-center">Event</th>
+          <th className="px-4 py-3 font-semibold text-textSecondary text-center">Club / Committee</th>
+          <th className="px-4 py-3 font-semibold text-textSecondary text-center">End Date</th>
+          <th className="px-4 py-3 font-semibold text-textSecondary text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-borderSoft">
+        {paginatedData.map(e => (
+          <tr key={e.id}>
+            <td className="px-4 py-3 font-medium">{e.name}</td>
+            <td className="px-4 py-3 text-textMuted">{e.club_name}</td>
+            <td className="px-4 py-3 text-textMuted">{new Date(e.end_date || e.date).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata' })}</td>
+            <td className="px-4 py-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-red-500/30 text-red-600 hover:bg-red-500/20"
+                onClick={() => toggleExempt(e.id, e.report_exempt)}
+              >
+                Remove Exemption
+              </Button>
+            </td>
+          </tr>
+        ))}
+        {paginatedData.length === 0 && (
+          <tr>
+            <td colSpan={4} className="text-center text-textMuted py-8">
+              No exempt events.
+            </td>
+          </tr>
         )}
+      </tbody>
+    </table>
+  </div>
+)}
           </>
+        )}
+
+        {currentData.length > 0 && totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between mt-6 p-4 border-t border-borderSoft bg-card rounded-xl shadow-sm gap-4">
+            <div className="flex items-center text-sm text-textMuted">
+              Showing <span className="font-medium mx-1">{startIndex + 1}</span> to <span className="font-medium mx-1">{Math.min(startIndex + itemsPerPage, currentData.length)}</span> of <span className="font-medium mx-1">{currentData.length}</span> results
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft size={16} className="mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight size={16} className="ml-1" />
+              </Button>
+            </div>
+          </div>
         )}
       </div>
 
