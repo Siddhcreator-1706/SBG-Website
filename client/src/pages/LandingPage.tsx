@@ -78,13 +78,17 @@ const LandingPage: React.FC = () => {
     const [venues, setVenues] = useState<ApiVenue[]>([]);
     const [selectedEvent, setSelectedEvent] = useState<PublicEvent | null>(null);
     const [selectedDayInfo, setSelectedDayInfo] = useState<{ date: Date; events: PublicEvent[] } | null>(null);
-    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
+    const [windowWidth, setWindowWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1200);
 
     useEffect(() => {
-        const onResize = () => setIsMobile(window.innerWidth < 640);
+        const onResize = () => setWindowWidth(window.innerWidth);
         window.addEventListener('resize', onResize);
         return () => window.removeEventListener('resize', onResize);
     }, []);
+
+    const isMobile = windowWidth < 640;
+    const isTablet = windowWidth >= 640 && windowWidth < 1024;
+    const isLargeScreen = windowWidth >= 1536;
 
     const fetchEvents = useCallback(async () => {
         try {
@@ -137,8 +141,6 @@ const LandingPage: React.FC = () => {
             socket.off(SOCKET_EVENTS.BOOKING_NEW, handleRefresh);
         };
     }, [fetchEvents]);
-
-
 
     const calendarDays = useMemo(() => {
         const year = currentMonth.getFullYear();
@@ -246,6 +248,19 @@ const LandingPage: React.FC = () => {
         return weeks;
     }, [calendarDays, events]);
 
+    const currentMonthEventsCount = useMemo(() => {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const startOfMonth = new Date(year, month, 1, 0, 0, 0, 0);
+        const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+        return events.filter(event => {
+            const start = new Date(event.startTime);
+            const end = new Date(event.endTime);
+            return start <= endOfMonth && end >= startOfMonth;
+        }).length;
+    }, [events, currentMonth]);
+
     const upcomingEvents = useMemo(
         () => {
             const now = new Date();
@@ -302,22 +317,22 @@ const LandingPage: React.FC = () => {
             {/* ====== Main Content ====== */}
             <main>
                 {/* ====== Hero ====== */}
-                <section className="relative z-10 text-center px-5 sm:px-8 pt-12 sm:pt-20 pb-10 sm:pb-14 max-w-4xl mx-auto">
+                <section className="relative z-10 text-center px-4 sm:px-6 3xl:px-12 pt-8 sm:pt-12 md:pt-14 3xl:pt-20 4k:pt-24 pb-5 sm:pb-7 3xl:pb-10 max-w-3xl 3xl:max-w-5xl 4k:max-w-6xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-brand/20 bg-brand/5 mb-6 sm:mb-8"
+                        className="inline-flex items-center gap-2 px-3.5 py-1.5 3xl:px-5 3xl:py-2 rounded-full border border-brand/20 bg-brand/5 mb-4 sm:mb-5 3xl:mb-8"
                     >
-                        <Sparkles size={14} className="text-brand" />
-                        <span className="text-sm font-semibold text-brand">Campus Event Calendar</span>
+                        <Sparkles size={14} className="text-brand 3xl:scale-125" />
+                        <span className="text-xs sm:text-sm 3xl:text-base font-semibold text-brand">Campus Event Calendar</span>
                     </motion.div>
 
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0 }}
-                        className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter text-textPrimary leading-[1.08] pb-2"
+                        className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl 3xl:text-6xl 4k:text-7xl font-extrabold tracking-tighter text-textPrimary leading-[1.1] pb-1"
                     >
                         Discover What's
                         <br />
@@ -330,7 +345,7 @@ const LandingPage: React.FC = () => {
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className="mt-6 sm:mt-8 text-base sm:text-lg text-textSecondary max-w-xl mx-auto leading-relaxed font-medium"
+                        className="mt-3.5 sm:mt-4 3xl:mt-6 text-sm sm:text-base 3xl:text-lg 4k:text-xl text-textSecondary max-w-lg 3xl:max-w-2xl mx-auto leading-relaxed font-normal"
                     >
                         Browse upcoming events from clubs across campus.
                         Find something you love, or sign in to book your own venue.
@@ -342,7 +357,7 @@ const LandingPage: React.FC = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="relative z-10 flex flex-wrap items-center justify-center gap-4 sm:gap-6 mb-6 px-4"
+                    className="relative z-10 flex flex-wrap items-center justify-center gap-4 sm:gap-6 3xl:gap-8 mb-4 sm:mb-5 3xl:mb-8 px-4"
                 >
                     {[
                         { key: 'co_curricular', label: 'Co-Curricular' },
@@ -351,8 +366,8 @@ const LandingPage: React.FC = () => {
                         const c = EVENT_TYPE_COLORS[key];
                         return (
                             <div key={key} className="flex items-center gap-2">
-                                <div className={`h-2.5 w-2.5 rounded-full ${c.dot}`} />
-                                <span className="text-xs font-semibold text-textSecondary">{label}</span>
+                                <div className={`h-2.5 w-2.5 3xl:h-3.5 3xl:w-3.5 rounded-full ${c.dot}`} />
+                                <span className="text-xs sm:text-sm 3xl:text-base font-semibold text-textSecondary">{label}</span>
                             </div>
                         );
                     })}
@@ -363,11 +378,11 @@ const LandingPage: React.FC = () => {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.25 }}
-                    className="relative z-10 max-w-7xl mx-auto px-5 sm:px-8 pb-8 sm:pb-16"
+                    className="relative z-10 max-w-6xl 2xl:max-w-7xl 3xl:max-w-[1720px] 4k:max-w-[2200px] uhd:max-w-[2800px] mx-auto px-4 sm:px-6 3xl:px-10 pb-8 sm:pb-12 3xl:pb-20"
                 >
                     <div className="rounded-2xl border border-borderSoft bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
                         {/* Calendar header */}
-                        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-borderSoft bg-hoverSoft/30">
+                        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-borderSoft bg-hoverSoft/30">
                             <div className="flex items-center gap-2">
                                 <Button variant="outline" size="sm" onClick={goToday} className="rounded-lg text-xs font-semibold h-8 bg-card shadow-sm">
                                     Today
@@ -388,7 +403,7 @@ const LandingPage: React.FC = () => {
 
                             <div className="hidden sm:flex items-center gap-2 text-xs text-textMuted font-medium">
                                 <CalendarIcon size={14} />
-                                {events.length} events
+                                {currentMonthEventsCount} {currentMonthEventsCount === 1 ? 'event' : 'events'}
                             </div>
                         </div>
 
@@ -397,7 +412,7 @@ const LandingPage: React.FC = () => {
                             {DAY_HEADERS.map(d => (
                                 <div
                                     key={d}
-                                    className="py-2 sm:py-2.5 text-center text-xs sm:text-xs font-bold uppercase tracking-wider text-textSecondary border-r last:border-r-0 border-borderSoft/20"
+                                    className="py-2 text-center text-xs font-bold uppercase tracking-wider text-textSecondary border-r last:border-r-0 border-borderSoft/20"
                                 >
                                     {d}
                                 </div>
@@ -409,176 +424,186 @@ const LandingPage: React.FC = () => {
                             <div className="flex items-center justify-center py-32">
                                 <div className="h-8 w-8 border-3 border-brand/30 border-t-brand rounded-full animate-spin" />
                             </div>
-                        ) : (() => {
-                            // Centralized layout constants — single source of truth
+                        ) : (() => {                            // Centralized layout constants — adaptive across mobile, tablet, laptop, and ultra-wide screens
                             const L = {
-                                cellPad:    isMobile ? 4  : 8,    // p-1 vs p-2
-                                dayNumH:    isMobile ? 22 : 28,   // day number circle
-                                dayNumMb:   isMobile ? 2  : 4,    // margin below number
-                                barH:       isMobile ? 22 : 24,   // event bar height
-                                barGap:     isMobile ? 3  : 4,    // gap between rows
-                                maxSlots:   2,
-                                barMargin:  isMobile ? 2  : 6,    // ml/mr on bars
-                                barFont:    isMobile ? 10 : 12,   // event name font
-                                barPadX:    isMobile ? 4  : 8,    // horizontal padding in bars
-                                overflowFont: isMobile ? 10 : 11, // "+N more" font
+                                cellPad:      isMobile ? 3 : isLargeScreen ? 6 : 5,    // compact on mobile, spacious on large screens
+                                dayNumH:      isMobile ? 20 : isLargeScreen ? 26 : 24,  // sleek day number
+                                dayNumMb:     isMobile ? 2 : 3,                        // margin below number
+                                barH:         isMobile ? 20 : isLargeScreen ? 24 : 22,  // event bar height
+                                barGap:       3,                                       // gap between rows
+                                maxSlots:     isLargeScreen ? 3 : 2,                   // show 3 events on large screens before overflow
+                                barMargin:    isMobile ? 2 : 4,                        // ml/mr on bars
+                                barFont:      isMobile ? 10 : isLargeScreen ? 12 : 11, // event name font
+                                barPadX:      isMobile ? 4 : isLargeScreen ? 7 : 6,    // horizontal padding in bars
+                                overflowFont: isMobile ? 10 : 11,                      // "+N more" font
                             };
                             // Derived values
                             const overlayTop = L.cellPad + L.dayNumH + L.dayNumMb;
                             const rowH = L.barH + L.barGap;
-                            const eventsAreaH = L.maxSlots * rowH;
-                            const spacerH = eventsAreaH; // strict 1:1 mapping with events area
-                            const overflowH = isMobile ? 16 : 18;
-                            const weekMinH = overlayTop + spacerH + overflowH + L.cellPad;
+                            const overflowH = isMobile ? 14 : 16;
+                            const emptyMinH = isMobile ? 46 : isTablet ? 72 : isLargeScreen ? 116 : 94;
 
                             return (
                             <div className="flex flex-col border-x border-borderSoft/30">
-                                {calendarWeeks.map((week, wIdx) => (
-                                    <div
-                                        key={wIdx}
-                                        className="relative grid grid-cols-7 border-b border-borderSoft/30 last:border-b-0"
-                                        style={{ height: weekMinH }}
-                                    >
+                                {calendarWeeks.map((week, wIdx) => {
+                                    const weekHasOverflow = week.days.some((day, dIdx) => {
+                                        if (!day) return false;
+                                        const count = week.events.filter(we => we.startCol <= dIdx + 1 && we.startCol + we.span - 1 >= dIdx + 1).length;
+                                        return count > L.maxSlots;
+                                    });
+                                    const visibleEvents = week.events.filter(we => we.slot < L.maxSlots);
+                                    const maxSlotUsedInWeek = visibleEvents.length > 0 ? Math.max(...visibleEvents.map(we => we.slot)) : -1;
+                                    const weekEventsH = (maxSlotUsedInWeek + 1) * rowH;
+                                    const weekOverflowH = weekHasOverflow ? overflowH : 0;
+                                    const weekH = Math.max(emptyMinH, overlayTop + weekEventsH + weekOverflowH + L.cellPad);
 
-                                        {/* Background Day Cells */}
-                                        {week.days.map((day, dIdx) => {
-                                            if (!day) {
+                                    return (
+                                        <div
+                                            key={wIdx}
+                                            className="relative grid grid-cols-7 border-b border-borderSoft/30 last:border-b-0"
+                                            style={{ height: weekH }}
+                                        >
+
+                                            {/* Background Day Cells */}
+                                            {week.days.map((day, dIdx) => {
+                                                if (!day) {
+                                                    return (
+                                                        <div
+                                                            key={`blank-${dIdx}`}
+                                                            className="border-r border-borderSoft/20 last:border-r-0 bg-hoverSoft/20"
+                                                            style={{ height: weekH }}
+                                                        />
+                                                    );
+                                                }
+
+                                                const isToday = isSameDay(day, today);
+                                                const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
+
+                                                const dayEventsForCell = week.events.filter(we => we.startCol <= dIdx + 1 && we.startCol + we.span - 1 >= dIdx + 1);
+                                                const actualEventsCount = dayEventsForCell.length;
+                                                const overflow = actualEventsCount > L.maxSlots ? actualEventsCount - L.maxSlots : 0;
+                                                
+                                                // Find the lowest visual slot occupied in this specific column to snug the +1 more text under it
+                                                const visibleEventsForCell = dayEventsForCell.filter(we => we.slot < L.maxSlots);
+                                                const maxSlotUsed = visibleEventsForCell.length > 0 ? Math.max(...visibleEventsForCell.map(we => we.slot)) : -1;
+                                                const dynamicSpacerH = (maxSlotUsed + 1) * rowH;
+
                                                 return (
                                                     <div
-                                                        key={`blank-${dIdx}`}
-                                                        className="border-r border-borderSoft/20 last:border-r-0 bg-hoverSoft/20"
-                                                        style={{ height: weekMinH }}
-                                                    />
-                                                );
-                                            }
-
-                                            const isToday = isSameDay(day, today);
-                                            const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
-
-                                            const dayEventsForCell = week.events.filter(we => we.startCol <= dIdx + 1 && we.startCol + we.span - 1 >= dIdx + 1);
-                                            const actualEventsCount = dayEventsForCell.length;
-                                            const overflow = actualEventsCount > L.maxSlots ? actualEventsCount - L.maxSlots : 0;
-                                            
-                                            // Find the lowest visual slot occupied in this specific column to snug the +1 more text under it
-                                            const visibleEventsForCell = dayEventsForCell.filter(we => we.slot < L.maxSlots);
-                                            const maxSlotUsed = visibleEventsForCell.length > 0 ? Math.max(...visibleEventsForCell.map(we => we.slot)) : -1;
-                                            const dynamicSpacerH = (maxSlotUsed + 1) * rowH;
-
-                                            return (
-                                                <div
-                                                    key={day.toISOString()}
-                                                    onClick={() => {
-                                                        if (dayEventsForCell.length > 0) {
-                                                            setSelectedDayInfo({ date: day, events: dayEventsForCell.map(we => we.event) });
-                                                        }
-                                                    }}
-                                                    className={`
-                                                    border-r border-borderSoft/20 last:border-r-0
-                                                    transition-colors ${dayEventsForCell.length > 0 ? 'cursor-pointer' : 'cursor-default'}
-                                                    ${isToday ? 'bg-brand/4 dark:bg-brand/6' : ''}
-                                                    ${!isCurrentMonth ? 'opacity-40' : ''}
-                                                    hover:bg-hoverSoft/40
-                                                `}
-                                                    style={{
-                                                        padding: L.cellPad,
-                                                        height: weekMinH,
-                                                        display: 'grid',
-                                                        gridTemplateRows: `${L.dayNumH}px ${dynamicSpacerH}px ${overflowH}px`,
-                                                        rowGap: `${L.dayNumMb}px`,
-                                                        alignContent: 'start'
-                                                    }}
-                                                >
-                                                    <div className="flex items-start">
-                                                        <span
-                                                            className={`
-                                                            inline-flex items-center justify-center font-semibold z-20 relative
-                                                            ${isToday
-                                                                    ? 'rounded-full bg-brand text-white shadow-sm shadow-brand/30'
-                                                                    : 'text-textPrimary'
-                                                                }
-                                                        `}
-                                                            style={{
-                                                                height: L.dayNumH,
-                                                                width: L.dayNumH,
-                                                                fontSize: isMobile ? 12 : 14,
-                                                            }}
-                                                        >
-                                                            {day.getDate()}
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Spacer — dynamically aligns with the lowest visible tag on this day */}
-                                                    <div />
-
-                                                    {overflow > 0 && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const dayEvents = week.events.filter(we => we.startCol <= dIdx + 1 && we.startCol + we.span - 1 >= dIdx + 1).map(we => we.event);
-                                                                setSelectedDayInfo({ date: day, events: dayEvents });
-                                                            }}
-                                                            className="w-full text-left font-semibold text-brand hover:text-brandLink transition-colors z-20 cursor-pointer select-none truncate"
-                                                            style={{
-                                                                fontSize: L.overflowFont,
-                                                                lineHeight: `${overflowH}px`,
-                                                                paddingLeft: 2,
-                                                                paddingRight: 2,
-                                                            }}
-                                                        >
-                                                            +{overflow} more
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-
-                                        <div
-                                            className="absolute left-0 right-0 bottom-0 pointer-events-none grid grid-cols-7 content-start z-10"
-                                            style={{
-                                                top: overlayTop,
-                                                gridAutoRows: `${rowH}px`,
-                                            }}
-                                        >
-                                            {week.events.filter(we => we.slot < L.maxSlots).map((we, eIdx) => {
-                                                const c = getColor(we.event.eventType);
-                                                return (
-                                                    <button
-                                                        key={`${we.event.id}-${eIdx}`}
-                                                        onClick={() => setSelectedEvent(we.event)}
+                                                        key={day.toISOString()}
+                                                        onClick={() => {
+                                                            if (dayEventsForCell.length > 0) {
+                                                                setSelectedDayInfo({ date: day, events: dayEventsForCell.map(we => we.event) });
+                                                            }
+                                                        }}
                                                         className={`
-                                                        pointer-events-auto flex items-center justify-start text-left font-medium overflow-hidden
-                                                        transition-all hover:brightness-95 border cursor-pointer select-none
-                                                        ${c.bg} ${c.text} ${c.border}
-                                                        ${we.isStart ? 'rounded-l sm:rounded-l-md' : 'rounded-l-none border-l-0'}
-                                                        ${we.isEnd ? 'rounded-r sm:rounded-r-md' : 'rounded-r-none border-r-0'}
+                                                        border-r border-borderSoft/20 last:border-r-0
+                                                        transition-colors ${dayEventsForCell.length > 0 ? 'cursor-pointer' : 'cursor-default'}
+                                                        ${isToday ? 'bg-brand/4 dark:bg-brand/6' : ''}
+                                                        ${!isCurrentMonth ? 'opacity-40' : ''}
+                                                        hover:bg-hoverSoft/40
                                                     `}
                                                         style={{
-                                                            gridColumn: `${we.startCol} / span ${we.span}`,
-                                                            gridRow: we.slot + 1,
-                                                            height: L.barH,
-                                                            minHeight: L.barH,
-                                                            lineHeight: `${L.barH}px`,
-                                                            fontSize: L.barFont,
-                                                            paddingLeft: L.barPadX,
-                                                            paddingRight: L.barPadX,
-                                                            marginLeft: we.isStart ? L.barMargin : 0,
-                                                            marginRight: we.isEnd ? L.barMargin : 0,
+                                                            padding: L.cellPad,
+                                                            height: weekH,
+                                                            display: 'grid',
+                                                            gridTemplateRows: `${L.dayNumH}px ${dynamicSpacerH}px ${overflowH}px`,
+                                                            rowGap: `${L.dayNumMb}px`,
+                                                            alignContent: 'start'
                                                         }}
-                                                        title={we.event.eventName}
                                                     >
-                                                        <span className="truncate w-full inline-block leading-none">
-                                                            {(we.isStart || we.startCol === 1) && (
-                                                                <>
-                                                                    {we.event.eventName}
-                                                                </>
-                                                            )}
-                                                        </span>
-                                                    </button>
+                                                        <div className="flex items-start">
+                                                            <span
+                                                                className={`
+                                                                inline-flex items-center justify-center font-semibold z-20 relative
+                                                                ${isToday
+                                                                        ? 'rounded-full bg-brand text-white shadow-sm shadow-brand/30'
+                                                                        : 'text-textPrimary'
+                                                                    }
+                                                            `}
+                                                                style={{
+                                                                    height: L.dayNumH,
+                                                                    width: L.dayNumH,
+                                                                    fontSize: isMobile ? 11 : 13,
+                                                                }}
+                                                            >
+                                                                {day.getDate()}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Spacer — dynamically aligns with the lowest visible tag on this day */}
+                                                        <div />
+
+                                                        {overflow > 0 && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const dayEvents = week.events.filter(we => we.startCol <= dIdx + 1 && we.startCol + we.span - 1 >= dIdx + 1).map(we => we.event);
+                                                                    setSelectedDayInfo({ date: day, events: dayEvents });
+                                                                }}
+                                                                className="w-full text-left font-semibold text-brand hover:text-brandLink transition-colors z-20 cursor-pointer select-none truncate"
+                                                                style={{
+                                                                    fontSize: L.overflowFont,
+                                                                    lineHeight: `${overflowH}px`,
+                                                                    paddingLeft: 2,
+                                                                    paddingRight: 2,
+                                                                }}
+                                                            >
+                                                                +{overflow} more
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 );
                                             })}
+
+                                            <div
+                                                className="absolute left-0 right-0 bottom-0 pointer-events-none grid grid-cols-7 content-start z-10"
+                                                style={{
+                                                    top: overlayTop,
+                                                    gridAutoRows: `${rowH}px`,
+                                                }}
+                                            >
+                                                {week.events.filter(we => we.slot < L.maxSlots).map((we, eIdx) => {
+                                                    const c = getColor(we.event.eventType);
+                                                    return (
+                                                        <button
+                                                            key={`${we.event.id}-${eIdx}`}
+                                                            onClick={() => setSelectedEvent(we.event)}
+                                                            className={`
+                                                            pointer-events-auto flex items-center justify-start text-left font-medium overflow-hidden
+                                                            transition-all hover:brightness-95 border cursor-pointer select-none
+                                                            ${c.bg} ${c.text} ${c.border}
+                                                            ${we.isStart ? 'rounded-l sm:rounded-l-md' : 'rounded-l-none border-l-0'}
+                                                            ${we.isEnd ? 'rounded-r sm:rounded-r-md' : 'rounded-r-none border-r-0'}
+                                                        `}
+                                                            style={{
+                                                                gridColumn: `${we.startCol} / span ${we.span}`,
+                                                                gridRow: we.slot + 1,
+                                                                height: L.barH,
+                                                                minHeight: L.barH,
+                                                                lineHeight: `${L.barH}px`,
+                                                                fontSize: L.barFont,
+                                                                paddingLeft: L.barPadX,
+                                                                paddingRight: L.barPadX,
+                                                                marginLeft: we.isStart ? L.barMargin : 0,
+                                                                marginRight: we.isEnd ? L.barMargin : 0,
+                                                            }}
+                                                            title={we.event.eventName}
+                                                        >
+                                                            <span className="truncate w-full inline-block leading-none">
+                                                                {(we.isStart || we.startCol === 1) && (
+                                                                    <>
+                                                                        {we.event.eventName}
+                                                                    </>
+                                                                )}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                             );
                         })()}

@@ -13,7 +13,7 @@ const PolicyPage: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="max-w-4xl mx-auto space-y-6 sm:space-y-8 w-full px-1"
+      className="max-w-4xl 3xl:max-w-6xl 4k:max-w-7xl mx-auto space-y-6 sm:space-y-8 w-full px-1 3xl:px-4"
     >
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -89,7 +89,7 @@ const PolicyPage: React.FC = () => {
                 <Card className="border border-border">
                   <CardHeader>
                     <CardTitle className="text-base">Category A (Auto-Approval)</CardTitle>
-                    <CardDescription className="text-xs">CEP 104, CEP 105, CEP 106, CEP 107, CEP 206, CEP 205, OAT, Cafeteria Entrance</CardDescription>
+                    <CardDescription className="text-xs">CEP 103, CEP 104, CEP 105, CEP 106, CEP 107, CEP 202, CEP 203, CEP 205, OAT, Cafeteria Entrance</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">Bookings are automatically confirmed if the slot is vacant and timeline rules are met. No manual intervention required.</p>
@@ -98,7 +98,7 @@ const PolicyPage: React.FC = () => {
                 <Card className="border border-border">
                   <CardHeader>
                     <CardTitle className="text-base">Category B (Restricted)</CardTitle>
-                    <CardDescription className="text-xs">Lecture Theatres (LT), CEP 110, CEP 102, SAC Ground</CardDescription>
+                    <CardDescription className="text-xs">Lecture Theatres (LT), CEP 102, CEP 110, SAC Ground</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">Always requires manual approval from the SBG Deputy Convener. Pending status applies until approved.</p>
@@ -130,7 +130,7 @@ const PolicyPage: React.FC = () => {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold text-brand-link mb-2 border-b border-brand-link/30 pb-1">Group B (Cultural)</h4>
+                  <h4 className="font-bold text-brand mb-2 border-b border-brand/30 pb-1">Group B (Cultural)</h4>
                   <ul className="space-y-1 text-xs text-muted-foreground">
                     {getClubsByGroup('B').map(c => <li key={c.name}>{c.name}</li>)}
                   </ul>

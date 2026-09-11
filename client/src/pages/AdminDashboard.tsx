@@ -1,12 +1,8 @@
-import { motion } from 'framer-motion';
-import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, ChevronRight, Download, ExternalLink, MapPin, Pencil, Plus, RefreshCw, Settings, X, XCircle } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
-import AddBookingDialog from '../components/AddBookingDialog';
-import EditBookingDialog from '../components/EditBookingDialog';
-import RegisterEventDialog from '../components/RegisterEventDialog';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertCircle, AlertTriangle, Calendar as CalendarIcon, Check, CheckCircle, ChevronDown, ChevronRight, Download, ExternalLink, Image as ImageIcon, MapPin, Pencil, Plus, RefreshCw, Settings, Trash2, Upload, X, XCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -17,12 +13,22 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Skeleton } from '../components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { apiRequest, groupBookings, mapBooking, splitGroupedBookingsByDay, type ApiBooking, type ApiVenue } from '../lib/api';
 import { getErrorMessage } from '../lib/errors';
 import { cn, getISTParts } from '../lib/utils';
 import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 import { toastError, toastSuccess } from '../lib/toast';
 import { GroupedBooking, Booking, AppEvent } from '../types';
+import AddBookingDialog from '../components/AddBookingDialog';
+import EditBookingDialog from '../components/EditBookingDialog';
+import RegisterEventDialog from '../components/RegisterEventDialog';
+import * as XLSX from 'xlsx';
+
+const formatEventType = (eventType?: string) => {
+  if (!eventType) return '';
+  return eventType.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+};
 
 const AdminDashboard: React.FC = () => {
   const [pendingRequests, setPendingRequests] = React.useState<GroupedBooking[]>([]);
@@ -39,6 +45,8 @@ const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = React.useState(true);
 
   const [calendarEvents, setCalendarEvents] = React.useState<GroupedBooking[]>([]);
+  const [publicCampusEvents, setPublicCampusEvents] = React.useState<any[]>([]);
+  const [calendarView, setCalendarView] = React.useState<'campus_events' | 'bookings'>('bookings');
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
   const [error, setError] = React.useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
@@ -51,10 +59,14 @@ const AdminDashboard: React.FC = () => {
   // SBG Settings State
   const [sbgSettingsOpen, setSbgSettingsOpen] = React.useState(false);
   const [isSavingSettings, setIsSavingSettings] = React.useState(false);
-  const [sbgSettings, setSbgSettings] = React.useState({
+  const [sbgSettings, setSbgSettings] = React.useState<Record<string, string>>({
     sbg_constitution_link: '',
     sbg_linkedin: '',
-    sbg_email: ''
+    sbg_email: '',
+    sbg_photo_convener: '',
+    sbg_photo_dy_convener: '',
+    sbg_photo_treasurer: '',
+    sbg_photo_secretary: '',
   });
 
   const fetchSbgSettings = async () => {
@@ -63,11 +75,56 @@ const AdminDashboard: React.FC = () => {
       setSbgSettings({
         sbg_constitution_link: config.sbg_constitution_link || '',
         sbg_linkedin: config.sbg_linkedin || '',
-        sbg_email: config.sbg_email || ''
+        sbg_email: config.sbg_email || '',
+        sbg_photo_convener: config.sbg_photo_convener || '',
+        sbg_photo_dy_convener: config.sbg_photo_dy_convener || '',
+        sbg_photo_treasurer: config.sbg_photo_treasurer || '',
+        sbg_photo_secretary: config.sbg_photo_secretary || '',
       });
     } catch (err) {
       console.error('Failed to fetch SBG settings', err);
     }
+  };
+
+  const handlePhotoUpload = (key: string, file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toastError(new Error('Please select an image file'), 'Invalid file type');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (typeof event.target?.result === 'string') {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_SIZE = 400;
+          const width = img.width;
+          const height = img.height;
+
+          const minDim = Math.min(width, height);
+          const startX = (width - minDim) / 2;
+          const startY = (height - minDim) / 2;
+
+          canvas.width = Math.min(minDim, MAX_SIZE);
+          canvas.height = Math.min(minDim, MAX_SIZE);
+
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+            setSbgSettings(prev => ({
+              ...prev,
+              [key]: dataUrl,
+            }));
+            toastSuccess('Photo loaded! Click "Save Settings" to save to database.');
+          }
+        };
+        img.src = event.target.result;
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleEventAction = async (ids: string[], action: 'active' | 'rejected') => {
@@ -154,12 +211,13 @@ const AdminDashboard: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [venuesData, pendingData, statsData, allBookingsData, pendingEventsData] = await Promise.all([
+      const [venuesData, pendingData, statsData, allBookingsData, pendingEventsData, publicEventsData] = await Promise.all([
         apiRequest<ApiVenue[]>('/api/venues'),
         apiRequest<ApiBooking[]>('/api/admin/pending', { auth: true }),
         apiRequest<{ pendingBookings: number; scheduledBookings: number; conflicts: number; activeClubs: number; pendingEvents: number; scheduledEvents: number }>('/api/admin/stats', { auth: true }),
         apiRequest<ApiBooking[]>('/api/admin/bookings', { auth: true }),
-        apiRequest<any[]>('/api/admin/events/pending', { auth: true })
+        apiRequest<any[]>('/api/admin/events/pending', { auth: true }),
+        apiRequest<any[]>('/api/events/public').catch(() => []),
       ]);
 
       setVenues(venuesData);
@@ -170,6 +228,7 @@ const AdminDashboard: React.FC = () => {
         ...e,
         clubName: e.clubs?.name || 'Unknown Club'
       })));
+      setPublicCampusEvents(publicEventsData || []);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
       setError(getErrorMessage(err, 'Failed to load dashboard.'));
@@ -177,6 +236,7 @@ const AdminDashboard: React.FC = () => {
       setStats({ pendingBookings: 0, scheduledBookings: 0, conflicts: 0, activeClubs: 0, pendingEvents: 0, scheduledEvents: 0 });
       setCalendarEvents([]);
       setPendingEvents([]);
+      setPublicCampusEvents([]);
     } finally {
       setIsLoading(false);
     }
@@ -252,12 +312,76 @@ const AdminDashboard: React.FC = () => {
       d1.getDate() === d2.getDate();
   };
 
-  const splitEvents = React.useMemo(() => splitGroupedBookingsByDay(calendarEvents), [calendarEvents]);
+  const splitPublicEventsByDay = React.useCallback((events: any[]): GroupedBooking[] => {
+    const result: GroupedBooking[] = [];
+
+    for (const event of events) {
+      const startDate = new Date(event.date);
+      const endDate = event.end_date ? new Date(event.end_date) : startDate;
+
+      const current = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const last = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+      const startTimeStr = startDate.toLocaleTimeString([], {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      const endTimeStr = endDate.toLocaleTimeString([], {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const clubName = event.clubs?.name || event.club_name || 'Campus Event';
+
+      while (current <= last) {
+        const dayISO = new Date(current.getTime()).toISOString();
+        result.push({
+          id: `${event.id}-${current.toISOString().slice(0, 10)}`,
+          ids: [event.id],
+          bookingName: event.name,
+          eventName: event.name,
+          clubName: clubName,
+          clubId: event.club_id || '',
+          venueName: event.venue || 'No Venue Specified',
+          venueId: '',
+          venueIds: [],
+          date: dayISO,
+          startTime: startTimeStr,
+          endTime: endTimeStr,
+          startTimeISO: event.date,
+          endTimeISO: event.end_date || event.date,
+          status: 'approved',
+          eventType: event.event_type,
+          expectedAttendees: 0,
+          createdAt: event.created_at || '',
+          updatedAt: event.updated_at || '',
+          bookings: [],
+        } as unknown as GroupedBooking);
+
+        current.setDate(current.getDate() + 1);
+      }
+    }
+
+    return result;
+  }, []);
+
+  const campusEventsWithDaySplit = React.useMemo(() => splitPublicEventsByDay(publicCampusEvents), [splitPublicEventsByDay, publicCampusEvents]);
+
+  const splitBookings = React.useMemo(() => splitGroupedBookingsByDay(calendarEvents), [calendarEvents]);
+
+  const activeSourceEvents = React.useMemo(() => {
+    if (calendarView === 'campus_events') {
+      return campusEventsWithDaySplit;
+    }
+    return splitBookings.filter(e => e.status === 'approved' || e.status === 'partial');
+  }, [calendarView, campusEventsWithDaySplit, splitBookings]);
 
   const getEventsForDate = (date: Date) => {
-    return splitEvents.filter(e => {
+    return activeSourceEvents.filter(e => {
       const ist = getISTParts(e.date);
-      return ist.year === date.getFullYear() && ist.month === date.getMonth() && ist.date === date.getDate() && (e.status === 'approved' || e.status === 'partial');
+      return ist.year === date.getFullYear() && ist.month === date.getMonth() && ist.date === date.getDate();
     });
   };
 
@@ -266,19 +390,19 @@ const AdminDashboard: React.FC = () => {
     : [];
 
   const eventDates = React.useMemo(() =>
-    splitEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
+    activeSourceEvents.map(e => {
       const ist = getISTParts(e.date);
       return new Date(ist.year, ist.month, ist.date);
     }),
-    [splitEvents]
+    [activeSourceEvents]
   );
 
   const calendarEventsWithVenue: CalendarEvent[] = React.useMemo(() =>
-    splitEvents.filter(e => e.status === 'approved' || e.status === 'partial').map(e => {
+    activeSourceEvents.map(e => {
       // For partial bookings, only show the names of approved venues
       const approvedVenueName = e.status === 'partial'
-        ? e.bookings.filter(b => b.status === 'approved').map(b => getVenueName(b.venueId)).sort((a, b) => a.localeCompare(b)).join(', ')
-        : (e.venueName || e.venueIds.map(getVenueName).sort((a, b) => a.localeCompare(b)).join(', '));
+        ? e.bookings?.filter(b => b.status === 'approved').map(b => getVenueName(b.venueId)).sort((a, b) => a.localeCompare(b)).join(', ')
+        : (e.venueName || e.venueIds?.map(getVenueName).sort((a, b) => a.localeCompare(b)).join(', '));
       return {
         eventName: e.eventName,
         bookingName: e.bookingName,
@@ -287,11 +411,12 @@ const AdminDashboard: React.FC = () => {
         startTime: e.startTime,
         endTime: e.endTime,
         startTimeISO: e.startTimeISO,
-        venueName: approvedVenueName || e.venueName || e.venueIds.map(getVenueName).sort((a, b) => a.localeCompare(b)).join(', '),
+        venueName: approvedVenueName || e.venueName || e.venueIds?.map(getVenueName).sort((a, b) => a.localeCompare(b)).join(', '),
         status: e.status,
+        eventType: e.eventType,
       };
     }),
-    [splitEvents, venues]
+    [activeSourceEvents, venues]
   );
 
   if (error) {
@@ -417,20 +542,20 @@ const AdminDashboard: React.FC = () => {
         transition={{ delay: 0.1 }}
         className="px-1 sm:px-4"
       >
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3 w-full">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 w-full">
           <Link
             to="/admin/requests?status=pending"
             className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer"
           >
-            <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group">
-              <div className="p-1.5 sm:p-2 bg-warning/10 text-warning rounded-lg shrink-0 group-hover:scale-110 transition-transform">
+            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group">
+              <div className="p-2 bg-warning/10 text-warning rounded-lg shrink-0 group-hover:scale-110 transition-transform">
                 <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div className="min-w-0">
-                <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wide leading-tight">
                   Pending Bookings
                 </div>
-                <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">
+                <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-1">
                   {stats.pendingBookings}
                 </div>
               </div>
@@ -441,44 +566,44 @@ const AdminDashboard: React.FC = () => {
             to="/admin/event-requests?status=pending"
             className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer"
           >
-            <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group">
-              <div className="p-1.5 sm:p-2 bg-warning/10 text-warning rounded-lg shrink-0 group-hover:scale-110 transition-transform">
+            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group">
+              <div className="p-2 bg-warning/10 text-warning rounded-lg shrink-0 group-hover:scale-110 transition-transform">
                 <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div className="min-w-0">
-                <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wide leading-tight">
                   Pending Events
                 </div>
-                <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">
+                <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-1">
                   {stats.pendingEvents}
                 </div>
               </div>
             </div>
           </Link>
 
-          <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-brand/40 transition-colors cursor-pointer">
-            <div className="p-1.5 sm:p-2 bg-brand/10 text-brand rounded-lg shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 p-2 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-brand/40 transition-colors">
+            <div className="p-2 bg-brand/10 text-brand rounded-lg shrink-0">
               <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="min-w-0">
-              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wide leading-tight">
                 Scheduled Bookings
               </div>
-              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">
+              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-1">
                 {stats.scheduledBookings}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-brand/40 transition-colors cursor-pointer">
-            <div className="p-1.5 sm:p-2 bg-brand/10 text-brand rounded-lg shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 p-2 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-brand/40 transition-colors">
+            <div className="p-2 bg-brand/10 text-brand rounded-lg shrink-0">
               <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div className="min-w-0">
-              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wider truncate">
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wide leading-tight">
                 Scheduled Events
               </div>
-              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-0.5">
+              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-1">
                 {stats.scheduledEvents}
               </div>
             </div>
@@ -494,10 +619,26 @@ const AdminDashboard: React.FC = () => {
         className="w-full min-w-0"
       >
         <Card className="w-full min-w-0 border border-borderSoft rounded-xl overflow-hidden">
-          <CardHeader className="border-b border-borderSoft">
-            <CardTitle className="text-lg sm:text-xl">
-              Master Booking Calendar
-            </CardTitle>
+          <CardHeader className="border-b border-borderSoft p-3 sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
+              <CardTitle className="text-base sm:text-lg md:text-xl font-bold truncate min-w-0">
+                {calendarView === 'campus_events' ? 'Master Events Calendar' : 'Master Booking Calendar'}
+              </CardTitle>
+              <div className="shrink-0 max-w-full">
+                <Tabs
+                  value={calendarView}
+                  onValueChange={(value) => setCalendarView(value as 'campus_events' | 'bookings')}
+                  className="w-full sm:w-auto"
+                >
+                  <TabsList aria-label="Calendar view" className="grid grid-cols-2 w-full sm:w-auto sm:inline-flex">
+                    <TabsTrigger value="bookings" className="flex-1 sm:flex-initial whitespace-nowrap px-2.5 sm:px-3.5 text-xs sm:text-sm">Bookings</TabsTrigger>
+                    <TabsTrigger value="campus_events" className="flex-1 sm:flex-initial whitespace-nowrap px-2.5 sm:px-3.5 text-xs sm:text-sm">Events</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="campus_events" className="hidden" />
+                  <TabsContent value="bookings" className="hidden" />
+                </Tabs>
+              </div>
+            </div>
           </CardHeader>
 
           <CardContent className="w-full min-w-0 overflow-hidden p-2 sm:p-4">
@@ -531,116 +672,132 @@ const AdminDashboard: React.FC = () => {
                     : "Select a date"}
                 </h4>
 
-                <div className="max-h-[280px] min-w-0 flex-1 space-y-3 overflow-y-auto">
-                  {selectedDateEvents.length > 0 ? (
-                    selectedDateEvents.map((event, index) => (
-                      <motion.div
-                        key={event.ids.join("-")}
-                        initial={{
-                          opacity: 0,
-                          scale: 0.9,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          scale: 1,
-                        }}
-                        transition={{
-                          duration: 0.2,
-                          delay: index * 0.05,
-                        }}
-                        className="w-full min-w-0"
-                      >
-                        <Card className="w-full min-w-0 rounded-xl transition-colors">
-                          <CardContent className="p-3">
-                            <div className="flex min-w-0 items-start justify-between gap-2">
-                              <div className="min-w-0 flex-1">
-                                <div className="mb-1 break-words text-sm font-semibold text-textPrimary">
-                                  {event.bookingName}
+                <div className="max-h-[280px] min-w-0 flex-1 space-y-3 overflow-y-auto pr-1">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={`${calendarView}-${selectedDate?.toISOString() || 'none'}`}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+                      className="space-y-3"
+                    >
+                      {selectedDateEvents.length > 0 ? (
+                        selectedDateEvents.map((event, index) => (
+                          <motion.div
+                            key={event.ids.join("-")}
+                            initial={{
+                              opacity: 0,
+                              y: 6,
+                            }}
+                            animate={{
+                              opacity: 1,
+                              y: 0,
+                            }}
+                            transition={{
+                              duration: 0.2,
+                              delay: index * 0.03,
+                            }}
+                            className="w-full min-w-0"
+                          >
+                            <Card className="w-full min-w-0 rounded-xl transition-colors">
+                              <CardContent className="p-3">
+                                <div className="flex min-w-0 items-start justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="mb-1 break-words text-sm font-semibold text-textPrimary">
+                                      {event.bookingName}
+                                    </div>
+
+                                    {event.eventName &&
+                                      event.eventName !== event.bookingName && (
+                                        <div className="mb-1.5 break-words text-xs font-medium text-textMuted">
+                                          Linked Event: {event.eventName}
+                                        </div>
+                                      )}
+                                  </div>
+
+                                  <Badge
+                                    variant={
+                                      event.status === "approved"
+                                        ? "success"
+                                        : event.status === "pending"
+                                          ? "pending"
+                                          : "destructive"
+                                    }
+                                    className="h-5 shrink-0 px-1.5 py-0 text-[10px]"
+                                  >
+                                    {event.status}
+                                  </Badge>
                                 </div>
 
-                                {event.eventName &&
-                                  event.eventName !== event.bookingName && (
-                                    <div className="mb-1.5 break-words text-xs font-medium text-textMuted">
-                                      Linked Event: {event.eventName}
-                                    </div>
+                                {/* Club & Event Type */}
+                                <div className="mb-2 mt-0.5 flex flex-wrap items-center gap-2">
+                                  <span className="text-xs font-medium text-brand">{event.clubName}</span>
+                                  {event.eventType && (
+                                    <Badge variant="outline" className="text-[10px] h-5">
+                                      {formatEventType(event.eventType)}
+                                    </Badge>
                                   )}
-                              </div>
+                                </div>
 
-                              <Badge
-                                variant={
-                                  event.status === "approved"
-                                    ? "success"
-                                    : event.status === "pending"
-                                      ? "pending"
-                                      : "destructive"
-                                }
-                                className="h-5 shrink-0 px-1.5 py-0 text-[10px]"
-                              >
-                                {event.status}
-                              </Badge>
-                            </div>
+                                {/* Permissions */}
+                                {event.permissionsLink && (
+                                  <div className="mb-3 mt-2">
+                                    <a
+                                      href={
+                                        event.permissionsLink.match(/^https?:\/\//)
+                                          ? event.permissionsLink
+                                          : `https://${event.permissionsLink}`
+                                      }
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="
+                                  inline-flex
+                                  w-fit
+                                  items-center
+                                  justify-center
+                                  gap-1
+                                  rounded-[2rem]
+                                  border
+                                  border-brand/30
+                                  px-2
+                                  text-[10px]
+                                  font-medium
+                                  text-brand
+                                  transition-colors
+                                  hover:bg-brand/10
+                                  sm:gap-1.5
+                                  sm:text-[13px]
+                                "
+                                    >
+                                      <ExternalLink className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                      View Permissions
+                                    </a>
+                                  </div>
+                                )}
 
-                            {/* Club */}
-                            <div className="mb-2 mt-0.5 text-xs font-medium text-brand">
-                              {event.clubName}
-                            </div>
+                                {/* Time */}
+                                <div className="mt-2 text-xs text-textMuted">
+                                  {event.startTime} - {event.endTime}
+                                </div>
 
-                            {/* Permissions */}
-                            {event.permissionsLink && (
-                              <div className="mb-3 mt-2">
-                                <a
-                                  href={
-                                    event.permissionsLink.match(/^https?:\/\//)
-                                      ? event.permissionsLink
-                                      : `https://${event.permissionsLink}`
-                                  }
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="
-                              inline-flex
-                              w-fit
-                              items-center
-                              justify-center
-                              gap-1
-                              rounded-[2rem]
-                              border
-                              border-brand/30
-                              px-2
-                              text-[11px]
-                              font-medium
-                              text-brand
-                              transition-colors
-                              hover:bg-brand/10
-                              sm:gap-1.5
-                              sm:text-[13px]
-                            "
-                                >
-                                  <ExternalLink className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                  View Permissions
-                                </a>
-                              </div>
-                            )}
-
-                            {/* Time */}
-                            <div className="mt-2 text-xs text-textMuted">
-                              {event.startTime} - {event.endTime}
-                            </div>
-
-                            {/* Venue */}
-                            {event.venueName && (
-                              <div className="mt-1 break-words text-xs text-textMuted">
-                                {event.venueName}
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))
-                  ) : (
-                    <div className="py-8 text-center text-sm text-textMuted">
-                      No events found for this day.
-                    </div>
-                  )}
+                                {/* Venue */}
+                                {event.venueName && (
+                                  <div className="mt-1 break-words text-xs text-textMuted">
+                                    {event.venueName}
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        ))
+                      ) : (
+                        <div className="py-8 text-center text-sm text-textMuted">
+                          No events found for this day.
+                        </div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
               </div>
             </div>
@@ -881,10 +1038,26 @@ const AdminDashboard: React.FC = () => {
                                 key={booking.id}
                                 className="flex items-center justify-between bg-background border border-borderSoft rounded-md p-2 text-sm"
                               >
-                                <span className="font-medium text-foreground">
-                                  {getVenueName(booking.venueId)}
-                                </span>
-                                <div className="flex items-center gap-2 sm:gap-3">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="font-medium text-foreground truncate">
+                                    {getVenueName(booking.venueId)}
+                                  </span>
+                                  {req.bookings.length > 1 && (
+                                    <Badge
+                                      variant={
+                                        booking.status === "approved"
+                                          ? "success"
+                                          : booking.status === "rejected"
+                                            ? "destructive"
+                                            : "pending"
+                                      }
+                                      className="text-[10px] h-4.5 px-1.5 shrink-0 font-medium"
+                                    >
+                                      {booking.status.toUpperCase()}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                   {booking.status !== "rejected" &&
                                     req.bookings.length > 1 && (
                                       <Button
@@ -952,7 +1125,7 @@ const AdminDashboard: React.FC = () => {
                               }
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center gap-1 sm:gap-1.5 p-[1px] px-1.5 rounded-[2rem] border border-brand/30 bg-transparent text-[11px] sm:text-[13px] font-medium text-brand hover:bg-brand/10 transition-colors w-fit"
+                              className="inline-flex items-center justify-center gap-1 sm:gap-1.5 p-[1px] px-1.5 rounded-[2rem] border border-brand/30 bg-transparent text-[10px] sm:text-[13px] font-medium text-brand hover:bg-brand/10 transition-colors w-fit"
                             >
                               <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                               View Permissions
@@ -1176,29 +1349,49 @@ const AdminDashboard: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="flex items-center gap-2"
-                          onClick={() =>
-                            handleEventAction([evt.id], "rejected")
-                          }
-                          disabled={isProcessingAction}
-                        >
-                          <XCircle size={16} />
-                          <span className="hidden sm:inline">Reject</span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="flex items-center gap-2"
-                          onClick={() => handleEventAction([evt.id], "active")}
-                          disabled={isProcessingAction}
-                        >
-                          <CheckCircle size={16} />
-                          <span className="hidden sm:inline">Approve</span>
-                        </Button>
-                      </div>
+                      {(() => {
+                        const isPast = evt.dynamic_end_date
+                          ? new Date(evt.dynamic_end_date).getTime() < Date.now()
+                          : evt.end_date
+                            ? new Date(evt.end_date).getTime() < Date.now()
+                            : new Date(evt.date).getTime() < Date.now();
+
+                        return (
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="flex items-center gap-2"
+                              onClick={() =>
+                                handleEventAction([evt.id], "rejected")
+                              }
+                              title={
+                                isPast
+                                  ? "Cannot reject past events whose end date/time has already elapsed"
+                                  : "Reject"
+                              }
+                              disabled={isProcessingAction || isPast}
+                            >
+                              <XCircle size={16} />
+                              <span className="hidden sm:inline">Reject</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="flex items-center gap-2"
+                              onClick={() => handleEventAction([evt.id], "active")}
+                              title={
+                                isPast
+                                  ? "Cannot approve past events whose end date/time has already elapsed"
+                                  : "Approve"
+                              }
+                              disabled={isProcessingAction || isPast}
+                            >
+                              <CheckCircle size={16} />
+                              <span className="hidden sm:inline">Approve</span>
+                            </Button>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </motion.div>
                 ))
@@ -1222,58 +1415,156 @@ const AdminDashboard: React.FC = () => {
 
       {/* SBG Settings Dialog */}
       <Dialog open={sbgSettingsOpen} onOpenChange={setSbgSettingsOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>SBG Settings</DialogTitle>
+            <DialogTitle>SBG Settings & Photos</DialogTitle>
             <DialogDescription>
-              Manage public information shown on the About SBG page.
+              Manage public links and Executive Committee photos shown on the About SBG page.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="constitution-link">Constitution Link (URL)</Label>
-              <Input
-                id="constitution-link"
-                value={sbgSettings.sbg_constitution_link}
-                onChange={(e) =>
-                  setSbgSettings({
-                    ...sbgSettings,
-                    sbg_constitution_link: e.target.value,
-                  })
-                }
-                placeholder="https://..."
-              />
+          <div className="space-y-5 py-2">
+            {/* Core Links */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-textMuted">Links & Contact</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="constitution-link" className="text-xs font-semibold">Constitution Link (URL)</Label>
+                  <Input
+                    id="constitution-link"
+                    value={sbgSettings.sbg_constitution_link || ''}
+                    onChange={(e) =>
+                      setSbgSettings({
+                        ...sbgSettings,
+                        sbg_constitution_link: e.target.value,
+                      })
+                    }
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="sbg-linkedin" className="text-xs font-semibold">SBG LinkedIn (URL)</Label>
+                  <Input
+                    id="sbg-linkedin"
+                    value={sbgSettings.sbg_linkedin || ''}
+                    onChange={(e) =>
+                      setSbgSettings({
+                        ...sbgSettings,
+                        sbg_linkedin: e.target.value,
+                      })
+                    }
+                    placeholder="https://linkedin.com/..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="sbg-email" className="text-xs font-semibold">SBG Contact Email</Label>
+                  <Input
+                    id="sbg-email"
+                    value={sbgSettings.sbg_email || ''}
+                    onChange={(e) =>
+                      setSbgSettings({ ...sbgSettings, sbg_email: e.target.value })
+                    }
+                    placeholder="sbg@dau.ac.in"
+                    type="email"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="sbg-linkedin">SBG LinkedIn (URL)</Label>
-              <Input
-                id="sbg-linkedin"
-                value={sbgSettings.sbg_linkedin}
-                onChange={(e) =>
-                  setSbgSettings({
-                    ...sbgSettings,
-                    sbg_linkedin: e.target.value,
-                  })
-                }
-                placeholder="https://linkedin.com/..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sbg-email">SBG Contact Email</Label>
-              <Input
-                id="sbg-email"
-                value={sbgSettings.sbg_email}
-                onChange={(e) =>
-                  setSbgSettings({ ...sbgSettings, sbg_email: e.target.value })
-                }
-                placeholder="sbg@dau.ac.in"
-                type="email"
-              />
+
+            {/* Core Member Photos Section */}
+            <div className="space-y-3 pt-3 border-t border-borderSoft/60">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-textMuted">Executive Committee Photos</h4>
+                <p className="text-xs text-textSecondary mt-0.5">Upload photos directly to database storage for the About SBG page.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { key: 'sbg_photo_convener', label: 'Convener', initials: 'CO' },
+                  { key: 'sbg_photo_dy_convener', label: 'Dy. Convener', initials: 'DC' },
+                  { key: 'sbg_photo_treasurer', label: 'Treasurer', initials: 'TR' },
+                  { key: 'sbg_photo_secretary', label: 'Secretary', initials: 'SC' },
+                ].map((officer) => {
+                  const currentPhoto = sbgSettings[officer.key];
+                  const isCustom = !!currentPhoto;
+
+                  return (
+                    <div
+                      key={officer.key}
+                      className="p-3 rounded-xl border border-borderSoft/60 bg-hoverSoft/10 flex items-center gap-3"
+                    >
+                      <div className="relative shrink-0">
+                        {isCustom ? (
+                          <img
+                            src={currentPhoto}
+                            alt={officer.label}
+                            className="h-12 w-12 rounded-full object-cover border-2 border-brand/20 bg-card shadow-sm"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-gradient-to-br from-brand/20 to-brand/5 border-2 border-dashed border-brand/30 flex items-center justify-center text-brand font-bold text-xs shadow-sm">
+                            {officer.initials}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-textPrimary text-xs truncate">{officer.label}</span>
+                          {isCustom && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                              Database
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 mt-2">
+                          <input
+                            id={`file-input-${officer.key}`}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handlePhotoUpload(officer.key, file);
+                              e.target.value = '';
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-[11px] font-semibold rounded-lg"
+                            onClick={() => document.getElementById(`file-input-${officer.key}`)?.click()}
+                          >
+                            <Upload size={11} className="mr-1" />
+                            {isCustom ? 'Change' : 'Upload'}
+                          </Button>
+
+                          {isCustom && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-[11px] text-error hover:bg-error/10 hover:text-error rounded-lg"
+                              onClick={() => {
+                                setSbgSettings(prev => ({ ...prev, [officer.key]: '' }));
+                                toastSuccess(`Cleared photo for ${officer.label}`);
+                              }}
+                            >
+                              <Trash2 size={11} className="mr-1" />
+                              Clear
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="mt-2">
             <Button variant="outline" onClick={() => setSbgSettingsOpen(false)}>
               Cancel
             </Button>

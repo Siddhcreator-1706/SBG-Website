@@ -130,7 +130,7 @@ export default function EventReports() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="space-y-8 px-4"
+      className="space-y-6 px-4"
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
@@ -170,12 +170,14 @@ export default function EventReports() {
         )}
       </div>
 
-        <div className="flex bg-card p-1 rounded-xl border border-borderSoft w-fit">
+        <div className="flex bg-hoverSoft/80 p-1 gap-1 rounded-xl border border-borderSoft w-fit items-center">
           <button
             onClick={() => setTab('pending')}
             className={cn(
-              "px-6 py-2.5 rounded-lg text-sm font-semibold transition-all",
-              tab === 'pending' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary hover:bg-hoverSoft cursor-pointer"
+              "px-4 sm:px-5 py-1.5 rounded-lg text-xs sm:text-sm font-medium border border-transparent transition-all flex items-center justify-center cursor-pointer",
+              tab === 'pending'
+                ? "bg-card text-textPrimary border-borderSoft/60 shadow-sm font-semibold"
+                : "text-textMuted hover:text-textPrimary hover:bg-background/40"
             )}
           >
             Pending Reports ({pending.length})
@@ -183,8 +185,10 @@ export default function EventReports() {
           <button
             onClick={() => setTab('submitted')}
             className={cn(
-              "px-6 py-2.5 rounded-lg text-sm font-semibold transition-all",
-              tab === 'submitted' ? "bg-brand text-white shadow-sm" : "text-textMuted hover:text-textPrimary hover:bg-hoverSoft cursor-pointer"
+              "px-4 sm:px-5 py-1.5 rounded-lg text-xs sm:text-sm font-medium border border-transparent transition-all flex items-center justify-center cursor-pointer",
+              tab === 'submitted'
+                ? "bg-card text-textPrimary border-borderSoft/60 shadow-sm font-semibold"
+                : "text-textMuted hover:text-textPrimary hover:bg-background/40"
             )}
           >
             Submitted Reports
@@ -335,8 +339,8 @@ export default function EventReports() {
           </DialogContent>
         </Dialog>
 
-          </>
-        )}
-      </motion.div>
+      </>
+    )}
+  </motion.div>
   );
 }
