@@ -7,11 +7,13 @@ import { apiRequest } from './lib/api';
 import { getSocket, reconnectSocket, SOCKET_EVENTS } from './lib/socket';
 import { useDocumentTitle } from './lib/useDocumentTitle';
 import { User } from './types';
-const Layout = React.lazy(() => import('./pages/Layout'));
-const Login = React.lazy(() => import('./pages/Login'));
-const LandingPage = React.lazy(() => import('./pages/LandingPage'));
-const AboutSBG = React.lazy(() => import('./pages/AboutSBG'));
-const ClubsCommitteesPage = React.lazy(() => import('./pages/ClubsCommitteesPage'));
+import AboutSBG from './pages/AboutSBG';
+import ClubsCommitteesPage from './pages/ClubsCommitteesPage';
+import LandingPage from './pages/LandingPage';
+import Layout from './pages/Layout';
+import Login from './pages/Login';
+import NotFoundPage from './pages/NotFoundPage';
+
 const ClubDashboard = React.lazy(() => import('./lib/ClubDashboard'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
 const AdminAnalytics = React.lazy(() => import('./pages/AdminAnalytics'));
@@ -27,7 +29,6 @@ const ManageEvents = React.lazy(() => import('./pages/ManageEvents'));
 const EventReports = React.lazy(() => import('./pages/EventReports'));
 const AdminEventReports = React.lazy(() => import('./pages/AdminEventReports'));
 const Archives = React.lazy(() => import('./pages/Archives'));
-const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
 
 const PageTitleWrapper = ({ title, description, children }: { title: string, description?: string, children: React.ReactNode }) => {
   useDocumentTitle(title, description);
