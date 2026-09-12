@@ -124,7 +124,6 @@ export default function EventReports() {
     );
   };
 
-
   return (
     <motion.div
       initial={{ opacity: 0 }}

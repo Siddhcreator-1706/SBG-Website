@@ -34,7 +34,6 @@ export async function createNotification(params: CreateNotificationParams) {
     }
 }
 
-
 /**
  * Create notifications for pending booking approvals.
  * Called alongside the email notification.

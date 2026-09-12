@@ -80,7 +80,6 @@ const violatesRestrictedWeekdayHours = (startUtc: Date, endUtc: Date) => {
   return false;
 };
 
-
 // NOTE: `queryable` defaults to the shared pool (`db`) for backwards
 // compatibility with existing callers (e.g. checkConflict, getBusyVenues),
 // but createBooking and updateBookingTimings now pass in a transaction
@@ -364,7 +363,6 @@ export const createBooking = async (req: Request, res: Response) => {
       if (pendingForEmail.length > 0) {
         const formatTime = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
 
-
         const itemsForNotification = pendingForEmail.map((b) => {
           const venue = venues.find((v) => v.id === b.venue_id);
           return {
@@ -515,7 +513,6 @@ export const checkConflict = async (req: Request, res: Response) => {
     return res.status(500).json({ error: (err as Error).message });
   }
 };
-
 
 export const getBusyVenues = async (req: Request, res: Response) => {
   const startTime = req.query.startTime as string;

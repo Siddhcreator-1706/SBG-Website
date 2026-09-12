@@ -46,9 +46,10 @@ const MONTH_NAMES = [
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function formatTime(date: Date) {
-    return formatISTTime(date, {
-        hour: 'numeric', minute: '2-digit', hour12: true
+    const t = formatISTTime(date, {
+        hour: '2-digit', minute: '2-digit', hour12: true
     });
+    return t.toUpperCase();
 }
 
 function formatEventType(t?: string) {

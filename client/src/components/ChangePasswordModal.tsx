@@ -31,8 +31,6 @@ export function ChangePasswordModal({ open, onOpenChange, userEmail }: ChangePas
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);

@@ -31,7 +31,6 @@ import { toastError } from '../lib/toast';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 
-
 interface Club {
     id: string;
     name: string;

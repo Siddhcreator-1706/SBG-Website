@@ -7,7 +7,6 @@ import { io } from '../server';
 import { createNotification } from '../services/notification';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
 
-
 const router = express.Router();
 
 router.use(authMiddleware, adminOnly);
@@ -738,7 +737,6 @@ router.post('/bookings', async (req, res) => {
       metadata: { batchId, venues: venue_ids },
     });
 
-
     io.emit('events:updated');
     io.to(`club:${club_id}`).emit('booking:status_changed', {
       bookingId: createdBookings[0].id,
@@ -780,9 +778,6 @@ router.get('/stats', async (_req, res) => {
 router.get('/analytics', async (_req, res) => {
   try {
 
-
-
-
     const popularVenuesRes = await db.query(`
       SELECT v.name, COUNT(b.id) as count 
       FROM bookings b 
@@ -790,7 +785,6 @@ router.get('/analytics', async (_req, res) => {
       WHERE b.status = 'approved' 
       GROUP BY v.name 
       ORDER BY count DESC 
-
     `);
     const popularVenues = popularVenuesRes.rows.map(row => ({ name: row.name, count: parseInt(row.count, 10) }));
 
@@ -801,7 +795,6 @@ router.get('/analytics', async (_req, res) => {
       WHERE b.status = 'approved' 
       GROUP BY c.name 
       ORDER BY count DESC 
-
     `);
     const busiestClubs = busiestClubsRes.rows.map(row => ({ name: row.name, count: parseInt(row.count, 10) }));
 
@@ -838,12 +831,10 @@ router.get('/analytics', async (_req, res) => {
     const bookingsByMonth = last6Months;
 
     return res.json({
-
-
       popularVenues,
       busiestClubs,
       busiestClubsEvents,
-      bookingsByMonth
+      bookingsByMonth,
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });

@@ -196,7 +196,6 @@ io.on('connection', (socket) => {
   });
 });
 
-
 function isBodyParserError(err: unknown): err is { type: string; message?: string } {
   return typeof err === 'object' && err !== null && 'type' in err;
 }

@@ -6,7 +6,6 @@ import authMiddleware from '../middleware/auth';
 import { io } from '../server';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
 
-
 const router = express.Router();
 
 router.get('/venues', async (_req, res) => {

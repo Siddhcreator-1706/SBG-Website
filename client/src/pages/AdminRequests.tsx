@@ -977,12 +977,6 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                           {booking.status.toUpperCase()}
                         </Badge>
 
-                        {/* Spacer to match Send Mail button on the main row so status badge aligns with the column */}
-                        <div
-                          className="w-[98px] hidden sm:block shrink-0"
-                          aria-hidden="true"
-                        />
-
                         <div className="flex items-center justify-end gap-1 w-[140px]">
                           {booking.status !== "rejected" && (
                             <Button
