@@ -7,13 +7,13 @@ import { apiRequest } from './lib/api';
 import { getSocket, reconnectSocket, SOCKET_EVENTS } from './lib/socket';
 import { useDocumentTitle } from './lib/useDocumentTitle';
 import { User } from './types';
-import AboutSBG from './pages/AboutSBG';
-import ClubsCommitteesPage from './pages/ClubsCommitteesPage';
 import LandingPage from './pages/LandingPage';
-import Layout from './pages/Layout';
-import Login from './pages/Login';
-import NotFoundPage from './pages/NotFoundPage';
 
+const Layout = React.lazy(() => import('./pages/Layout'));
+const Login = React.lazy(() => import('./pages/Login'));
+const AboutSBG = React.lazy(() => import('./pages/AboutSBG'));
+const ClubsCommitteesPage = React.lazy(() => import('./pages/ClubsCommitteesPage'));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
 const ClubDashboard = React.lazy(() => import('./lib/ClubDashboard'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
 const AdminAnalytics = React.lazy(() => import('./pages/AdminAnalytics'));
