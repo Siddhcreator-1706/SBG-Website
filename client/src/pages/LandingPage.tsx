@@ -564,10 +564,9 @@ const LandingPage: React.FC = () => {
                                                             aria-label={we.event.eventName}
                                                             className={`
                                                             pointer-events-auto flex items-center justify-start text-left font-medium overflow-hidden
-                                                            transition-all cursor-pointer select-none border-t border-b border-r text-[#05203a] dark:text-blue-50 border-[#dbeafe] dark:border-slate-700/60
-                                                            hover:shadow-[0_1px_0_rgba(2,6,23,0.04)] dark:hover:shadow-none
-                                                            ${c.bg}
-                                                            ${we.isStart ? 'rounded-l sm:rounded-l-md border-l' : 'rounded-l-none border-l-0'}
+                                                            transition-all cursor-pointer select-none border-t border-b border-r
+                                                            ${c.bg} ${c.text} border-transparent hover:brightness-95
+                                                            ${we.isStart ? 'rounded-l sm:rounded-l-md border-l-[3px]' : 'rounded-l-none border-l-0'}
                                                             ${we.isEnd ? 'rounded-r sm:rounded-r-md' : 'rounded-r-none border-r-0'}
                                                         `}
                                                             style={{
