@@ -211,10 +211,10 @@ const App: React.FC = () => {
 
               <Route path="/admin/requests" element={<PageTitleWrapper title="Slot Requests | SBG DAU">{user.role === 'admin' ? <AdminRequests /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/admin/event-requests" element={<PageTitleWrapper title="Event Registrations | SBG DAU">{user.role === 'admin' ? <AdminEventRequests /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
-              <Route path="/admin/analytics" element={<PageTitleWrapper title="Analytics | SBG DAU">{user.role === 'admin' ? <AdminAnalytics /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
+              <Route path="/admin/event-reports" element={<PageTitleWrapper title="All Reports | SBG DAU">{user.role === 'admin' ? <AdminEventReports /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/admin/clubs" element={<PageTitleWrapper title="Clubs | SBG DAU">{user.role === 'admin' ? <AdminClubs /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/admin/venues" element={<PageTitleWrapper title="Venues | SBG DAU">{user.role === 'admin' ? <AdminVenues /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
-              <Route path="/admin/event-reports" element={<PageTitleWrapper title="All Reports | SBG DAU">{user.role === 'admin' ? <AdminEventReports /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
+              <Route path="/admin/analytics" element={<PageTitleWrapper title="Analytics | SBG DAU">{user.role === 'admin' ? <AdminAnalytics /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/archives" element={<PageTitleWrapper title="Archives | SBG DAU"><Archives /></PageTitleWrapper>} />
 
               <Route path="/login" element={<AuthLoginRedirect />} />

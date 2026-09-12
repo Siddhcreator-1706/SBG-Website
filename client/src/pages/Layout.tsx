@@ -40,11 +40,11 @@ const adminLinks = [
   { to: '/', label: 'Dashboard', short: 'Home', icon: ShieldCheck, end: true },
   { to: '/admin/requests', label: 'Slot Requests', short: 'Slots', icon: ClipboardList },
   { to: '/admin/event-requests', label: 'Event Registrations', short: 'Events', icon: CalendarDays },
-  { to: '/admin/clubs', label: 'Clubs', short: 'Clubs', icon: Users },
-  { to: '/admin/analytics', label: 'Analytics', short: 'Stats', icon: BarChart3 },
-  { to: '/admin/venues', label: 'Venues', short: 'Venues', icon: MapPin },
   { to: '/admin/event-reports', label: 'Event Reports', short: 'Reports', icon: FileText },
+  { to: '/admin/clubs', label: 'Clubs', short: 'Clubs', icon: Users },
+  { to: '/admin/venues', label: 'Venues', short: 'Venues', icon: MapPin },
   { to: '/members', label: 'Members', short: 'Members', icon: Users },
+  { to: '/admin/analytics', label: 'Analytics', short: 'Stats', icon: BarChart3 },
   { to: '/archives', label: 'Archives', short: 'Archives', icon: Archive },
 ];
 

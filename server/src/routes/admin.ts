@@ -965,10 +965,11 @@ router.get('/club-members/all', async (_req, res) => {
                CASE 
                  WHEN cm.designation = 'Convener' THEN 1
                  WHEN cm.designation = 'Dy. Convener' THEN 2
-                 WHEN cm.designation = 'Core' THEN 3
-                 ELSE 4
+                 WHEN cm.designation = 'Mentor' THEN 3
+                 WHEN cm.designation = 'Core' THEN 4
+                 ELSE 5
                END ASC,
-               cm.full_name ASC
+               cm.roll_number ASC
     `);
     return res.json(rows);
   } catch (error: any) {

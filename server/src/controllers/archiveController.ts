@@ -5,7 +5,7 @@ import { getClubForUser } from '../utils/clubAuth';
 export const getArchivedEvents = async (req: Request, res: Response) => {
   try {
     const userRole = (req as any).user?.role;
-    const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+    const isAdmin = userRole === 'admin';
 
     let query = `
       SELECT ae.id, ae.club_id, ae.name, ae.date, ae.end_date, ae.venue, ae.event_type, ae.status, ae.report_exempt, ae.created_at, ae.updated_at, ae.archived_at, c.name as club_name
@@ -62,7 +62,7 @@ export const getArchivedEvents = async (req: Request, res: Response) => {
 export const getArchivedBookings = async (req: Request, res: Response) => {
   try {
     const userRole = (req as any).user?.role;
-    const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+    const isAdmin = userRole === 'admin';
 
     let query = `
       SELECT ab.id, ab.club_id, ab.venue_id, ab.start_time, ab.end_time, ab.status, ab.user_id,
@@ -96,27 +96,49 @@ export const getArchivedBookings = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteArchivedEvent = async (req: Request, res: Response) => {
+export const getArchivedMembers = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
     const userRole = (req as any).user?.role;
-    const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+    const isAdmin = userRole === 'admin';
 
-    // Verify ownership if not admin
+    let query = `
+      SELECT cm.id, cm.club_id, cm.full_name, cm.roll_number, cm.email, cm.designation, cm.phone,
+             cm.is_core_member, cm.tenure_start_date, cm.tenure_end_date, cm.tenure_end_reason,
+             cm.created_at, cm.updated_at, c.name as club_name
+      FROM club_members cm
+      JOIN clubs c ON cm.club_id = c.id
+      WHERE cm.is_active = false
+    `;
+    let params: any[] = [];
+
     if (!isAdmin) {
       const club = await getClubForUser(req);
       if (!club) {
         return res.status(404).json({ error: 'Club not found for this account' });
       }
-      
-      const checkRes = await db.query('SELECT club_id FROM archived_events WHERE id = $1', [id]);
-      if (checkRes.rows.length === 0) {
-        return res.status(404).json({ error: 'Archive not found' });
-      }
-      
-      if (checkRes.rows[0].club_id !== club.id) {
-        return res.status(403).json({ error: 'Not authorized to delete this archive' });
-      }
+      query += ' AND cm.club_id = $1';
+      params.push(club.id);
+    }
+
+    query += ' ORDER BY cm.tenure_end_date DESC NULLS LAST, cm.updated_at DESC';
+
+    const { rows } = await db.query(query, params);
+    return res.json(rows);
+  } catch (error: any) {
+    console.error('Error fetching archived members:', error);
+    return res.status(500).json({ error: 'Failed to fetch archived members' });
+  }
+};
+
+export const deleteArchivedEvent = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userRole = (req as any).user?.role;
+    const isAdmin = userRole === 'admin';
+
+    // Verify ownership if not admin
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Only admins can permanently delete archives' });
     }
 
     await db.query('DELETE FROM archived_event_reports WHERE event_id = $1', [id]);
@@ -138,25 +160,10 @@ export const deleteArchivedBooking = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userRole = (req as any).user?.role;
-    const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+    const isAdmin = userRole === 'admin';
 
     if (!isAdmin) {
-      const club = await getClubForUser(req);
-
-      const checkRes = await db.query('SELECT club_id, user_id FROM archived_bookings WHERE id = $1', [id]);
-      if (checkRes.rows.length === 0) {
-        return res.status(404).json({ error: 'Archived booking not found' });
-      }
-
-      if (club) {
-        if (checkRes.rows[0].club_id !== club.id) {
-          return res.status(403).json({ error: 'Not authorized to delete this archive' });
-        }
-      } else {
-        if (checkRes.rows[0].user_id !== (req as any).user.id) {
-          return res.status(403).json({ error: 'Not authorized to delete this archive' });
-        }
-      }
+      return res.status(403).json({ error: 'Only admins can permanently delete archives' });
     }
 
     const deleteRes = await db.query('DELETE FROM archived_bookings WHERE id = $1 RETURNING id', [id]);
@@ -171,10 +178,32 @@ export const deleteArchivedBooking = async (req: Request, res: Response) => {
   }
 };
 
+export const deleteArchivedMember = async (req: Request, res: Response) => {
+  try {
+    const userRole = (req as any).user?.role;
+    if (userRole !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can permanently delete archived members' });
+    }
+
+    const { id } = req.params;
+
+    const result = await db.query('DELETE FROM club_members WHERE id = $1 AND is_active = false RETURNING id', [id]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Archived member not found' });
+    }
+
+    return res.json({ success: true, message: 'Archived member permanently deleted' });
+  } catch (error: any) {
+    console.error('Error deleting archived member:', error);
+    return res.status(500).json({ error: 'Failed to delete archived member' });
+  }
+};
+
 export const emptyArchives = async (req: Request, res: Response) => {
   try {
     const userRole = (req as any).user?.role;
-    const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+    const isAdmin = userRole === 'admin';
 
     if (!isAdmin) {
       return res.status(403).json({ error: 'Not authorized to empty archives' });
