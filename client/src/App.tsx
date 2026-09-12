@@ -70,8 +70,11 @@ const cacheUser = (nextUser: User | null) => {
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(() => getCachedUser());
   const [isInitializing, setIsInitializing] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return !getCachedUser();
+    if (typeof window === 'undefined') return false;
+    // Only block the initial render if we have a cached user in localStorage.
+    // If they are a new visitor (no cache), we should immediately render the public Landing Page
+    // so they don't stare at a loading screen while we check their session!
+    return !!getCachedUser();
   });
 
   // Establish the socket on every load (even anonymous) so the build-version
