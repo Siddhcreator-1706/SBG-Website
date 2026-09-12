@@ -453,9 +453,9 @@ const AdminDashboard: React.FC = () => {
           <Skeleton className="h-10 w-64 sm:w-80" />
           <Skeleton className="h-5 w-80 sm:w-96" />
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 w-full">
           {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-32 sm:h-36 rounded-2xl" />
+            <Skeleton key={i} className="h-14 sm:h-16 w-full rounded-xl" />
           ))}
         </div>
         <Skeleton className="h-[400px] w-full rounded-2xl" />
@@ -542,12 +542,12 @@ const AdminDashboard: React.FC = () => {
         transition={{ delay: 0.1 }}
         className="px-1 sm:px-4"
       >
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 w-full">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 w-full items-stretch">
           <Link
             to="/admin/requests?status=pending"
-            className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer"
+            className="block w-full h-full focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer"
           >
-            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group">
+            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group w-full h-full">
               <div className="p-2 bg-warning/10 text-warning rounded-lg shrink-0 group-hover:scale-110 transition-transform">
                 <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
@@ -564,9 +564,9 @@ const AdminDashboard: React.FC = () => {
 
           <Link
             to="/admin/event-requests?status=pending"
-            className="block focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer"
+            className="block w-full h-full focus-visible:ring-2 focus-visible:ring-warning rounded-xl outline-none cursor-pointer"
           >
-            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group">
+            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-warning/40 hover:bg-warning/5 transition-all group w-full h-full">
               <div className="p-2 bg-warning/10 text-warning rounded-lg shrink-0 group-hover:scale-110 transition-transform">
                 <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
@@ -581,33 +581,43 @@ const AdminDashboard: React.FC = () => {
             </div>
           </Link>
 
-          <div className="flex items-center gap-2 sm:gap-3 p-2 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-brand/40 transition-colors">
-            <div className="p-2 bg-brand/10 text-brand rounded-lg shrink-0">
-              <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wide leading-tight">
-                Scheduled Bookings
+          <Link
+            to="/admin/requests?status=approved"
+            className="block w-full h-full focus-visible:ring-2 focus-visible:ring-brand rounded-xl outline-none cursor-pointer"
+          >
+            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-brand/40 hover:bg-brand/5 transition-all group w-full h-full">
+              <div className="p-2 bg-brand/10 text-brand rounded-lg shrink-0 group-hover:scale-110 transition-transform">
+                <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-1">
-                {stats.scheduledBookings}
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wide leading-tight">
+                  Scheduled Bookings
+                </div>
+                <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-1">
+                  {stats.scheduledBookings}
+                </div>
               </div>
             </div>
-          </div>
+          </Link>
 
-          <div className="flex items-center gap-2 sm:gap-3 p-2 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-brand/40 transition-colors">
-            <div className="p-2 bg-brand/10 text-brand rounded-lg shrink-0">
-              <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wide leading-tight">
-                Scheduled Events
+          <Link
+            to="/admin/event-requests?status=active"
+            className="block w-full h-full focus-visible:ring-2 focus-visible:ring-brand rounded-xl outline-none cursor-pointer"
+          >
+            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-card/60 backdrop-blur-sm border border-borderSoft rounded-xl shadow-sm hover:border-brand/40 hover:bg-brand/5 transition-all group w-full h-full">
+              <div className="p-2 bg-brand/10 text-brand rounded-lg shrink-0 group-hover:scale-110 transition-transform">
+                <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-1">
-                {stats.scheduledEvents}
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] sm:text-xs text-textMuted font-bold uppercase tracking-wide leading-tight">
+                  Scheduled Events
+                </div>
+                <div className="text-base sm:text-lg font-extrabold text-textPrimary leading-none mt-1">
+                  {stats.scheduledEvents}
+                </div>
               </div>
             </div>
-          </div>
+          </Link>
         </div>
       </motion.div>
 

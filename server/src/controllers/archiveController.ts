@@ -142,17 +142,20 @@ export const deleteArchivedBooking = async (req: Request, res: Response) => {
 
     if (!isAdmin) {
       const club = await getClubForUser(req);
-      if (!club) {
-        return res.status(404).json({ error: 'Club not found for this account' });
-      }
 
-      const checkRes = await db.query('SELECT club_id FROM archived_bookings WHERE id = $1', [id]);
+      const checkRes = await db.query('SELECT club_id, user_id FROM archived_bookings WHERE id = $1', [id]);
       if (checkRes.rows.length === 0) {
         return res.status(404).json({ error: 'Archived booking not found' });
       }
 
-      if (checkRes.rows[0].club_id !== club.id) {
-        return res.status(403).json({ error: 'Not authorized to delete this archive' });
+      if (club) {
+        if (checkRes.rows[0].club_id !== club.id) {
+          return res.status(403).json({ error: 'Not authorized to delete this archive' });
+        }
+      } else {
+        if (checkRes.rows[0].user_id !== (req as any).user.id) {
+          return res.status(403).json({ error: 'Not authorized to delete this archive' });
+        }
       }
     }
 

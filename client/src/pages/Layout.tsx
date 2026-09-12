@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
     Archive,
+    BarChart3,
     Calendar,
     CalendarDays,
     CalendarPlus,
@@ -22,7 +23,6 @@ import { toast } from 'sonner';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
 import { GdgFooterCredit } from '../components/GdgFooterCredit';
 import { Logo } from '../components/Logo';
-import NotificationPanel from '../components/NotificationPanel';
 import { ThemeToggle } from '../components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
@@ -41,6 +41,7 @@ const adminLinks = [
   { to: '/admin/requests', label: 'Slot Requests', short: 'Slots', icon: ClipboardList },
   { to: '/admin/event-requests', label: 'Event Registrations', short: 'Events', icon: CalendarDays },
   { to: '/admin/clubs', label: 'Clubs', short: 'Clubs', icon: Users },
+  { to: '/admin/analytics', label: 'Analytics', short: 'Stats', icon: BarChart3 },
   { to: '/admin/venues', label: 'Venues', short: 'Venues', icon: MapPin },
   { to: '/admin/event-reports', label: 'Event Reports', short: 'Reports', icon: FileText },
   { to: '/members', label: 'Members', short: 'Members', icon: Users },
@@ -289,7 +290,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
         {/* Page Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 3xl:p-12 mb-bottom-nav">
-          <div className="max-w-7xl 3xl:max-w-[1800px] 4k:max-w-[2400px] uhd:max-w-[3200px] mx-auto w-full">
+          <div className="max-w-7xl 3xl:max-w-[1800px] 4k:max-w-[2400px] uhd:max-w-[3200px] mx-auto w-full flex flex-col h-full">
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}

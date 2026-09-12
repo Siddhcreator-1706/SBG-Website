@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Menu, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { Logo } from './Logo';
 import { ThemeToggle } from './theme-toggle';
 import { Button } from './ui/button';
@@ -11,7 +11,6 @@ interface PublicNavbarProps {
 }
 
 export const PublicNavbar: React.FC<PublicNavbarProps> = ({ onGoToLogin }) => {
-    const navigate = useNavigate();
     const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const headerRef = useRef<HTMLElement>(null);
@@ -61,23 +60,18 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ onGoToLogin }) => {
     const isActive = (path: string) => location.pathname === path;
 
     const navItemClass = (path: string) =>
-        `rounded-xl h-10 px-3 lg:px-4 font-semibold transition-all text-sm whitespace-nowrap ${
+        `inline-flex items-center justify-center rounded-xl h-10 px-3 lg:px-4 font-semibold transition-all text-sm whitespace-nowrap ${
             isActive(path)
                 ? 'text-brand bg-brand/5 hover:bg-brand/10'
                 : 'text-textSecondary hover:text-textPrimary hover:bg-hoverSoft'
         }`;
 
     const mobileNavItemClass = (path: string) =>
-        `justify-start rounded-xl h-12 px-4 font-semibold transition-all text-base w-full ${
+        `inline-flex items-center justify-start rounded-xl h-12 px-4 font-semibold transition-all text-base w-full ${
             isActive(path)
                 ? 'text-brand bg-brand/5 hover:bg-brand/10'
                 : 'text-textSecondary hover:text-textPrimary hover:bg-hoverSoft'
         }`;
-
-    const handleNavigate = (path: string) => {
-        navigate(path);
-        setIsMobileMenuOpen(false);
-    };
 
     return (
         <header
@@ -93,19 +87,19 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ onGoToLogin }) => {
 
                     {/* Desktop Nav Links (lg and up, so tablets get the hamburger) */}
                     <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-1 xl:gap-2">
-                        <Button variant="ghost" onClick={() => navigate('/')} className={navItemClass('/')}>
+                        <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className={navItemClass('/')}>
                             Home
-                        </Button>
-                        <Button variant="ghost" onClick={() => navigate('/about-sbg')} className={navItemClass('/about-sbg')}>
+                        </Link>
+                        <Link to="/about-sbg" onClick={() => setIsMobileMenuOpen(false)} className={navItemClass('/about-sbg')}>
                             About SBG
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            onClick={() => navigate('/clubs-committees')}
+                        </Link>
+                        <Link
+                            to="/clubs-committees"
+                            onClick={() => setIsMobileMenuOpen(false)}
                             className={navItemClass('/clubs-committees')}
                         >
                             Clubs & Committees
-                        </Button>
+                        </Link>
                     </nav>
                 </div>
 
@@ -127,7 +121,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ onGoToLogin }) => {
                         variant="ghost"
                         size="icon"
                         onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-                        className="lg:hidden rounded-xl border border-borderSoft/40 bg-hoverSoft/20 text-textPrimary hover:bg-hoverSoft/40 transition-all h-10 w-10 shrink-0"
+                        className="lg:hidden rounded-xl border border-borderSoft/40 bg-hoverSoft/20 text-textPrimary hover:bg-hoverSoft/40 transition-all h-11 w-11 shrink-0 flex items-center justify-center"
                         aria-label="Toggle menu"
                         aria-expanded={isMobileMenuOpen}
                     >
@@ -150,23 +144,23 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({ onGoToLogin }) => {
                             aria-label="Mobile navigation"
                             className="flex flex-col gap-1.5 p-3 sm:p-4 max-w-7xl mx-auto pb-safe"
                         >
-                            <Button variant="ghost" onClick={() => handleNavigate('/')} className={mobileNavItemClass('/')}>
+                            <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className={mobileNavItemClass('/')}>
                                 Home
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                onClick={() => handleNavigate('/about-sbg')}
+                            </Link>
+                            <Link
+                                to="/about-sbg"
+                                onClick={() => setIsMobileMenuOpen(false)}
                                 className={mobileNavItemClass('/about-sbg')}
                             >
                                 About SBG
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                onClick={() => handleNavigate('/clubs-committees')}
+                            </Link>
+                            <Link
+                                to="/clubs-committees"
+                                onClick={() => setIsMobileMenuOpen(false)}
                                 className={mobileNavItemClass('/clubs-committees')}
                             >
                                 Clubs & Committees
-                            </Button>
+                            </Link>
                             <Button
                                 onClick={() => { onGoToLogin(); setIsMobileMenuOpen(false); }}
                                 className="justify-start rounded-xl h-12 px-4 font-bold bg-gradient-button text-white shadow-md gap-2 w-full text-base mt-1"

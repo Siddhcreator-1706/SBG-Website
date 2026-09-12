@@ -224,16 +224,16 @@ router.delete('/my-bookings/:id', authMiddleware, async (req, res) => {
         [req.user.email]
       );
 
-      if (clubResult.rows.length === 0) {
-        return res.status(404).json({ error: 'Club not found for this account' });
+      if (clubResult.rows.length > 0) {
+        clubId = clubResult.rows[0].id;
       }
-
-      clubId = clubResult.rows[0].id;
     }
 
     const checkRes = isAdmin
       ? await db.query('SELECT id, status, start_time FROM bookings WHERE id = $1', [id])
-      : await db.query('SELECT id, status, start_time FROM bookings WHERE id = $1 AND club_id = $2', [id, clubId]);
+      : clubId 
+        ? await db.query('SELECT id, status, start_time FROM bookings WHERE id = $1 AND club_id = $2', [id, clubId])
+        : await db.query('SELECT id, status, start_time FROM bookings WHERE id = $1 AND user_id = $2', [id, req.user.id]);
 
     if (checkRes.rows.length === 0) {
       return res.status(404).json({ error: 'Booking not found or not owned by you' });

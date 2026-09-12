@@ -60,6 +60,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
 
     const [venues, setVenues] = useState<ApiVenue[]>([]);
     const [saving, setSaving] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [coCurricularWarning, setCoCurricularWarning] = useState('');
 
@@ -113,6 +114,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
             setBookingName('');
             setIsMeeting(false);
             setError(null);
+            setSubmitted(false);
             setCoCurricularWarning('');
             setBookingType('recurring');
         }
@@ -165,6 +167,7 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
     };
 
     const handleCreate = async () => {
+        setSubmitted(true);
         if (!selectedClubId) {
             setError('Please select an organizing club.');
             return;
@@ -287,9 +290,9 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                 <div className="grid gap-4 py-2">
                     {/* Club Selection */}
                     <div className="grid gap-2">
-                        <Label htmlFor="organizing-club">Organizing Club</Label>
+                        <Label htmlFor="organizing-club" className={cn(submitted && !selectedClubId && "text-error")}>Organizing Club</Label>
                         <Select value={selectedClubId || ''} onValueChange={setSelectedClubId}>
-                            <SelectTrigger id="organizing-club" className="bg-card border-borderSoft">
+                            <SelectTrigger id="organizing-club" className={cn("bg-card", submitted && !selectedClubId ? "border-error ring-1 ring-error/30" : "border-borderSoft")}>
                                 <SelectValue placeholder="Select club..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -303,9 +306,9 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="select-event">Select Event</Label>
+                        <Label htmlFor="select-event" className={cn(submitted && !selectedEventId && !isMeeting && "text-error")}>Select Event</Label>
                         <Select value={selectedEventId} onValueChange={setSelectedEventId} disabled={isMeeting}>
-                            <SelectTrigger id="select-event" className="bg-card">
+                            <SelectTrigger id="select-event" className={cn("bg-card", submitted && !selectedEventId && !isMeeting ? "border-error ring-1 ring-error/30" : "")}>
                                 <SelectValue placeholder="Select an event" />
                             </SelectTrigger>
                             <SelectContent>
@@ -383,20 +386,21 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="booking-name">Booking Name</Label>
+                        <Label htmlFor="booking-name" className={cn(submitted && (!bookingName || bookingName.trim().length === 0) && "text-error")}>Booking Name</Label>
                         <Input
                             id="booking-name"
                             placeholder="e.g. Event Name / Committee Meet"
                             value={bookingName}
                             onChange={(e) => setBookingName(e.target.value)}
+                            className={cn(submitted && (!bookingName || bookingName.trim().length === 0) ? "border-error ring-1 ring-error/30" : "")}
                         />
                     </div>
 
 
                     {/* Venues */}
                     <div className="grid gap-2">
-                        <Label htmlFor="booking-venues">Venues</Label>
-                        <div className="max-h-36 overflow-y-auto rounded-md border border-borderSoft p-2 space-y-1 bg-card">
+                        <Label htmlFor="booking-venues" className={cn(submitted && selectedVenues.length === 0 && "text-error")}>Venues</Label>
+                        <div className={cn("max-h-36 overflow-y-auto rounded-md border p-2 space-y-1 bg-card", submitted && selectedVenues.length === 0 ? "border-error ring-1 ring-error/30" : "border-borderSoft")}>
                             {venues.length === 0 ? (
                                 <p className="text-xs text-textMuted py-2 text-center">Loading venues...</p>
                             ) : (
@@ -436,46 +440,46 @@ const AddBookingDialog: React.FC<Props> = ({ open, onOpenChange, onCreated }) =>
 
                     {/* Date / Time */}
                     <div className="grid gap-2">
-                        <Label htmlFor="booking-schedule">Schedule</Label>
-                        <div className="grid gap-3 p-3 rounded-md border border-borderSoft bg-card">
+                        <Label htmlFor="booking-schedule" className={cn(submitted && (!startDate || !endDate || !startTime || !endTime) && "text-error")}>Schedule</Label>
+                        <div className={cn("grid gap-3 p-3 rounded-md border bg-card", submitted && (!startDate || !endDate || !startTime || !endTime) ? "border-error ring-1 ring-error/30" : "border-borderSoft")}>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="add-booking-start-date" className="text-xs text-textSecondary">Start Date</Label>
+                                        <Label htmlFor="add-booking-start-date" className={cn("text-xs", submitted && !startDate ? "text-error" : "text-textSecondary")}>Start Date</Label>
                                         <DatePicker
                                             id="add-booking-start-date"
                                             date={startDate}
                                             setDate={setStartDate}
-                                            className="bg-card w-full"
+                                            className={cn("bg-card w-full", submitted && !startDate ? "border-error" : "")}
                                         />
                                     </div>
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="add-booking-end-date" className="text-xs text-textSecondary">End Date</Label>
+                                        <Label htmlFor="add-booking-end-date" className={cn("text-xs", submitted && !endDate ? "text-error" : "text-textSecondary")}>End Date</Label>
                                         <DatePicker
                                             id="add-booking-end-date"
                                             date={endDate}
                                             setDate={setEndDate}
-                                            className="bg-card w-full"
+                                            className={cn("bg-card w-full", submitted && !endDate ? "border-error" : "")}
                                         />
                                     </div>
                                 </div>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="add-booking-start-time" className="text-xs text-textSecondary">Start Time</Label>
+                                    <Label htmlFor="add-booking-start-time" className={cn("text-xs", submitted && !startTime ? "text-error" : "text-textSecondary")}>Start Time</Label>
                                     <TimePicker
                                         id="add-booking-start-time"
                                         value={startTime}
                                         onChange={setStartTime}
-                                        className="h-10 rounded-md"
+                                        className={cn("h-10 rounded-md", submitted && !startTime ? "border-error ring-1 ring-error/30" : "")}
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="add-booking-end-time" className="text-xs text-textSecondary">End Time</Label>
+                                    <Label htmlFor="add-booking-end-time" className={cn("text-xs", submitted && !endTime ? "text-error" : "text-textSecondary")}>End Time</Label>
                                     <TimePicker
                                         id="add-booking-end-time"
                                         value={endTime}
                                         onChange={setEndTime}
-                                        className="h-10 rounded-md"
+                                        className={cn("h-10 rounded-md", submitted && !endTime ? "border-error ring-1 ring-error/30" : "")}
                                     />
                                 </div>
                             </div>

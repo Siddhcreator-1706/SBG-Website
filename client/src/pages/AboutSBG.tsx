@@ -314,7 +314,7 @@ const AboutSBG: React.FC = () => {
                                         </div>
                                         <div className="flex items-center gap-3 rounded-xl border border-borderSoft/60 bg-card hover:bg-hoverSoft/20 transition-all px-4 py-3 shadow-sm relative z-10">
                                             <span className="h-9 w-9 rounded-lg bg-card border border-brand/20 flex items-center justify-center shrink-0 overflow-hidden">
-                                                <img src={sbgClub?.logo_url || "/sbg_logo.webp"} alt="SBG" width="36" height="36" className="w-full h-full" loading="lazy" />
+                                                <img src={sbgClub?.logo_url || "/sbg_logo.webp"} alt="Student Body Government Logo" width="36" height="36" className="w-full h-full" loading="lazy" />
                                             </span>
                                             <div className="min-w-0">
                                                 <p className="font-semibold text-textPrimary text-sm">Student Body Government (SBG)</p>
@@ -338,7 +338,7 @@ const AboutSBG: React.FC = () => {
                                         >
                                             {ecClub?.logo_url ? (
                                                 <span className="h-9 w-9 rounded-lg bg-card border border-brand/20 flex items-center justify-center shrink-0 overflow-hidden">
-                                                    <img src={ecClub.logo_url} alt="EC" width="36" height="36" className="w-full h-full object-cover" loading="lazy" />
+                                                    <img src={ecClub.logo_url} alt="Election Commission Logo" width="36" height="36" className="w-full h-full object-cover" loading="lazy" />
                                                 </span>
                                             ) : (
                                                 <span className="h-9 w-9 rounded-lg bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">

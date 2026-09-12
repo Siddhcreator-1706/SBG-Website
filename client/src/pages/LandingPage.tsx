@@ -10,7 +10,7 @@ import {
     X
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { GdgFooterCredit } from '../components/GdgFooterCredit';
 import { Button } from '../components/ui/button';
 import { apiRequest, type ApiVenue } from '../lib/api';
@@ -36,7 +36,7 @@ const EVENT_TYPE_COLORS: Record<string, { bg: string; text: string; border: stri
     closed_club: { bg: 'bg-amber-500/15 dark:bg-amber-400/20', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-300/40 dark:border-amber-500/30', dot: 'bg-amber-500' },
 };
 
-const DEFAULT_COLOR = { bg: 'bg-brand/10', text: 'text-brand', border: 'border-brand/20', dot: 'bg-brand' };
+const DEFAULT_COLOR = { bg: 'bg-brand/15 dark:bg-brand/20', text: 'text-brand', border: 'border-brand/30 dark:border-brand/40', dot: 'bg-brand' };
 
 const MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -426,22 +426,22 @@ const LandingPage: React.FC = () => {
                             </div>
                         ) : (() => {                            // Centralized layout constants — adaptive across mobile, tablet, laptop, and ultra-wide screens
                             const L = {
-                                cellPad:      isMobile ? 3 : isLargeScreen ? 6 : 5,    // compact on mobile, spacious on large screens
-                                dayNumH:      isMobile ? 20 : isLargeScreen ? 26 : 24,  // sleek day number
+                                cellPad:      isMobile ? 0 : isLargeScreen ? 6 : 5,    // no padding on mobile to maximize touch target
+                                dayNumH:      isMobile ? 24 : isLargeScreen ? 26 : 24,  // sleek day number
                                 dayNumMb:     isMobile ? 2 : 3,                        // margin below number
-                                barH:         isMobile ? 20 : isLargeScreen ? 24 : 22,  // event bar height
+                                barH:         isMobile ? 36 : isLargeScreen ? 24 : 22,  // event bar height
                                 barGap:       3,                                       // gap between rows
-                                maxSlots:     isLargeScreen ? 3 : 2,                   // show 3 events on large screens before overflow
+                                maxSlots:     isMobile ? 1 : isTablet ? 1 : isLargeScreen ? 3 : 2, // 1 on mobile, 1 tablet, 2-3 desktop
                                 barMargin:    isMobile ? 2 : 4,                        // ml/mr on bars
-                                barFont:      isMobile ? 10 : isLargeScreen ? 12 : 11, // event name font
+                                barFont:      isMobile ? 12 : isLargeScreen ? 12 : 11, // event name font
                                 barPadX:      isMobile ? 4 : isLargeScreen ? 7 : 6,    // horizontal padding in bars
-                                overflowFont: isMobile ? 10 : 11,                      // "+N more" font
+                                overflowFont: isMobile ? 12 : 11,                      // "+N more" font larger on mobile
                             };
                             // Derived values
-                            const overlayTop = L.cellPad + L.dayNumH + L.dayNumMb;
+                            const overlayTop = isMobile ? (L.dayNumH + L.dayNumMb + 4) : (L.cellPad + L.dayNumH + L.dayNumMb);
                             const rowH = L.barH + L.barGap;
-                            const overflowH = isMobile ? 14 : 16;
-                            const emptyMinH = isMobile ? 46 : isTablet ? 72 : isLargeScreen ? 116 : 94;
+                            const overflowH = isMobile ? 36 : 16; // larger overflow touch target
+                            const emptyMinH = isMobile ? 80 : isTablet ? 72 : isLargeScreen ? 116 : 94; // minimum cell height
 
                             return (
                             <div className="flex flex-col border-x border-borderSoft/30">
@@ -498,10 +498,10 @@ const LandingPage: React.FC = () => {
                                                         }}
                                                         className={`
                                                         border-r border-borderSoft/20 last:border-r-0
-                                                        transition-colors ${dayEventsForCell.length > 0 ? 'cursor-pointer' : 'cursor-default'}
+                                                        transition-colors ${dayEventsForCell.length > 0 ? 'cursor-pointer hover:bg-hoverSoft/40' : 'cursor-default'}
                                                         ${isToday ? 'bg-brand/4 dark:bg-brand/6' : ''}
                                                         ${!isCurrentMonth ? 'opacity-40' : ''}
-                                                        hover:bg-hoverSoft/40
+                                                        ${isMobile ? '' : ''}
                                                     `}
                                                         style={{
                                                             padding: L.cellPad,
@@ -569,11 +569,12 @@ const LandingPage: React.FC = () => {
                                                         <button
                                                             key={`${we.event.id}-${eIdx}`}
                                                             onClick={() => setSelectedEvent(we.event)}
+                                                            aria-label={we.event.eventName}
                                                             className={`
                                                             pointer-events-auto flex items-center justify-start text-left font-medium overflow-hidden
-                                                            transition-all hover:brightness-95 border cursor-pointer select-none
-                                                            ${c.bg} ${c.text} ${c.border}
-                                                            ${we.isStart ? 'rounded-l sm:rounded-l-md' : 'rounded-l-none border-l-0'}
+                                                            transition-all cursor-pointer select-none border-t border-b border-r
+                                                            ${c.bg} ${c.text} border-transparent hover:brightness-95
+                                                            ${we.isStart ? 'rounded-l sm:rounded-l-md border-l-[3px]' : 'rounded-l-none border-l-0'}
                                                             ${we.isEnd ? 'rounded-r sm:rounded-r-md' : 'rounded-r-none border-r-0'}
                                                         `}
                                                             style={{
