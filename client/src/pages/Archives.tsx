@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import {
   Archive as ArchiveIcon,
   Calendar,
@@ -8,15 +7,17 @@ import {
   Download,
   MapPin,
   RefreshCw,
+  Search,
   Trash2,
   Users,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { apiRequest } from '../lib/api';
@@ -64,20 +65,40 @@ interface ArchivedEvent {
   report: ArchivedReport | null;
 }
 
+interface ArchivedMember {
+  id: string;
+  club_id: string;
+  club_name: string;
+  full_name: string;
+  roll_number?: string;
+  email?: string;
+  designation: string;
+  phone?: string;
+  is_core_member: boolean;
+  tenure_start_date: string;
+  tenure_end_date: string;
+  tenure_end_reason: string;
+  created_at: string;
+  updated_at: string;
+}
+
 type ArchiveItem =
   | { type: 'event'; data: ArchivedEvent; archivedAt: string }
-  | { type: 'booking'; data: ArchivedBooking; archivedAt: string };
+  | { type: 'booking'; data: ArchivedBooking; archivedAt: string }
+  | { type: 'member'; data: ArchivedMember; archivedAt: string };
 
 const Archives: React.FC = () => {
   const [events, setEvents] = useState<ArchivedEvent[]>([]);
   const [standaloneBookings, setStandaloneBookings] = useState<ArchivedBooking[]>([]);
+  const [archivedMembers, setArchivedMembers] = useState<ArchivedMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'all' | 'events' | 'bookings'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'events' | 'bookings' | 'members'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ type: 'event' | 'booking'; id: string } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ type: 'event' | 'booking' | 'member'; id: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [emptyDialogOpen, setEmptyDialogOpen] = useState(false);
@@ -88,25 +109,32 @@ const Archives: React.FC = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const listTopRef = useRef<HTMLDivElement>(null);
 
   const fetchArchives = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [eventsData, bookingsData] = await Promise.all([
+      const [eventsData, bookingsData, membersData] = await Promise.all([
         apiRequest<ArchivedEvent[]>('/api/archives/events', { auth: true }),
         apiRequest<ArchivedBooking[]>('/api/archives/bookings', { auth: true }).catch((err) => {
           console.warn('Could not fetch standalone archived bookings:', err);
           return [] as ArchivedBooking[];
         }),
+        apiRequest<ArchivedMember[]>('/api/archives/members', { auth: true }).catch((err) => {
+          console.warn('Could not fetch archived members:', err);
+          return [] as ArchivedMember[];
+        }),
       ]);
       setEvents(eventsData || []);
       setStandaloneBookings(bookingsData || []);
+      setArchivedMembers(membersData || []);
     } catch (err) {
       console.error('Failed to fetch archives:', err);
       setError(getErrorMessage(err, 'Failed to load archives.'));
       setEvents([]);
       setStandaloneBookings([]);
+      setArchivedMembers([]);
     } finally {
       setIsLoading(false);
     }
@@ -123,9 +151,12 @@ const Archives: React.FC = () => {
       if (itemToDelete.type === 'event') {
         await apiRequest(`/api/archives/events/${itemToDelete.id}`, { method: 'DELETE', auth: true });
         setEvents((prev) => prev.filter((a) => a.id !== itemToDelete.id));
-      } else {
+      } else if (itemToDelete.type === 'booking') {
         await apiRequest(`/api/archives/bookings/${itemToDelete.id}`, { method: 'DELETE', auth: true });
         setStandaloneBookings((prev) => prev.filter((b) => b.id !== itemToDelete.id));
+      } else if (itemToDelete.type === 'member') {
+        await apiRequest(`/api/archives/members/${itemToDelete.id}`, { method: 'DELETE', auth: true });
+        setArchivedMembers((prev) => prev.filter((m) => m.id !== itemToDelete.id));
       }
       setDeleteDialogOpen(false);
       toastSuccess('Archive deleted successfully');
@@ -143,6 +174,7 @@ const Archives: React.FC = () => {
       await apiRequest('/api/archives/all', { method: 'DELETE', auth: true });
       setEvents([]);
       setStandaloneBookings([]);
+      setArchivedMembers([]);
       setEmptyDialogOpen(false);
       toastSuccess('All archives emptied successfully');
     } catch (err) {
@@ -152,7 +184,7 @@ const Archives: React.FC = () => {
     }
   };
 
-  const allItems: ArchiveItem[] = React.useMemo(() => {
+  const allItems: ArchiveItem[] = useMemo(() => {
     const eventItems: ArchiveItem[] = events.map((e) => ({
       type: 'event',
       data: e,
@@ -163,50 +195,93 @@ const Archives: React.FC = () => {
       data: b,
       archivedAt: b.archived_at,
     }));
+    const memberItems: ArchiveItem[] = archivedMembers.map((m) => ({
+      type: 'member',
+      data: m,
+      archivedAt: m.tenure_end_date || m.updated_at,
+    }));
 
-    let combined = [...eventItems, ...bookingItems];
+    let combined = [...eventItems, ...bookingItems, ...memberItems];
     if (activeTab === 'events') {
       combined = eventItems;
     } else if (activeTab === 'bookings') {
       combined = bookingItems;
+    } else if (activeTab === 'members') {
+      combined = memberItems;
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      combined = combined.filter((item) => {
+        if (item.type === 'event') {
+          return (
+            item.data.name?.toLowerCase().includes(q) ||
+            item.data.club_name?.toLowerCase().includes(q) ||
+            item.data.venue?.toLowerCase().includes(q)
+          );
+        } else if (item.type === 'booking') {
+          return (
+            item.data.booking_name?.toLowerCase().includes(q) ||
+            item.data.event_name?.toLowerCase().includes(q) ||
+            item.data.club_name?.toLowerCase().includes(q) ||
+            item.data.venue_name?.toLowerCase().includes(q)
+          );
+        } else if (item.type === 'member') {
+          return (
+            item.data.full_name?.toLowerCase().includes(q) ||
+            item.data.club_name?.toLowerCase().includes(q) ||
+            item.data.designation?.toLowerCase().includes(q) ||
+            item.data.roll_number?.toLowerCase().includes(q)
+          );
+        }
+        return true;
+      });
     }
 
     return combined.sort((a, b) => new Date(b.archivedAt).getTime() - new Date(a.archivedAt).getTime());
-  }, [events, standaloneBookings, activeTab]);
+  }, [events, standaloneBookings, archivedMembers, activeTab, searchQuery]);
 
-  const totalItemsCount = events.length + standaloneBookings.length;
+  const totalItemsCount = events.length + standaloneBookings.length + archivedMembers.length;
+  const totalPages = Math.max(1, Math.ceil(allItems.length / itemsPerPage));
 
   useEffect(() => {
-    const maxPage = Math.max(1, Math.ceil(allItems.length / itemsPerPage));
-    if (currentPage > maxPage) {
-      setCurrentPage(maxPage);
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
     }
-  }, [allItems.length, currentPage, itemsPerPage]);
+  }, [totalPages, currentPage]);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4 p-4">
-        <Skeleton className="h-10 w-48 rounded-xl" />
-        <Skeleton className="h-32 w-full rounded-2xl" />
-        <Skeleton className="h-32 w-full rounded-2xl" />
-      </div>
-    );
-  }
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    if (listTopRef.current) {
+      listTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('...');
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-8"
-    >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6">
+      <div ref={listTopRef} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0 flex items-center gap-3">
           <ArchiveIcon className="text-textSecondary" size={32} />
           <div>
-            <motion.h1 className="text-3xl sm:text-4xl font-extrabold text-textPrimary tracking-tighter">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-textPrimary tracking-tighter">
               Database Archives
-            </motion.h1>
+            </h1>
             <p className="text-textSecondary mt-1 text-sm font-medium leading-relaxed max-w-xl">
               Historical records of deleted events, meetings, slot bookings, and reports.
             </p>
@@ -236,58 +311,76 @@ const Archives: React.FC = () => {
         </Alert>
       )}
 
-      {/* Filter Tabs */}
-      <div className="flex items-center justify-between">
+      {/* Filter Tabs & Search Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <Tabs
           value={activeTab}
           onValueChange={(val) => {
-            setActiveTab(val as 'all' | 'events' | 'bookings');
+            setActiveTab(val as 'all' | 'events' | 'bookings' | 'members');
             setCurrentPage(1);
           }}
-          className="w-full sm:w-auto"
+          className="w-full md:w-auto"
         >
-          <TabsList aria-label="Archive filters" className="grid grid-cols-3 w-full sm:w-auto sm:inline-flex">
+          <TabsList aria-label="Archive filters" className="grid grid-cols-4 w-full md:w-auto md:inline-flex">
             <TabsTrigger value="all" className="text-xs sm:text-sm">
-              All ({totalItemsCount})
+              All({totalItemsCount})
             </TabsTrigger>
             <TabsTrigger value="events" className="text-xs sm:text-sm">
-              Events ({events.length})
+              Events({events.length})
             </TabsTrigger>
             <TabsTrigger value="bookings" className="text-xs sm:text-sm">
-              Meetings ({standaloneBookings.length})
+              Meetings({standaloneBookings.length})
+            </TabsTrigger>
+            <TabsTrigger value="members" className="text-xs sm:text-sm">
+              Members({archivedMembers.length})
             </TabsTrigger>
           </TabsList>
         </Tabs>
+
+        <div className="relative w-full md:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted h-4 w-4 pointer-events-none z-10" />
+          <Input
+            placeholder="Search archives..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="pl-9 h-10 text-sm"
+            aria-label="Search archives"
+          />
+        </div>
       </div>
 
-      {!error && allItems.length === 0 && (
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-5">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-36 w-full rounded-2xl" />
+          ))}
+        </div>
+      ) : !error && allItems.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-12 text-center bg-card border border-borderSoft rounded-2xl shadow-sm">
           <ArchiveIcon size={48} className="text-textMuted mb-4 opacity-50" />
-          <h3 className="text-lg font-bold text-textPrimary">No Archives Found</h3>
+          <h2 className="text-lg font-bold text-textPrimary">No Archives Found</h2>
           <p className="text-textSecondary max-w-sm mt-2 text-sm">
-            When events, meetings, or slot bookings are deleted, their records will appear here for historical reference.
+            {searchQuery
+              ? 'No archived items match your search filter. Try a different query.'
+              : 'When events, meetings, or members are removed, their historical records will appear here.'}
           </p>
         </div>
-      )}
+      ) : (
+        <div className="grid grid-cols-1 gap-5">
+          {(() => {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const paginatedItems = allItems.slice(startIndex, startIndex + itemsPerPage);
 
-      <div className="grid grid-cols-1 gap-6">
-        {(() => {
-          const totalPages = Math.ceil(allItems.length / itemsPerPage);
-          const startIndex = (currentPage - 1) * itemsPerPage;
-          const paginatedItems = allItems.slice(startIndex, startIndex + itemsPerPage);
-
-          return (
-            <>
-              {paginatedItems.map((item, i) => {
+            return (
+              <>
+              {paginatedItems.map((item) => {
                 if (item.type === 'event') {
                   const event = item.data;
                   return (
-                    <motion.div
-                      key={`event-${event.id}`}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                    >
+                    <div key={`event-${event.id}`}>
                       <Card className="border border-borderSoft rounded-xl overflow-hidden shadow-sm">
                         <CardHeader className="bg-bgMain border-b border-borderSoft p-4">
                           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -328,27 +421,29 @@ const Archives: React.FC = () => {
                               <Badge variant="outline" className="text-xs bg-bgMain border-borderSoft">
                                 Event Record
                               </Badge>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setItemToDelete({ type: 'event', id: event.id });
-                                  setDeleteDialogOpen(true);
-                                }}
-                                className="text-textMuted hover:text-error hover:bg-error/10 h-8 w-8 p-0 rounded-lg shrink-0"
-                                title="Delete Archive"
-                              >
-                                <Trash2 size={16} />
-                              </Button>
+                              {isAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setItemToDelete({ type: 'event', id: event.id });
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  className="text-textMuted hover:text-error hover:bg-error/10 h-8 w-8 p-0 rounded-lg shrink-0"
+                                  title="Delete Archive"
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </CardHeader>
                         <CardContent className="p-0">
                           {event.bookings.length > 0 && (
                             <div className="p-4 border-b border-borderSoft/50 bg-card">
-                              <h4 className="text-sm font-semibold mb-2 text-textPrimary flex items-center gap-2">
+                              <h3 className="text-sm font-semibold mb-2 text-textPrimary flex items-center gap-2">
                                 <ArchiveIcon size={14} className="text-brand" /> Associated Bookings ({event.bookings.length})
-                              </h4>
+                              </h3>
                               <div className="space-y-2">
                                 {event.bookings.map((b) => (
                                   <div
@@ -372,9 +467,9 @@ const Archives: React.FC = () => {
                           )}
                           {event.report && (
                             <div className="p-4 bg-card">
-                              <h4 className="text-sm font-semibold mb-2 text-textPrimary flex items-center gap-2">
+                              <h3 className="text-sm font-semibold mb-2 text-textPrimary flex items-center gap-2">
                                 <ArchiveIcon size={14} className="text-brand" /> Associated Event Report
-                              </h4>
+                              </h3>
                               <div className="text-xs text-textSecondary flex flex-wrap gap-x-4 gap-y-2">
                                 <span className="shrink-0">Level: {event.report.level}</span>
                                 <a
@@ -400,17 +495,12 @@ const Archives: React.FC = () => {
                           )}
                         </CardContent>
                       </Card>
-                    </motion.div>
+                    </div>
                   );
-                } else {
+                } else if (item.type === 'booking') {
                   const booking = item.data;
                   return (
-                    <motion.div
-                      key={`booking-${booking.id}`}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                    >
+                    <div key={`booking-${booking.id}`}>
                       <Card className="border border-borderSoft rounded-xl overflow-hidden shadow-sm">
                         <CardHeader className="bg-bgMain border-b border-borderSoft p-4">
                           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -475,23 +565,80 @@ const Archives: React.FC = () => {
                               >
                                 {booking.status}
                               </Badge>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setItemToDelete({ type: 'booking', id: booking.id });
-                                  setDeleteDialogOpen(true);
-                                }}
-                                className="text-textMuted hover:text-error hover:bg-error/10 h-8 w-8 p-0 rounded-lg shrink-0"
-                                title="Delete Archive"
-                              >
-                                <Trash2 size={16} />
-                              </Button>
+                              {isAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setItemToDelete({ type: 'booking', id: booking.id });
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  className="text-textMuted hover:text-error hover:bg-error/10 h-8 w-8 p-0 rounded-lg shrink-0"
+                                  title="Delete Archive"
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </CardHeader>
                       </Card>
-                    </motion.div>
+                    </div>
+                  );
+                } else if (item.type === 'member') {
+                  const member = item.data;
+                  return (
+                    <div key={`member-${member.id}`}>
+                      <Card className="border border-borderSoft rounded-xl overflow-hidden shadow-sm">
+                        <CardHeader className="bg-bgMain border-b border-borderSoft p-4">
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                            <div className="min-w-0">
+                              <CardTitle className="text-lg text-textPrimary break-words">
+                                {member.full_name}
+                              </CardTitle>
+                              <div className="text-sm font-medium text-textSecondary mt-1 flex items-center gap-2">
+                                {member.club_name}
+                                <span className="text-textMuted text-xs font-normal border border-borderSoft px-1.5 py-0.5 rounded">
+                                  {member.designation}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-2 mt-2 text-xs text-textSecondary">
+                                <span className="flex items-center gap-1 shrink-0">
+                                  <Calendar size={12} />
+                                  Tenure: {member.tenure_start_date ? new Date(member.tenure_start_date).toLocaleDateString('en-GB') : 'N/A'} 
+                                  {' '}to{' '} 
+                                  {member.tenure_end_date ? new Date(member.tenure_end_date).toLocaleDateString('en-GB') : 'Present'}
+                                </span>
+                                {member.tenure_end_reason && (
+                                  <span className="flex items-center gap-1 shrink-0 text-textMuted">
+                                    Reason: {member.tenure_end_reason}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
+                              <Badge variant="outline" className="text-xs bg-brand/5 text-brand border-brand/20">
+                                Member
+                              </Badge>
+                              {isAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setItemToDelete({ type: 'member', id: member.id });
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  className="text-textMuted hover:text-error hover:bg-error/10 h-8 w-8 p-0 rounded-lg shrink-0"
+                                  title="Permanently Delete Member"
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </Card>
+                    </div>
                   );
                 }
               })}
@@ -499,38 +646,64 @@ const Archives: React.FC = () => {
           );
         })()}
 
-        {allItems.length > 0 && Math.ceil(allItems.length / itemsPerPage) > 1 && (() => {
-          const totalPages = Math.ceil(allItems.length / itemsPerPage);
-          const startIndex = (currentPage - 1) * itemsPerPage;
-          return (
-            <div className="flex flex-col sm:flex-row items-center justify-between mt-8 pt-4 border-t border-borderSoft gap-4">
-              <div className="flex items-center text-sm text-textMuted">
-                Showing <span className="font-medium mx-1">{startIndex + 1}</span> to{' '}
-                <span className="font-medium mx-1">{Math.min(startIndex + itemsPerPage, allItems.length)}</span> of{' '}
-                <span className="font-medium mx-1">{allItems.length}</span> results
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft size={16} className="mr-1" /> Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next <ChevronRight size={16} className="ml-1" />
-                </Button>
-              </div>
+        {allItems.length > 0 && totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between mt-8 pt-4 border-t border-borderSoft gap-4">
+            <div className="flex items-center text-xs sm:text-sm text-textMuted">
+              Showing <span className="font-semibold text-textPrimary mx-1">{((currentPage - 1) * itemsPerPage) + 1}</span> to{' '}
+              <span className="font-semibold text-textPrimary mx-1">{Math.min(currentPage * itemsPerPage, allItems.length)}</span> of{' '}
+              <span className="font-semibold text-textPrimary mx-1">{allItems.length}</span> archives
             </div>
-          );
-        })()}
+            <div className="flex items-center gap-1.5 flex-wrap justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                disabled={currentPage === 1}
+                className="h-9 px-2.5 rounded-lg text-xs"
+                aria-label="Previous Page"
+              >
+                <ChevronLeft size={15} className="mr-1" /> Prev
+              </Button>
+
+              <div className="flex items-center gap-1">
+                {getPageNumbers().map((page, idx) =>
+                  typeof page === 'number' ? (
+                    <Button
+                      key={`page-${page}`}
+                      variant={currentPage === page ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handlePageChange(page)}
+                      className={`h-9 w-9 p-0 text-xs font-semibold rounded-lg ${
+                        currentPage === page ? 'bg-brand text-white shadow-sm' : 'hover:bg-bgMain'
+                      }`}
+                      aria-label={`Go to page ${page}`}
+                      aria-current={currentPage === page ? 'page' : undefined}
+                    >
+                      {page}
+                    </Button>
+                  ) : (
+                    <span key={`dots-${idx}`} className="px-1 text-xs text-textMuted select-none">
+                      •••
+                    </span>
+                  )
+                )}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="h-9 px-2.5 rounded-lg text-xs"
+                aria-label="Next Page"
+              >
+                Next <ChevronRight size={15} className="ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
+      )}
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[400px] rounded-2xl">
@@ -598,7 +771,7 @@ const Archives: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </div>
   );
 };
 

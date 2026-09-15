@@ -111,21 +111,69 @@ export default defineConfig(({ mode }) => {
         })
       ],
       define: {
+        'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
         '__APP_VERSION__': JSON.stringify(appVersion),
       },
       build: {
+        target: 'es2022',
         sourcemap: true,
+        cssCodeSplit: true,
+        cssMinify: true,
+        modulePreload: {
+          polyfill: false,
+        },
         rollupOptions: {
           output: {
-            manualChunks: {
-              'vendor': ['react', 'react-dom', 'react-router-dom'],
-              'framer-motion': ['framer-motion'],
-              'lucide': ['lucide-react'],
-              'ui': ['@radix-ui/react-dialog', '@radix-ui/react-slot', '@radix-ui/react-popover', 'clsx', 'tailwind-merge', 'class-variance-authority'],
-              'date-fns': ['date-fns']
-            }
-          }
-        }
+            manualChunks(id) {
+              if (id.includes('node_modules')) {
+                // Calendar and date libraries (heavy, only on calendar pages)
+                if (
+                  id.includes('react-big-calendar') ||
+                  id.includes('react-day-picker') ||
+                  id.includes('date-fns')
+                ) {
+                  return 'vendor-calendar';
+                }
+                // Animation library
+                if (id.includes('framer-motion')) {
+                  return 'vendor-framer';
+                }
+                // Icons
+                if (id.includes('lucide-react') || id.includes('react-icons')) {
+                  return 'vendor-icons';
+                }
+                // Heavy standalone utilities
+                if (id.includes('xlsx')) {
+                  return 'vendor-xlsx';
+                }
+                if (id.includes('socket.io-client') || id.includes('engine.io-client')) {
+                  return 'vendor-socket';
+                }
+                // Form validation & schemas
+                if (
+                  id.includes('react-hook-form') ||
+                  id.includes('@hookform') ||
+                  id.includes('zod')
+                ) {
+                  return 'vendor-forms';
+                }
+                // UI primitives (Radix, Floating UI)
+                if (id.includes('@radix-ui') || id.includes('@floating-ui')) {
+                  return 'vendor-ui';
+                }
+                // Core React & React Router runtime (must remain together to avoid TDZ circular execution)
+                if (
+                  id.includes('react') ||
+                  id.includes('react-dom') ||
+                  id.includes('scheduler') ||
+                  id.includes('@remix-run')
+                ) {
+                  return 'vendor-react';
+                }
+              }
+            },
+          },
+        },
       },
       resolve: {
         alias: {

@@ -13,17 +13,27 @@ const sizeMap = {
   xl: { box: 'h-14 w-14 rounded-2xl', icon: 36, text: 'text-4xl', gap: 'gap-3.5' },
 };
 
+const pixelMap = {
+  sm: 32,
+  md: 36,
+  lg: 44,
+  xl: 56,
+};
+
 export function Logo({ size = 'md', showText = true, className }: LogoProps) {
-  const { box, icon, text, gap } = sizeMap[size];
+  const { box, text, gap } = sizeMap[size];
+  const px = pixelMap[size];
 
   return (
     <div className={cn('flex items-center', gap, className)}>
       <img
         src="/sbg_logo.webp"
         alt="SBG logo"
-        width="400"
-        height="400"
-        className={cn('shrink-0 object-contain rounded-full', box)}
+        width={px}
+        height={px}
+        fetchPriority="high"
+        decoding="sync"
+        className={cn('shrink-0 object-contain rounded-full aspect-square', box)}
       />
       {showText && (
         <span

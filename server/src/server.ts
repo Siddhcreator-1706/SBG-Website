@@ -48,6 +48,7 @@ app.use(helmet({
     },
   }
 }));
+
 app.use(compression());
 app.use(morgan('tiny'));
 
@@ -196,7 +197,6 @@ io.on('connection', (socket) => {
   });
 });
 
-
 function isBodyParserError(err: unknown): err is { type: string; message?: string } {
   return typeof err === 'object' && err !== null && 'type' in err;
 }
@@ -284,13 +284,17 @@ app.use('/assets', express.static(path.join(clientBuildPath, 'assets'), {
   immutable: true,
 }));
 
-// Cache other static files (icons, images, manifests) for 1 day
+// Cache other static files with optimized headers
 app.use(express.static(clientBuildPath, {
-  maxAge: '1d',
   setHeaders: (res, filePath) => {
-    // Service worker must never be cached
-    if (filePath.endsWith('sw.js') || filePath.includes('workbox-') || filePath.endsWith('registerSW.js')) {
-      res.setHeader('Cache-Control', 'no-cache');
+    // Service worker and HTML must never be cached
+    if (filePath.endsWith('sw.js') || filePath.includes('workbox-') || filePath.endsWith('registerSW.js') || filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    } else if (/\.(webp|png|jpg|jpeg|svg|ico|woff2?|ttf|eot)$/i.test(filePath)) {
+      // Images and web fonts are long-lived static assets
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
     }
   },
 }));

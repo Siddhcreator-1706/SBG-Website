@@ -7,13 +7,15 @@ import { apiRequest } from './lib/api';
 import { getSocket, reconnectSocket, SOCKET_EVENTS } from './lib/socket';
 import { useDocumentTitle } from './lib/useDocumentTitle';
 import { User } from './types';
+const LandingPage = React.lazy(() => import('./pages/LandingPage'));
 const Layout = React.lazy(() => import('./pages/Layout'));
 const Login = React.lazy(() => import('./pages/Login'));
-const LandingPage = React.lazy(() => import('./pages/LandingPage'));
 const AboutSBG = React.lazy(() => import('./pages/AboutSBG'));
 const ClubsCommitteesPage = React.lazy(() => import('./pages/ClubsCommitteesPage'));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
 const ClubDashboard = React.lazy(() => import('./lib/ClubDashboard'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
+const AdminAnalytics = React.lazy(() => import('./pages/AdminAnalytics'));
 const AdminVenues = React.lazy(() => import('./pages/AdminVenues'));
 const BookSlot = React.lazy(() => import('./pages/BookSlot'));
 const AdminClubs = React.lazy(() => import('./pages/AdminClubs'));
@@ -27,8 +29,8 @@ const EventReports = React.lazy(() => import('./pages/EventReports'));
 const AdminEventReports = React.lazy(() => import('./pages/AdminEventReports'));
 const Archives = React.lazy(() => import('./pages/Archives'));
 
-const PageTitleWrapper = ({ title, children }: { title: string, children: React.ReactNode }) => {
-  useDocumentTitle(title);
+const PageTitleWrapper = ({ title, description, children }: { title: string, description?: string, children: React.ReactNode }) => {
+  useDocumentTitle(title, description);
   return <>{children}</>;
 };
 
@@ -66,15 +68,17 @@ const cacheUser = (nextUser: User | null) => {
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(() => getCachedUser());
-  const [isInitializing, setIsInitializing] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return !getCachedUser();
-  });
+  const [isInitializing, setIsInitializing] = useState(false);
 
-  // Establish the socket on every load (even anonymous) so the build-version
-  // handshake can detect and recover from a stale, cached frontend bundle.
+  // Establish the socket during idle time so it does not compete with critical initial page render (FCP/LCP)
   useEffect(() => {
-    getSocket();
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const handle = (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number; cancelIdleCallback: (id: number) => void }).requestIdleCallback(() => getSocket(), { timeout: 1000 });
+      return () => (window as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(handle);
+    } else {
+      const timer = setTimeout(() => getSocket(), 300);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   useEffect(() => {
@@ -152,18 +156,14 @@ const App: React.FC = () => {
     }
   }, [user]);
 
-  if (isInitializing) {
-    return <LoadingScreen />;
-  }
-
   const ProtectedRouteRedirect = () => {
     const location = import('react-router-dom').then(m => m.useLocation);
     // Actually we can just use window.location
     const path = window.location.pathname;
-    if (path.startsWith('/admin') || path.startsWith('/book') || path.startsWith('/my-bookings') || path.startsWith('/manage-events') || path.startsWith('/event-reports') || path.startsWith('/members')) {
+    if (path.startsWith('/admin') || path.startsWith('/book') || path.startsWith('/my-bookings') || path.startsWith('/manage-events') || path.startsWith('/event-reports') || path.startsWith('/members') || path.startsWith('/archives')) {
       return <Navigate to={`/login?redirect=${encodeURIComponent(path + window.location.search)}`} replace />;
     }
-    return <Navigate to="/" replace />;
+    return <NotFoundPage />;
   };
 
   if (!user) {
@@ -172,11 +172,11 @@ const App: React.FC = () => {
         <BrowserRouter>
           <React.Suspense fallback={<LoadingScreen />}>
             <Routes>
-              <Route path="/login" element={<PageTitleWrapper title="Login | SBG DAU"><Login onLogin={handleLogin} /></PageTitleWrapper>} />
+              <Route path="/login" element={<PageTitleWrapper title="Login | SBG DAU" description="Sign in to the DA-IICT Student Body Government portal to book venues and manage events."><Login onLogin={handleLogin} /></PageTitleWrapper>} />
               <Route element={<PublicLayout onGoToLogin={() => { window.location.href = '/login'; }} />}>
-                <Route path="/" element={<PageTitleWrapper title="Home | SBG DAU"><LandingPage /></PageTitleWrapper>} />
-                <Route path="/clubs-committees" element={<PageTitleWrapper title="Clubs & Committees | SBG DAU"><ClubsCommitteesPage /></PageTitleWrapper>} />
-                <Route path="/about-sbg" element={<PageTitleWrapper title="About SBG | SBG DAU"><AboutSBG /></PageTitleWrapper>} />
+                <Route path="/" element={<PageTitleWrapper title="Home | SBG DAU" description="Discover campus events, club activities, and book venues at DA-IICT. Official Student Body Government portal."><LandingPage /></PageTitleWrapper>} />
+                <Route path="/clubs-committees" element={<PageTitleWrapper title="Clubs & Committees | SBG DAU" description="Explore the diverse student clubs, committees, and organizations at DA-IICT."><ClubsCommitteesPage /></PageTitleWrapper>} />
+                <Route path="/about-sbg" element={<PageTitleWrapper title="About SBG | SBG DAU" description="Learn about the Student Body Government (SBG) and Election Commission (EC) at DA-IICT."><AboutSBG /></PageTitleWrapper>} />
               </Route>
               <Route path="*" element={<ProtectedRouteRedirect />} />
             </Routes>
@@ -209,13 +209,14 @@ const App: React.FC = () => {
 
               <Route path="/admin/requests" element={<PageTitleWrapper title="Slot Requests | SBG DAU">{user.role === 'admin' ? <AdminRequests /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/admin/event-requests" element={<PageTitleWrapper title="Event Registrations | SBG DAU">{user.role === 'admin' ? <AdminEventRequests /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
+              <Route path="/admin/event-reports" element={<PageTitleWrapper title="All Reports | SBG DAU">{user.role === 'admin' ? <AdminEventReports /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/admin/clubs" element={<PageTitleWrapper title="Clubs | SBG DAU">{user.role === 'admin' ? <AdminClubs /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/admin/venues" element={<PageTitleWrapper title="Venues | SBG DAU">{user.role === 'admin' ? <AdminVenues /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
-              <Route path="/admin/event-reports" element={<PageTitleWrapper title="All Reports | SBG DAU">{user.role === 'admin' ? <AdminEventReports /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
+              <Route path="/admin/analytics" element={<PageTitleWrapper title="Analytics | SBG DAU">{user.role === 'admin' ? <AdminAnalytics /> : <Navigate to="/" replace />}</PageTitleWrapper>} />
               <Route path="/archives" element={<PageTitleWrapper title="Archives | SBG DAU"><Archives /></PageTitleWrapper>} />
 
               <Route path="/login" element={<AuthLoginRedirect />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<PageTitleWrapper title="Page Not Found | SBG DAU"><NotFoundPage /></PageTitleWrapper>} />
             </Routes>
           </React.Suspense>
         </Layout>

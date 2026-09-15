@@ -1,0 +1,1 @@
+ALTER TABLE club_members ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;

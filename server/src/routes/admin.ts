@@ -7,7 +7,6 @@ import { io } from '../server';
 import { createNotification } from '../services/notification';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
 
-
 const router = express.Router();
 
 router.use(authMiddleware, adminOnly);
@@ -738,7 +737,6 @@ router.post('/bookings', async (req, res) => {
       metadata: { batchId, venues: venue_ids },
     });
 
-
     io.emit('events:updated');
     io.to(`club:${club_id}`).emit('booking:status_changed', {
       bookingId: createdBookings[0].id,
@@ -771,6 +769,72 @@ router.get('/stats', async (_req, res) => {
       activeClubs: parseInt(clubsRes.rows[0].count, 10) || 0,
       pendingEvents: parseInt(pendingEventsRes.rows[0].count, 10) || 0,
       scheduledEvents: parseInt(scheduledEventsRes.rows[0].count, 10) || 0
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/analytics', async (_req, res) => {
+  try {
+
+    const popularVenuesRes = await db.query(`
+      SELECT v.name, COUNT(b.id) as count 
+      FROM bookings b 
+      JOIN venues v ON b.venue_id = v.id 
+      WHERE b.status = 'approved' 
+      GROUP BY v.name 
+      ORDER BY count DESC 
+    `);
+    const popularVenues = popularVenuesRes.rows.map(row => ({ name: row.name, count: parseInt(row.count, 10) }));
+
+    const busiestClubsRes = await db.query(`
+      SELECT c.name, COUNT(b.id) as count 
+      FROM bookings b 
+      JOIN clubs c ON b.club_id = c.id 
+      WHERE b.status = 'approved' 
+      GROUP BY c.name 
+      ORDER BY count DESC 
+    `);
+    const busiestClubs = busiestClubsRes.rows.map(row => ({ name: row.name, count: parseInt(row.count, 10) }));
+
+    const busiestClubsEventsRes = await db.query(`
+      SELECT c.name, COUNT(e.id) as count 
+      FROM events e 
+      JOIN clubs c ON e.club_id = c.id 
+      WHERE e.status = 'active' AND e.event_type IN ('co_curricular', 'open_all')
+      GROUP BY c.name 
+      ORDER BY count DESC 
+    `);
+    const busiestClubsEvents = busiestClubsEventsRes.rows.map(row => ({ name: row.name, count: parseInt(row.count, 10) }));
+
+    const bookingsByMonthRes = await db.query(`
+      SELECT TO_CHAR(start_time, 'Mon YYYY') as month, COUNT(id) as count 
+      FROM bookings 
+      WHERE status = 'approved' AND start_time >= date_trunc('month', CURRENT_DATE - INTERVAL '5 months')
+      GROUP BY TO_CHAR(start_time, 'Mon YYYY')
+    `);
+    
+    const last6Months: { month: string; count: number }[] = [];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        last6Months.push({ month: `${monthNames[d.getMonth()]} ${d.getFullYear()}`, count: 0 });
+    }
+
+    bookingsByMonthRes.rows.forEach(row => {
+        const match = last6Months.find(m => m.month === row.month);
+        if (match) match.count = parseInt(row.count, 10);
+    });
+
+    const bookingsByMonth = last6Months;
+
+    return res.json({
+      popularVenues,
+      busiestClubs,
+      busiestClubsEvents,
+      bookingsByMonth,
     });
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
@@ -901,10 +965,11 @@ router.get('/club-members/all', async (_req, res) => {
                CASE 
                  WHEN cm.designation = 'Convener' THEN 1
                  WHEN cm.designation = 'Dy. Convener' THEN 2
-                 WHEN cm.designation = 'Core' THEN 3
-                 ELSE 4
+                 WHEN cm.designation = 'Mentor' THEN 3
+                 WHEN cm.designation = 'Core' THEN 4
+                 ELSE 5
                END ASC,
-               cm.full_name ASC
+               cm.roll_number ASC
     `);
     return res.json(rows);
   } catch (error: any) {

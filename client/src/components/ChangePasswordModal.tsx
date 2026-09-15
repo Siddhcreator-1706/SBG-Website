@@ -25,15 +25,15 @@ export function ChangePasswordModal({ open, onOpenChange, userEmail }: ChangePas
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitted(true);
 
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast.error('Please fill in all fields');
@@ -65,6 +65,7 @@ export function ChangePasswordModal({ open, onOpenChange, userEmail }: ChangePas
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+      setSubmitted(false);
       
     } catch (error: any) {
       console.error('Password change error:', error);
@@ -88,7 +89,7 @@ export function ChangePasswordModal({ open, onOpenChange, userEmail }: ChangePas
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-1">
-            <Label htmlFor="current">Current Password</Label>
+            <Label htmlFor="current" className={submitted && !currentPassword ? "text-error" : ""}>Current Password</Label>
             <div className="relative">
               <Input
                 id="current"
@@ -96,7 +97,7 @@ export function ChangePasswordModal({ open, onOpenChange, userEmail }: ChangePas
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Enter current password"
-                className="pr-10"
+                className={`pr-10 ${submitted && !currentPassword ? "border-error ring-1 ring-error/30" : ""}`}
               />
               <button
                 type="button"
@@ -108,8 +109,8 @@ export function ChangePasswordModal({ open, onOpenChange, userEmail }: ChangePas
             </div>
 
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="new">New Password</Label>
+          <div className="space-y-1">
+            <Label htmlFor="new" className={submitted && (!newPassword || newPassword.length < 8) ? "text-error" : ""}>New Password</Label>
             <div className="relative">
               <Input
                 id="new"
@@ -117,7 +118,7 @@ export function ChangePasswordModal({ open, onOpenChange, userEmail }: ChangePas
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
-                className="pr-10"
+                className={`pr-10 ${submitted && (!newPassword || newPassword.length < 8) ? "border-error ring-1 ring-error/30" : ""}`}
               />
               <button
                 type="button"
@@ -127,9 +128,12 @@ export function ChangePasswordModal({ open, onOpenChange, userEmail }: ChangePas
                 {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {submitted && newPassword && newPassword.length < 8 && (
+              <p className="text-xs text-error mt-1">Password must be at least 8 characters</p>
+            )}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirm">Confirm New Password</Label>
+          <div className="space-y-1">
+            <Label htmlFor="confirm" className={submitted && (!confirmPassword || newPassword !== confirmPassword) ? "text-error" : ""}>Confirm New Password</Label>
             <div className="relative">
               <Input
                 id="confirm"
@@ -137,7 +141,7 @@ export function ChangePasswordModal({ open, onOpenChange, userEmail }: ChangePas
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
-                className="pr-10"
+                className={`pr-10 ${submitted && (!confirmPassword || newPassword !== confirmPassword) ? "border-error ring-1 ring-error/30" : ""}`}
               />
               <button
                 type="button"
@@ -147,6 +151,9 @@ export function ChangePasswordModal({ open, onOpenChange, userEmail }: ChangePas
                 {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {submitted && confirmPassword && newPassword !== confirmPassword && (
+              <p className="text-xs text-error mt-1">Passwords do not match</p>
+            )}
           </div>
           <DialogFooter className="pt-4 gap-2 sm:space-x-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

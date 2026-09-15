@@ -26,13 +26,14 @@ router.get('/public', async (req, res) => {
               c.organization_type
        FROM club_members cm
        JOIN clubs c ON cm.club_id = c.id
-       WHERE cm.tenure_end_date IS NULL OR cm.tenure_end_date > CURRENT_DATE
+       WHERE cm.is_active = true AND (cm.tenure_end_date IS NULL OR cm.tenure_end_date > CURRENT_DATE)
        ORDER BY c.name ASC,
                 CASE 
                   WHEN cm.designation = 'Convener' THEN 1
                   WHEN cm.designation = 'Dy. Convener' THEN 2
-                  WHEN cm.designation = 'Core' THEN 3
-                  ELSE 4
+                  WHEN cm.designation = 'Mentor' THEN 3
+                  WHEN cm.designation = 'Core' THEN 4
+                  ELSE 5
                 END ASC,
                 cm.roll_number ASC`
     );
@@ -67,12 +68,13 @@ router.get('/', authMiddleware, async (req, res) => {
       `SELECT id, club_id, full_name, roll_number, email, designation, phone, show_number,
               is_core_member, tenure_start_date, tenure_end_date, tenure_end_reason, promotion_history, created_at, updated_at
        FROM club_members
-       WHERE club_id = $1
+       WHERE club_id = $1 AND is_active = true
        ORDER BY CASE 
                   WHEN designation = 'Convener' THEN 1
                   WHEN designation = 'Dy. Convener' THEN 2
-                  WHEN designation = 'Core' THEN 3
-                  ELSE 4
+                  WHEN designation = 'Mentor' THEN 3
+                  WHEN designation = 'Core' THEN 4
+                  ELSE 5
                 END ASC,
                 roll_number ASC`,
       [clubId]
@@ -127,7 +129,7 @@ router.post('/', authMiddleware, clubOnly, async (req, res) => {
 
     if (roll_number && roll_number.trim()) {
       const existing = await db.query(
-        'SELECT id FROM club_members WHERE club_id = $1 AND roll_number = $2',
+        'SELECT id FROM club_members WHERE club_id = $1 AND roll_number = $2 AND is_active = true',
         [club.id, roll_number.trim()]
       );
       if (existing.rows.length > 0) {
@@ -163,20 +165,33 @@ router.post('/', authMiddleware, clubOnly, async (req, res) => {
   }
 });
 
-/** Update any member's details (club accounts only, core or general) */
-router.patch('/:id', authMiddleware, clubOnly, async (req, res) => {
+/** Update any member's details (club accounts or admins) */
+router.patch('/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const club = await getClubForUser(req);
-    if (!club) {
-      return res.status(404).json({ error: 'Club not found for this account' });
+    let clubId: string | undefined;
+
+    if (req.user?.role === 'admin') {
+      const existing = await db.query('SELECT club_id FROM club_members WHERE id = $1', [id]);
+      if (existing.rowCount === 0) {
+        return res.status(404).json({ error: 'Member not found' });
+      }
+      clubId = existing.rows[0].club_id;
+    } else if (req.user?.role === 'club') {
+      const club = await getClubForUser(req);
+      if (!club) {
+        return res.status(404).json({ error: 'Club not found for this account' });
+      }
+      clubId = club.id;
+    } else {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Verify member exists and belongs to the user's club
+    // Verify member exists and belongs to the club
     const memberRes = await db.query(
       'SELECT * FROM club_members WHERE id = $1 AND club_id = $2',
-      [id, club.id]
+      [id, clubId]
     );
     const member = memberRes.rows[0];
 
@@ -186,8 +201,8 @@ router.patch('/:id', authMiddleware, clubOnly, async (req, res) => {
 
     if (req.body.roll_number && typeof req.body.roll_number === 'string' && req.body.roll_number.trim()) {
       const existing = await db.query(
-        'SELECT id FROM club_members WHERE club_id = $1 AND roll_number = $2 AND id != $3',
-        [club.id, req.body.roll_number.trim(), id]
+        'SELECT id FROM club_members WHERE club_id = $1 AND roll_number = $2 AND id != $3 AND is_active = true',
+        [clubId, req.body.roll_number.trim(), id]
       );
       if (existing.rows.length > 0) {
         return res.status(400).json({ error: 'A member with this ID/Roll Number already exists in this club/committee.' });
@@ -274,7 +289,7 @@ router.patch('/:id', authMiddleware, clubOnly, async (req, res) => {
     updates.push(`updated_at = NOW()`);
     
     // Add ID and club ID for where clause
-    values.push(id, club.id);
+    values.push(id, clubId);
 
     const { rows } = await db.query(
       `UPDATE club_members
@@ -313,37 +328,50 @@ router.delete('/all', authMiddleware, async (req, res) => {
     }
 
     const { rowCount } = await db.query(
-      'DELETE FROM club_members WHERE club_id = $1',
+      "UPDATE club_members SET is_active = false, tenure_end_date = CURRENT_DATE, tenure_end_reason = 'Archived' WHERE club_id = $1 AND is_active = true",
       [clubId]
     );
 
-    return res.json({ success: true, message: `Deleted ${rowCount} members successfully` });
+    return res.json({ success: true, message: `Archived ${rowCount} members successfully` });
   } catch (err: unknown) {
     console.error('Delete all club members error:', err);
     return res.status(500).json({ error: 'Failed to delete all members' });
   }
 });
 
-/** Delete a member from the roster (club accounts only) */
-router.delete('/:id', authMiddleware, clubOnly, async (req, res) => {
+/** Archive a member from the roster (club accounts or admins) */
+router.delete('/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const club = await getClubForUser(req);
-    if (!club) {
-      return res.status(404).json({ error: 'Club not found for this account' });
+    let clubId: string | undefined;
+
+    if (req.user?.role === 'admin') {
+      const existing = await db.query('SELECT club_id FROM club_members WHERE id = $1', [id]);
+      if (existing.rowCount === 0) {
+        return res.status(404).json({ error: 'Member not found' });
+      }
+      clubId = existing.rows[0].club_id;
+    } else if (req.user?.role === 'club') {
+      const club = await getClubForUser(req);
+      if (!club) {
+        return res.status(404).json({ error: 'Club not found for this account' });
+      }
+      clubId = club.id;
+    } else {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     const { rowCount } = await db.query(
-      'DELETE FROM club_members WHERE id = $1 AND club_id = $2',
-      [id, club.id]
+      "UPDATE club_members SET is_active = false, tenure_end_date = CURRENT_DATE, tenure_end_reason = 'Archived' WHERE id = $1 AND club_id = $2",
+      [id, clubId]
     );
 
     if (rowCount === 0) {
       return res.status(404).json({ error: 'Member not found' });
     }
 
-    return res.json({ success: true, message: 'Member deleted successfully' });
+    return res.json({ success: true, message: 'Member archived successfully' });
   } catch (err: unknown) {
     console.error('Delete club member error:', err);
     return res.status(500).json({ error: 'Failed to delete member' });

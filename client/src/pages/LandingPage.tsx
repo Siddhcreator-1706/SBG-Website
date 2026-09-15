@@ -10,7 +10,7 @@ import {
     X
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { GdgFooterCredit } from '../components/GdgFooterCredit';
 import { Button } from '../components/ui/button';
 import { apiRequest, type ApiVenue } from '../lib/api';
@@ -36,7 +36,7 @@ const EVENT_TYPE_COLORS: Record<string, { bg: string; text: string; border: stri
     closed_club: { bg: 'bg-amber-500/15 dark:bg-amber-400/20', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-300/40 dark:border-amber-500/30', dot: 'bg-amber-500' },
 };
 
-const DEFAULT_COLOR = { bg: 'bg-brand/10', text: 'text-brand', border: 'border-brand/20', dot: 'bg-brand' };
+const DEFAULT_COLOR = { bg: 'bg-brand/15 dark:bg-brand/20', text: 'text-brand', border: 'border-brand/30 dark:border-brand/40', dot: 'bg-brand' };
 
 const MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -46,9 +46,10 @@ const MONTH_NAMES = [
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function formatTime(date: Date) {
-    return formatISTTime(date, {
-        hour: 'numeric', minute: '2-digit', hour12: true
+    const t = formatISTTime(date, {
+        hour: '2-digit', minute: '2-digit', hour12: true
     });
+    return t.toUpperCase();
 }
 
 function formatEventType(t?: string) {
@@ -318,38 +319,29 @@ const LandingPage: React.FC = () => {
             <main>
                 {/* ====== Hero ====== */}
                 <section className="relative z-10 text-center px-4 sm:px-6 3xl:px-12 pt-8 sm:pt-12 md:pt-14 3xl:pt-20 4k:pt-24 pb-5 sm:pb-7 3xl:pb-10 max-w-3xl 3xl:max-w-5xl 4k:max-w-6xl mx-auto">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        className="inline-flex items-center gap-2 px-3.5 py-1.5 3xl:px-5 3xl:py-2 rounded-full border border-brand/20 bg-brand/5 mb-4 sm:mb-5 3xl:mb-8"
+                    <div
+                        className="inline-flex items-center gap-2 px-3.5 py-1.5 3xl:px-5 3xl:py-2 rounded-full border border-brand/20 bg-brand/5 mb-4 sm:mb-5 3xl:mb-8 animate-fade-in-up"
                     >
                         <Sparkles size={14} className="text-brand 3xl:scale-125" />
                         <span className="text-xs sm:text-sm 3xl:text-base font-semibold text-brand">Campus Event Calendar</span>
-                    </motion.div>
+                    </div>
 
-                    <motion.h1
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0 }}
-                        className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl 3xl:text-6xl 4k:text-7xl font-extrabold tracking-tighter text-textPrimary leading-[1.1] pb-1"
+                    <h1
+                        className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl 3xl:text-6xl 4k:text-7xl font-extrabold tracking-tighter text-textPrimary leading-[1.1] pb-1 animate-fade-in-up"
                     >
                         Discover What's
                         <br />
                         <span className="text-gradient-heading">
                             Happening on Campus
                         </span>
-                    </motion.h1>
+                    </h1>
 
-                    <motion.p
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="mt-3.5 sm:mt-4 3xl:mt-6 text-sm sm:text-base 3xl:text-lg 4k:text-xl text-textSecondary max-w-lg 3xl:max-w-2xl mx-auto leading-relaxed font-normal"
+                    <p
+                        className="mt-3.5 sm:mt-4 3xl:mt-6 text-sm sm:text-base 3xl:text-lg 4k:text-xl text-textSecondary max-w-lg 3xl:max-w-2xl mx-auto leading-relaxed font-normal animate-fade-in-up"
                     >
                         Browse upcoming events from clubs across campus.
                         Find something you love, or sign in to book your own venue.
-                    </motion.p>
+                    </p>
                 </section>
 
                 {/* ====== Legend ====== */}
@@ -426,22 +418,22 @@ const LandingPage: React.FC = () => {
                             </div>
                         ) : (() => {                            // Centralized layout constants — adaptive across mobile, tablet, laptop, and ultra-wide screens
                             const L = {
-                                cellPad:      isMobile ? 3 : isLargeScreen ? 6 : 5,    // compact on mobile, spacious on large screens
-                                dayNumH:      isMobile ? 20 : isLargeScreen ? 26 : 24,  // sleek day number
+                                cellPad:      isMobile ? 0 : isLargeScreen ? 6 : 5,    // no padding on mobile to maximize touch target
+                                dayNumH:      isMobile ? 24 : isLargeScreen ? 26 : 24,  // sleek day number
                                 dayNumMb:     isMobile ? 2 : 3,                        // margin below number
-                                barH:         isMobile ? 20 : isLargeScreen ? 24 : 22,  // event bar height
-                                barGap:       3,                                       // gap between rows
-                                maxSlots:     isLargeScreen ? 3 : 2,                   // show 3 events on large screens before overflow
+                                barH:         isMobile ? 36 : isLargeScreen ? 32 : 28,  // Event bar height explicitly increased to support 8px vertical padding
+                                barGap:       4,                                       // gap between rows
+                                maxSlots:     isMobile ? 1 : isTablet ? 1 : isLargeScreen ? 3 : 2,
                                 barMargin:    isMobile ? 2 : 4,                        // ml/mr on bars
-                                barFont:      isMobile ? 10 : isLargeScreen ? 12 : 11, // event name font
-                                barPadX:      isMobile ? 4 : isLargeScreen ? 7 : 6,    // horizontal padding in bars
-                                overflowFont: isMobile ? 10 : 11,                      // "+N more" font
+                                barFont:      isMobile ? 12 : isLargeScreen ? 12 : 11, // event name font
+                                barPadX:      12,                                      // exact 12px horizontal padding
+                                overflowFont: isMobile ? 12 : 11,
                             };
                             // Derived values
-                            const overlayTop = L.cellPad + L.dayNumH + L.dayNumMb;
+                            const overlayTop = isMobile ? (L.dayNumH + L.dayNumMb + 4) : (L.cellPad + L.dayNumH + L.dayNumMb);
                             const rowH = L.barH + L.barGap;
-                            const overflowH = isMobile ? 14 : 16;
-                            const emptyMinH = isMobile ? 46 : isTablet ? 72 : isLargeScreen ? 116 : 94;
+                            const overflowH = isMobile ? 36 : 16; // larger overflow touch target
+                            const emptyMinH = isMobile ? 80 : isTablet ? 72 : isLargeScreen ? 116 : 94; // minimum cell height
 
                             return (
                             <div className="flex flex-col border-x border-borderSoft/30">
@@ -498,10 +490,10 @@ const LandingPage: React.FC = () => {
                                                         }}
                                                         className={`
                                                         border-r border-borderSoft/20 last:border-r-0
-                                                        transition-colors ${dayEventsForCell.length > 0 ? 'cursor-pointer' : 'cursor-default'}
+                                                        transition-colors ${dayEventsForCell.length > 0 ? 'cursor-pointer hover:bg-hoverSoft/40' : 'cursor-default'}
                                                         ${isToday ? 'bg-brand/4 dark:bg-brand/6' : ''}
                                                         ${!isCurrentMonth ? 'opacity-40' : ''}
-                                                        hover:bg-hoverSoft/40
+                                                        ${isMobile ? '' : ''}
                                                     `}
                                                         style={{
                                                             padding: L.cellPad,
@@ -569,11 +561,12 @@ const LandingPage: React.FC = () => {
                                                         <button
                                                             key={`${we.event.id}-${eIdx}`}
                                                             onClick={() => setSelectedEvent(we.event)}
+                                                            aria-label={we.event.eventName}
                                                             className={`
                                                             pointer-events-auto flex items-center justify-start text-left font-medium overflow-hidden
-                                                            transition-all hover:brightness-95 border cursor-pointer select-none
-                                                            ${c.bg} ${c.text} ${c.border}
-                                                            ${we.isStart ? 'rounded-l sm:rounded-l-md' : 'rounded-l-none border-l-0'}
+                                                            transition-all cursor-pointer select-none border-t border-b border-r
+                                                            ${c.bg} ${c.text} border-transparent hover:brightness-95
+                                                            ${we.isStart ? 'rounded-l sm:rounded-l-md border-l-[3px]' : 'rounded-l-none border-l-0'}
                                                             ${we.isEnd ? 'rounded-r sm:rounded-r-md' : 'rounded-r-none border-r-0'}
                                                         `}
                                                             style={{

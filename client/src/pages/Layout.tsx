@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
     Archive,
+    BarChart3,
     Calendar,
     CalendarDays,
     CalendarPlus,
@@ -22,7 +23,6 @@ import { toast } from 'sonner';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
 import { GdgFooterCredit } from '../components/GdgFooterCredit';
 import { Logo } from '../components/Logo';
-import NotificationPanel from '../components/NotificationPanel';
 import { ThemeToggle } from '../components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Button } from '../components/ui/button';
@@ -40,10 +40,11 @@ const adminLinks = [
   { to: '/', label: 'Dashboard', short: 'Home', icon: ShieldCheck, end: true },
   { to: '/admin/requests', label: 'Slot Requests', short: 'Slots', icon: ClipboardList },
   { to: '/admin/event-requests', label: 'Event Registrations', short: 'Events', icon: CalendarDays },
+  { to: '/admin/event-reports', label: 'Event Reports', short: 'Reports', icon: FileText },
   { to: '/admin/clubs', label: 'Clubs', short: 'Clubs', icon: Users },
   { to: '/admin/venues', label: 'Venues', short: 'Venues', icon: MapPin },
-  { to: '/admin/event-reports', label: 'Event Reports', short: 'Reports', icon: FileText },
   { to: '/members', label: 'Members', short: 'Members', icon: Users },
+  { to: '/admin/analytics', label: 'Analytics', short: 'Stats', icon: BarChart3 },
   { to: '/archives', label: 'Archives', short: 'Archives', icon: Archive },
 ];
 
@@ -171,7 +172,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           >
             <div className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-hoverSoft transition-colors group">
                <Avatar className={cn("h-10 w-10 border border-borderSoft shrink-0 shadow-sm transition-all group-hover:border-brand/50 ring-2 ring-brand/10", user.logoBg === 'white' ? 'bg-white' : user.logoBg === 'dark' ? 'bg-slate-900' : 'bg-transparent')}>
-                <AvatarImage src={user.logoUrl || ''} alt={user.name} className="object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)]" />
+                <AvatarImage src={user.logoUrl || ''} alt={user.name} width={40} height={40} className="object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.12)] aspect-square" />
                 <AvatarFallback className="bg-brand text-white font-semibold text-sm flex items-center justify-center">
                   {user.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
@@ -257,7 +258,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                   <div className="p-3 border-t border-borderSoft">
                     <div className="flex items-center gap-3 p-2 rounded-xl bg-hoverSoft/50">
                       <Avatar className={cn("h-9 w-9 border border-borderSoft shrink-0 shadow-sm", user.logoBg === 'white' ? 'bg-white' : user.logoBg === 'dark' ? 'bg-slate-900' : 'bg-transparent')}>
-                        <AvatarImage src={user.logoUrl || ''} alt={user.name} className="object-contain" />
+                        <AvatarImage src={user.logoUrl || ''} alt={user.name} width={36} height={36} className="object-contain aspect-square" />
                         <AvatarFallback className="bg-brand text-white font-semibold text-xs flex items-center justify-center">
                           {user.name.charAt(0).toUpperCase()}
                         </AvatarFallback>
@@ -274,14 +275,15 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <ThemeToggle />
+            <ThemeToggle className="h-9 w-9" />
             <Button
               variant="ghost"
               size="sm"
               onClick={onLogout}
-              className="flex items-center gap-2 text-textMuted hover:text-error hover:bg-error/10 rounded-lg h-9 px-2.5 sm:px-3 font-medium transition-all border border-borderSoft/60 shadow-sm bg-card/80 backdrop-blur cursor-pointer"
+              className="flex items-center justify-center gap-2 text-textMuted hover:text-error hover:bg-error/10 rounded-lg h-9 w-9 sm:w-auto px-0 sm:px-3 font-medium transition-all border border-borderSoft/60 shadow-sm bg-card/80 backdrop-blur cursor-pointer"
+              aria-label="Logout"
             >
-              <LogOut size={15} />
+              <LogOut className="h-4 w-4 shrink-0" />
               <span className="hidden sm:inline">Logout</span>
             </Button>
           </div>
@@ -289,14 +291,14 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
         {/* Page Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 3xl:p-12 mb-bottom-nav">
-          <div className="max-w-7xl 3xl:max-w-[1800px] 4k:max-w-[2400px] uhd:max-w-[3200px] mx-auto w-full">
-            <AnimatePresence mode="wait">
+          <div className="max-w-7xl 3xl:max-w-[1800px] 4k:max-w-[2400px] uhd:max-w-[3200px] mx-auto w-full flex flex-col h-full">
+            <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={location.pathname}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+                transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
               >
                 {children}
               </motion.div>

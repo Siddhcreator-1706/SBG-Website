@@ -226,12 +226,7 @@ const AdminRequests: React.FC = () => {
   );
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-textPrimary tracking-tight leading-tight">
@@ -244,7 +239,7 @@ const AdminRequests: React.FC = () => {
 
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-3 w-full xl:w-auto mt-4 xl:mt-0">
           <Select value={filterClub} onValueChange={setFilterClub}>
-            <SelectTrigger className="w-full sm:flex-1 sm:min-w-[140px] rounded-xl">
+            <SelectTrigger id="admin-requests-filter-club" aria-label="Filter by Club" className="w-full sm:flex-1 sm:min-w-[140px] rounded-xl">
               <SelectValue placeholder="All Clubs" />
             </SelectTrigger>
             <SelectContent>
@@ -258,7 +253,7 @@ const AdminRequests: React.FC = () => {
           </Select>
 
           <Select value={filterVenue} onValueChange={setFilterVenue}>
-            <SelectTrigger className="w-full sm:flex-1 sm:min-w-[140px] rounded-xl">
+            <SelectTrigger id="admin-requests-filter-venue" aria-label="Filter by Venue" className="w-full sm:flex-1 sm:min-w-[140px] rounded-xl">
               <SelectValue placeholder="All Venues" />
             </SelectTrigger>
             <SelectContent>
@@ -272,7 +267,7 @@ const AdminRequests: React.FC = () => {
           </Select>
 
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-full sm:flex-1 sm:min-w-[140px] rounded-xl">
+            <SelectTrigger id="admin-requests-filter-status" aria-label="Filter by Status" className="w-full sm:flex-1 sm:min-w-[140px] rounded-xl">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
@@ -290,7 +285,10 @@ const AdminRequests: React.FC = () => {
               size={18}
             />
             <Input
+              id="admin-requests-search"
+              name="searchRequests"
               type="text"
+              aria-label="Search requests"
               placeholder="Search requests..."
               className="pl-10 w-full rounded-xl"
               value={searchTerm}
@@ -372,9 +370,9 @@ const AdminRequests: React.FC = () => {
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-hoverSoft text-textMuted mb-4">
               <Filter size={24} />
             </div>
-            <h3 className="text-lg font-medium text-textPrimary">
+            <h2 className="text-lg font-semibold text-textPrimary">
               No requests found
-            </h3>
+            </h2>
             <p className="text-textMuted mt-1">
               Try adjusting your search or filters.
             </p>
@@ -461,7 +459,7 @@ const AdminRequests: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </motion.div>
+    </div>
   );
 };
 
@@ -728,6 +726,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                       ? "Cannot reject past bookings whose end time has already elapsed"
                       : "Reject this venue"
                   }
+                  aria-label="Reject this venue booking"
                   disabled={isProcessingAction || isPast}
                 >
                   <XCircle size={18} />
@@ -747,6 +746,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                       ? "Cannot reject past bookings whose end time has already elapsed"
                       : "Reject all venues"
                   }
+                  aria-label="Reject all venue bookings in this request"
                   disabled={isProcessingAction || isPast}
                 >
                   <XCircle size={18} />
@@ -767,6 +767,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                       ? "Cannot approve past bookings whose end time has already elapsed"
                       : "Approve this venue"
                   }
+                  aria-label="Approve this venue booking"
                   disabled={isProcessingAction || isPast}
                 >
                   <CheckCircle size={18} />
@@ -786,6 +787,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                       ? "Cannot approve past bookings whose end time has already elapsed"
                       : "Approve all venues"
                   }
+                  aria-label="Approve all venue bookings in this request"
                   disabled={isProcessingAction || isPast}
                 >
                   <CheckCircle size={18} />
@@ -802,6 +804,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                   }}
                   className="text-textMuted hover:text-primary h-8 w-8 rounded-full"
                   title="Edit booking timings"
+                  aria-label="Edit booking timings"
                   disabled={isProcessingAction}
                 >
                   <Pencil size={16} />
@@ -822,6 +825,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                       ? "Cannot change status of past bookings"
                       : "Move to pending"
                   }
+                  aria-label="Move booking to pending"
                   disabled={isProcessingAction || isPast}
                 >
                   <RotateCcw size={18} />
@@ -841,6 +845,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                       ? "Cannot change status of past bookings"
                       : "Move all to pending"
                   }
+                  aria-label="Move all bookings in this request to pending"
                   disabled={isProcessingAction || isPast}
                 >
                   <RotateCcw size={18} />
@@ -857,6 +862,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                   }}
                   className="text-textMuted hover:text-error h-8 w-8 rounded-full"
                   title="Delete this booking permanently"
+                  aria-label="Delete this booking permanently"
                   disabled={isProcessingAction}
                 >
                   <Trash2 size={16} />
@@ -872,6 +878,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                   }}
                   className="text-textMuted hover:text-error h-8 w-8 rounded-full"
                   title="Delete all venues in this booking"
+                  aria-label="Delete all venues in this booking"
                   disabled={isProcessingAction}
                 >
                   <Trash2 size={16} />
@@ -977,12 +984,6 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                           {booking.status.toUpperCase()}
                         </Badge>
 
-                        {/* Spacer to match Send Mail button on the main row so status badge aligns with the column */}
-                        <div
-                          className="w-[98px] hidden sm:block shrink-0"
-                          aria-hidden="true"
-                        />
-
                         <div className="flex items-center justify-end gap-1 w-[140px]">
                           {booking.status !== "rejected" && (
                             <Button
@@ -997,6 +998,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                                   ? "Cannot reject past bookings whose end time has already elapsed"
                                   : "Reject this venue"
                               }
+                              aria-label="Reject this venue booking"
                               disabled={isProcessingAction || isBookingPast}
                             >
                               <X size={16} />
@@ -1016,6 +1018,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                                   ? "Cannot approve past bookings whose end time has already elapsed"
                                   : "Approve this venue"
                               }
+                              aria-label="Approve this venue booking"
                               disabled={isProcessingAction || isBookingPast}
                             >
                               <Check size={16} />
@@ -1028,6 +1031,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                             onClick={() => onEdit(booking)}
                             className="h-8 w-8 p-0 text-textMuted hover:text-primary"
                             title="Edit booking timings"
+                            aria-label="Edit venue booking timings"
                             disabled={isProcessingAction}
                           >
                             <Pencil size={14} />
@@ -1045,6 +1049,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                                   ? "Cannot change status of past bookings"
                                   : "Move to pending"
                               }
+                              aria-label="Move venue booking to pending"
                               disabled={isProcessingAction || isBookingPast}
                             >
                               <RotateCcw size={16} />
@@ -1056,6 +1061,7 @@ const AdminRequestRow: React.FC<AdminRequestRowProps> = ({
                             onClick={() => handleDelete([booking.id])}
                             className="h-8 w-8 p-0 text-textMuted hover:text-error"
                             title="Delete this venue booking"
+                            aria-label="Delete this venue booking"
                             disabled={isProcessingAction}
                           >
                             <Trash2 size={14} />

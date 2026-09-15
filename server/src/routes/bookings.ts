@@ -6,7 +6,6 @@ import authMiddleware from '../middleware/auth';
 import { io } from '../server';
 import { CO_CURRICULAR_LIMIT, countCoCurricularBookings, getSemesterRange } from '../services/semesterUtils';
 
-
 const router = express.Router();
 
 router.get('/venues', async (_req, res) => {
@@ -22,14 +21,49 @@ router.get('/venues', async (_req, res) => {
   }
 });
 
+router.get('/clubs/:id/logo', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rows } = await db.query('SELECT logo_url FROM clubs WHERE id = $1', [id]);
+    
+    if (rows.length === 0 || !rows[0].logo_url) {
+      return res.status(404).send('Not found');
+    }
+
+    const dataUri = rows[0].logo_url;
+    // If it is a Base64 data URI, parse it and serve as a real image
+    if (dataUri.startsWith('data:')) {
+      const matches = dataUri.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        const buffer = Buffer.from(matches[2], 'base64');
+        res.set('Content-Type', matches[1]);
+        res.set('Cache-Control', 'public, max-age=86400'); // Cache in browser for 1 day
+        return res.send(buffer);
+      }
+    }
+    
+    // If it's just a regular URL, redirect to it
+    return res.redirect(dataUri);
+  } catch (error: any) {
+    return res.status(500).send('Internal Error');
+  }
+});
+
 router.get('/clubs', async (_req, res) => {
   try {
     const cachedClubs = cache.get(CACHE_KEYS.clubs);
     if (cachedClubs) return res.json(cachedClubs);
 
-    const { rows } = await db.query('SELECT id, name, organization_type, group_category, logo_url, member_tag, logo_bg, description, key_activities, linkedin_url, instagram_url, youtube_url, website_url, email FROM clubs ORDER BY name ASC');
-    cache.set(CACHE_KEYS.clubs, rows);
-    return res.json(rows);
+    const { rows } = await db.query('SELECT id, name, organization_type, group_category, member_tag, logo_bg, description, key_activities, linkedin_url, instagram_url, youtube_url, website_url, email FROM clubs ORDER BY name ASC');
+    
+    // Inject dynamic logo URL instead of sending massive Base64 strings in the JSON array
+    const optimizedRows = rows.map(club => ({
+      ...club,
+      logo_url: `/api/clubs/${club.id}/logo`
+    }));
+
+    cache.set(CACHE_KEYS.clubs, optimizedRows);
+    return res.json(optimizedRows);
   } catch (error: any) {
     return res.status(500).json({ error: error.message });
   }
@@ -224,16 +258,16 @@ router.delete('/my-bookings/:id', authMiddleware, async (req, res) => {
         [req.user.email]
       );
 
-      if (clubResult.rows.length === 0) {
-        return res.status(404).json({ error: 'Club not found for this account' });
+      if (clubResult.rows.length > 0) {
+        clubId = clubResult.rows[0].id;
       }
-
-      clubId = clubResult.rows[0].id;
     }
 
     const checkRes = isAdmin
       ? await db.query('SELECT id, status, start_time FROM bookings WHERE id = $1', [id])
-      : await db.query('SELECT id, status, start_time FROM bookings WHERE id = $1 AND club_id = $2', [id, clubId]);
+      : clubId 
+        ? await db.query('SELECT id, status, start_time FROM bookings WHERE id = $1 AND club_id = $2', [id, clubId])
+        : await db.query('SELECT id, status, start_time FROM bookings WHERE id = $1 AND user_id = $2', [id, req.user.id]);
 
     if (checkRes.rows.length === 0) {
       return res.status(404).json({ error: 'Booking not found or not owned by you' });
