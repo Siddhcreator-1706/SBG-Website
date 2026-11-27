@@ -1,8 +1,14 @@
 import dotenv from 'dotenv';
 import path from 'path';
-import { Pool, type PoolClient } from 'pg';
+import { Pool as NeonPool, neonConfig } from '@neondatabase/serverless';
+import type { Pool as PgPool, PoolClient } from 'pg';
+import ws from 'ws';
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
+
+// Configure Neon to use WebSockets over port 443 for firewall immunity
+neonConfig.webSocketConstructor = ws;
+neonConfig.useSecureWebSocket = true;
 
 const databaseUrlRaw = process.env.DATABASE_URL;
 
@@ -16,19 +22,18 @@ if (!process.env.JWT_SECRET) {
   console.error('JWT_SECRET is missing from server/.env');
 }
 
-export const db = new Pool({
+export const db: PgPool = new NeonPool({
   connectionString: databaseUrl,
-  ssl: databaseUrl?.includes('localhost') ? false : { rejectUnauthorized: false },
   max: 15,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 30000, // 30s to handle Neon/Cloud PostgreSQL cold-start wakeups
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 10000,
-});
+  connectionTimeoutMillis: 30000, // 30s to handle Neon cold-start wakeups
+}) as unknown as PgPool;
+
+// Re-export PoolClient for consumers
+export type { PoolClient };
 
 // Catch idle client errors so they don't crash the Node.js process
-// The pg Pool will automatically remove and replace the faulty client on the next query
-db.on('error', (err, _client) => {
+db.on('error', (err: Error) => {
   console.error('Unexpected error on idle database client', err);
 });
 
@@ -50,3 +55,5 @@ export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>)
     client.release();
   }
 }
+
+
